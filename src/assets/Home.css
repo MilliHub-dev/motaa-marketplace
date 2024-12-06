@@ -1,0 +1,93 @@
+
+
+@media screen and (min-width: 300px) {
+  .hero{
+    padding: 10% 2rem;
+  }
+  .hero-title{
+    font-size: 34px;
+    font-weight: 600;
+  }
+  .header{
+    /* background-position-x: 25.2%; */
+    background-position-x: 60%;
+  }
+  .title{
+    font-size: 34px;
+    font-weight: 600;
+  }
+
+  .subtitle{
+    font-size: 20px;
+  }
+}
+
+@media screen and (min-width: 425px) {
+  .hero{
+    padding: 10% 2rem;
+  }
+  .hero-title{
+    font-size: 40px;
+    font-weight: 600;
+  }
+}
+
+
+@media screen and (min-width: 768px) {
+  .hero{
+    padding: 4rem;
+    padding-top: 10%;
+  }
+
+  .hero-title{
+    font-size: 67px;
+    font-weight: 600;
+  }
+}
+
+
+@media screen and (min-width: 500px) {
+  .feature-card{
+    max-width: 300px;
+  }
+  
+  .title{
+    font-size: 43px;
+    font-weight: 600;
+  }
+
+  .subtitle{
+    font-size: 34px;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  .countdown .subtitle{
+    font-size: 17px !important;
+  }
+
+  .timer .smalltext {
+    font-size: 13px !important;
+  }
+}
+
+
+.feature-card{
+  width: 100%;
+  min-height: 450px;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.192);
+  /* background-blend-mode: overlay; */
+}
+
+
+
+
+
+
+
+
+
+
+
+
