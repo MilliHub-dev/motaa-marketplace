@@ -52,7 +52,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-    baseURL: 'http://localhost:8000/api',
+    baseURL: 'https://motaadev.pythonanywhere.com/api',
+    // baseURL: 'http://localhost:8000/api',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
