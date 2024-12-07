@@ -30,7 +30,7 @@ import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
 import { useNavigate, useSearchParams } from "react-router-dom";
 // import { SearchIcon, StarIcon, ZapIcon } from '@chakra-ui/icons';
-import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiSearch2Line } from 'react-icons/ri'
+import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
 import { motion } from "framer-motion";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { LocationBreadcrumb } from "../../../components";
@@ -146,7 +146,7 @@ export const MechanicSearchPage = ({ props }) => {
                     matches?.map((mech, idx) =>
                         <Card key={idx} shadow={'lg'} my={3}>
                             <CardBody>
-                                <Flex gap={4}>
+                                <Flex gap={4} flexWrap={'wrap'}>
                                     <Avatar size="lg" name={mech?.user?.name} src="/placeholder.svg?height=50&width=50" />
                                     <Box flex={1}>
                                         <Flex justify="space-between" alignItems={'center'} mb={2}>
@@ -155,7 +155,12 @@ export const MechanicSearchPage = ({ props }) => {
                                                 <Text fontSize="lg" fontWeight="medium">   </Text>
                                                 <Text fontSize="sm" color="gray.500">{mech?.location}</Text>
                                             </Box>
-                                            <Badge title="Availablility" color={mech?.available ? 'whatsapp' : 'gray'} textTransform={'capitalize'}>
+                                            <Badge title="Availablility"
+                                             textTransform={'capitalize'}
+                                             fontSize={'13px'}
+                                             rounded={'lg'}
+                                             colorScheme={mech?.available ? 'green' : 'gray'}
+                                            >
                                                 {mech?.available ? "Available" : "Not Available"}
                                             </Badge>
                                         </Flex>
@@ -189,10 +194,10 @@ export const MechanicSearchPage = ({ props }) => {
                                             </Text>
                                         }
 
-                                        <Flex gap={3}>
-                                            <Button my={3} variant={'outlined'} colorScheme="black"> Contact {mech?.user?.name.split(' ')[0]} </Button>
-                                            <Button my={3} colorScheme="blue" bg={'primary'}> Hire {mech?.user?.name} </Button>
-                                        </Flex>
+                                        <Wrap gap={3} my={2}>
+                                            <Button w={{base: '100%', md: 'auto' }} variant={'ghost'} colorScheme={'yellow'} leftIcon={<RiMessage2Line />}>  Contact {mech?.user?.name.split(' ')[0]} </Button>
+                                            <Button w={{base: '100%', md: 'auto' }} colorScheme="blue" bg={'primary'}> Hire {mech?.user?.name} </Button>
+                                        </Wrap>
                                     </Box>
                                 </Flex>
                             </CardBody>

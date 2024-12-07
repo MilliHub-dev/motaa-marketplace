@@ -3,14 +3,20 @@ import {
     Box,
     Button,
     Divider,
+    Drawer,
+    DrawerBody,
+    DrawerCloseButton,
+    DrawerContent,
+    DrawerHeader,
     Flex,
     Heading,
     HStack,
     Input,
     Text,
+    useMediaQuery,
     VStack,
 } from "@chakra-ui/react";
-import { FiSend } from "react-icons/fi";
+import { FiMenu, FiSend } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { ChatRoomSkeleton } from "../../../components/loaders";
   
@@ -37,8 +43,10 @@ export const ChatRoom = () => {
     };
 
     const [activeChat, setActiveChat] = useState(1);
+    const [showChats, setChatVisibility] = useState(false);
     const [loading, setLoading] = useState(true);
     const [currentMessages, setCurrentMessages] = useState(messages[activeChat]);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
         setTimeout(() => setLoading(false), 2500);
@@ -75,38 +83,74 @@ export const ChatRoom = () => {
     }
   
     return (
-        <Flex h="100vh" bg="gray.50" position={'fixed'} left={'0px'} w={'100%'} zIndex={'10'}>
+        <Flex h="100vh" bg="gray.50" position={'fixed'} left={'0px'} w={'100%'} zIndex={'1'}>
             {/* Chat List */}
-            <Box w="30%" bg="white" p={4} shadow="md" borderRight={'1px solid #cbcbcb'}>
-                <Heading size="md" mb={4}> Messages </Heading>
-                <VStack align="stretch" spacing={4}>
-                    {
-                        chats.map((chat) => 
-                            <Flex
-                             key={chat.id}
-                             p={3}
-                             bg={activeChat === chat.id ? "blue.200" : "gray.100"}
-                             borderRadius="lg"
-                             align="center"
-                             cursor="pointer"
-                             onClick={() => handleChatSelect(chat.id)}
-                             _hover={{ bg: "blue.100" }}
-                            >
-                                <Avatar size="sm" mr={3} />
-                                <Box>
-                                    <Text fontWeight="bold"> {chat.name} </Text>
-                                    <Text fontSize="sm" color="gray.500"> {chat.lastMessage} </Text>
-                                </Box>
-                            </Flex>
-                        )
-                    }
-                </VStack>
-            </Box>
+            {isMobile ? 
+                <Drawer placement="left" isOpen={showChats} onClose={() => setChatVisibility(false)}>
+                    <DrawerContent>
+                        <DrawerHeader py={7}>
+                            <DrawerCloseButton />
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <VStack align="stretch" spacing={4}>
+                                {
+                                    chats.map((chat) => 
+                                        <Flex
+                                        key={chat.id}
+                                        p={3}
+                                        bg={activeChat === chat.id ? "blue.200" : "gray.100"}
+                                        borderRadius="lg"
+                                        align="center"
+                                        cursor="pointer"
+                                        // onClick={() => {handleChatSelect(chat.id); setChatVisibility(false)}}
+                                        onClick={() => handleChatSelect(chat.id)}
+                                        _hover={{ bg: "blue.100" }}
+                                        >
+                                            <Avatar size="sm" mr={3} />
+                                            <Box>
+                                                <Text fontWeight="bold"> {chat.name} </Text>
+                                                <Text fontSize="sm" color="gray.500"> {chat.lastMessage} </Text>
+                                            </Box>
+                                        </Flex>
+                                    )
+                                }
+                            </VStack>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+            :
+                <Box w="30%" bg="white" p={4} shadow="md" borderRight={'1px solid #cbcbcb'}>
+                    <Heading size="md" mb={4}> Messages </Heading>
+                    <VStack align="stretch" spacing={4}>
+                        {
+                            chats.map((chat) => 
+                                <Flex
+                                key={chat.id}
+                                p={3}
+                                bg={activeChat === chat.id ? "blue.200" : "gray.100"}
+                                borderRadius="lg"
+                                align="center"
+                                cursor="pointer"
+                                onClick={() => handleChatSelect(chat.id)}
+                                _hover={{ bg: "blue.100" }}
+                                >
+                                    <Avatar size="sm" mr={3} />
+                                    <Box>
+                                        <Text fontWeight="bold"> {chat.name} </Text>
+                                        <Text fontSize="sm" color="gray.500"> {chat.lastMessage} </Text>
+                                    </Box>
+                                </Flex>
+                            )
+                        }
+                    </VStack>
+                </Box>
+            }
 
             {/* Chat Window */}
             <Flex flex={1} direction="column" bg="white" p={4}>
                 {/* Chat Header */}
                 <Flex align="center" mb={4} shadow="sm" p={3} bg="gray.50">
+                    <Button onClick={() => setChatVisibility(true)} variant={'unstyled'}><FiMenu className="icon" /></Button>
                     <Avatar size="sm" mr={3} />
                     <Box>
                         <Heading size="sm"> {chats.find((chat) => chat.id === activeChat)?.name} </Heading>

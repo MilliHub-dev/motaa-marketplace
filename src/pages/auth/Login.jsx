@@ -71,7 +71,7 @@ export const LoginView = ({ ...props }) => {
     }
 
     return(
-        <CenteredLayout>
+        <CenteredLayout py={'2rem'}>
             <Box as={motion.div} style={{ width: '90%', maxWidth: '600px', margin: 'auto', placeSelf: 'center', paddingTop: '3vh', paddingBottom: '5%'}} px={3}>
                 <Image src="/assets/images/motaa-logo-3.png" alt="Logo" mb={4} mx={'auto'} width="100px" />
                 <Heading textAlign='center' my={4} className="subtitle"> Welcome back </Heading>

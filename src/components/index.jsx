@@ -193,7 +193,7 @@ export const SearchBar = ({ onSearch, ...props }) => {
 }
 
 
-export const CenteredLayout = ({ children, props, wrapperProps }) => {
+export const CenteredLayout = ({ children, wrapperProps, ...props }) => {
     return(
         <Box as={Flex} w={'100%'} justifyContent={'center'} align={'center'} flex={1} minH={'40vh'} {...wrapperProps}>
             <Box flex={1} {...props}>{children}</Box>

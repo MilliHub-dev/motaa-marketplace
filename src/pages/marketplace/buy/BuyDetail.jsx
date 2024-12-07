@@ -1,4 +1,4 @@
-import { Badge, Box, Button, Container, Divider, Flex, Heading, Icon, Image, List, ListItem, Stack, Text } from "@chakra-ui/react"
+import { Avatar, Badge, Box, Button, Container, Divider, Flex, Heading, Icon, Image, List, ListItem, Stack, Text } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { GlobalStore } from "../../../App";
@@ -49,24 +49,24 @@ const BuyDetail = ({ }) => {
                 <Text> {listing?.vehicle.dealer.location} </Text>
             </Box>
 
-            <Flex display={{base: 'block', md: 'flex'}}my={5} justifyContent={'space-between'} gap={4} flexWrap={'wrap-reverse'} alignItems={'flex-end'}>
-                <Stack flex={{md: 8/12, lg: (8/12)}}>
+            <Flex my={5} justifyContent={'space-between'} gap={4} flexWrap={'wrap'} alignItems={'flex-start'}>
+                <Stack flex={{base: 1, md: 8/12, lg: (8/12)}} w={{base: '100%'}}>
                     <ImageCarousel w={'100%'} height={'350px'} images={listing?.vehicle?.images} />
                 </Stack>
 
-                <Box flex={{md: 4/12, lg: (4/12)}} border={'2px solid lavender'} borderRadius={'10px'} p={3}>
-                    <Flex>
-                        <Image  />
-
+                <Box flex={{base: 1, md: 4/12, lg: (4/12)}} border={'2px solid lavender'} borderRadius={'10px'} p={3}>
+                    <Flex gap={2}>
+                        <Avatar name={listing?.vehicle?.dealer?.business_name} src={listing?.vehicle?.dealer?.logo}  />
                         <Stack>
                             <Heading size={'sm'}> {listing?.vehicle?.dealer?.business_name} </Heading>
                             <Text size={'sm'} className="small"> {listing?.vehicle.dealer.location} </Text>
                         </Stack>
-
                     </Flex>
 
-                    <Badge> Price: </Badge>
-                    <Heading size={'lg'}>₦<span className="title">{commaInt(listing?.price)}</span></Heading>
+                    <Box mt={3}>
+                        <Badge> Price: </Badge>
+                        <Heading size={'md'}><span className="subtitle">₦{commaInt(listing?.price)}</span></Heading>
+                    </Box>
 
                     <Divider my={5} />
 
@@ -100,12 +100,12 @@ const BuyDetail = ({ }) => {
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Power: </span>
-                                <span> {listing.vehicle.mileage} </span>
+                                <span> {listing.vehicle.power || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Engine size: </span>
-                                <span> {listing.vehicle.mileage} </span>
+                                <span> {listing.vehicle.engine_size || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
@@ -118,32 +118,32 @@ const BuyDetail = ({ }) => {
                         <List w={{ base: '100%', md: '50%'}}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Custom Duty: </span>
-                                <span> {listing.vehicle.mileage} miles </span>
+                                <span> {listing.vehicle.custom_duty ? 'Yes' : 'No'} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Doors: </span>
-                                <span> {listing.vehicle.transmission} </span>
+                                <span> {listing.vehicle.doors || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Seats: </span>
-                                <span> {listing.vehicle.condition} </span>
+                                <span> {listing.vehicle.seats || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Drivetrain: </span>
-                                <span> {listing.vehicle.mileage} </span>
+                                <span> {listing.vehicle.drivetrain || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Vehicle type: </span>
-                                <span> {listing.vehicle.mileage} </span>
+                                <span> {listing.vehicle.vehicle_type || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Color: </span>
-                                <span> {listing.vehicle.fuel_system} </span>
+                                <span> {listing.vehicle.color || "N/A"} </span>
                             </ListItem>
 
                         </List>
@@ -155,24 +155,20 @@ const BuyDetail = ({ }) => {
 
                     <List w={{ base: '100%', md: '50%'}}>
                         <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
-                            <span> Custom Duty: </span>
-                            <span> {listing.vehicle.mileage} miles </span>
+                            <span> Top Speed: </span>
+                            <span> {listing.vehicle?.top_speed || "N/A"} </span>
                         </ListItem>
 
                         <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
-                            <span> Doors: </span>
-                            <span> {listing.vehicle.transmission} </span>
-                        </ListItem>
-
-                        <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
-                            <span> Seats: </span>
-                            <span> {listing.vehicle.condition} </span>
+                            <span> Horse Power: </span>
+                            <span> {listing.vehicle?.horse_power || "N/A"} </span>
                         </ListItem>
                     </List>
                 </Box>
 
                 <Box my={5}>
-                    <Heading className="subtitle" size={'md'} mb={4}> Seller note </Heading>
+                    <Heading className="subtitle" size={'md'} mb={4}> Seller notes </Heading>
+                    <Text border={'1px solid grey'} dangerouslySetInnerHTML={{__html: listing.notes || "No additional info."}} p={3} rounded={'md'}></Text>
                 </Box>  
             </Stack>
         </Container>

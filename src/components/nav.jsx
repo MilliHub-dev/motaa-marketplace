@@ -14,6 +14,7 @@ import {
     Progress,
     DrawerFooter,
     Container,
+    FadeIn,
     Input,
 } from '@chakra-ui/react';
 import {motion} from 'framer-motion';
@@ -30,6 +31,7 @@ import { NavLink, Link as RLink } from 'react-router-dom';
 
 export const Navbar = ({ props }) => {
     const [navIsOpen, setNavState] = useState(false);
+    const [searchIsOpen, setSearchState] = useState(false);
     const {authUser, onLogout} = useContext(GlobalStore);
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const isLoggedIn = !!authUser;
@@ -42,6 +44,10 @@ export const Navbar = ({ props }) => {
         }
     }
 
+    function toggleSearch(){
+      setSearchState(!searchIsOpen);
+    }
+
     function hideNav(){
         setNavState(false)
     }
@@ -51,69 +57,90 @@ export const Navbar = ({ props }) => {
     }
 
     return(
-      <Box position={'sticky'} top={'0px'} bg={'white'} as={motion.div} flex={1} w={'100%'} animate={{ opacity: 1, }} initial={{ opacity: 0.6, }} transition={'.5s linear'} className='navbar' id='navbar'>
+      <Box
+       position={'sticky'}
+       top={'0px'} bg={'white'}
+       as={motion.div}
+       flex={1} w={'100%'}
+       animate={{ opacity: 1, }}
+       initial={{ opacity: 0.6, }}
+       transition={'.5s linear'}
+       className='navbar'
+       id='navbar'
+      >
         <Flex className='navbar-inner'
           alignItems={'center'}
           px={4}
           py={4}
           justifyContent={'space-between'}
           flex={1} w={'100%'}
-        >
-        <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-          <RLink to={'/'}><Image loading='eager' src='/assets/images/motaa-logo-3.png' width={'100%'} className='navbar-brand' /></RLink>
-        </Box>
+          >
+          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
+            <RLink to={'/'}><Image loading='eager' src='/assets/images/motaa-logo-3.png' width={'100%'} className='navbar-brand' /></RLink>
+          </Box>
 
-        { authUser ? (
-          <Fragment>
-            <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-              <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={4} alignItems={'center'}>
-                <Text as={RLink} to={"/"}> Home </Text>
-                <Text as={RLink} to={"/buy"}> Buy </Text>
-                <Text as={RLink} to={"/sell"}> Sell </Text>
-                <Text as={RLink} to={"/rent"}> Rent </Text>
-                <Text as={RLink} to={"/mechanics"}> Find Mechanic </Text>
+          { authUser ? (
+            <Fragment>
+              <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
+                <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={4} alignItems={'center'}>
+                  <Text as={RLink} to={"/"}> Home </Text>
+                  <Text as={RLink} to={"/buy"}> Buy </Text>
+                  <Text as={RLink} to={"/sell"}> Sell </Text>
+                  <Text as={RLink} to={"/rent"}> Rent </Text>
+                  <Text as={RLink} to={"/mechanics"}> Find Mechanic </Text>
+                </Flex>
+                {!isMobile && <SearchBar flex={1} />}
               </Flex>
-              {!isMobile && <SearchBar flex={1} />}
-            </Flex>
 
-            <Flex flexWrap={'wrap'} justifyContent={'flex-start'} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-              {isMobile && 
-                <Link><Icon viewBox='45' className='icon'><TbSearch /></Icon></Link>
+              <Flex flexWrap={'wrap'} justifyContent={'flex-start'} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+                {isMobile && 
+                  <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
+                }
+                <Link><Icon viewBox='45' className='icon'><TbBell /></Icon></Link>
+                <Link><Icon viewBox='45' className='icon'><RiShoppingCart2Line /></Icon></Link>
+                <RLink to={'/chat'}><Icon viewBox='45' className='icon'><RiMessage2Line /></Icon></RLink>
+                {/* <Link><Icon viewBox='45' className='icon'><RiAccountCircleLine /></Icon></Link> */}
+              </Flex>
+              
+              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+              </Button>
+            </Fragment>
+          ):(
+            <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
+              {!isMobile && 
+                <Fragment>
+                  <Text as={NavLink} to={"/home/#welcome"}> Home </Text>
+                  <Text as={NavLink} to={"/home/#what-we-offer"}> About </Text>
+                  <Text as={NavLink} to={"/home/#find-mechanics"}> Features </Text>
+                  <Text as={NavLink} to={"/home/#partner-with-us"}> For Businesses </Text>
+              </Fragment>
               }
-              <Link><Icon viewBox='45' className='icon'><TbBell /></Icon></Link>
-              <Link><Icon viewBox='45' className='icon'><RiShoppingCart2Line /></Icon></Link>
-              <RLink to={'/chat'}><Icon viewBox='45' className='icon'><RiMessage2Line /></Icon></RLink>
-              <Link><Icon viewBox='45' className='icon'><RiAccountCircleLine /></Icon></Link>
+              {!isLoggedIn &&
+                <Fragment>
+                  <RLink to={"/login"}><Button size={{base: 'sm', sm: 'md'}} colorScheme='yellow' variant={'ghost'}> Sign In </Button></RLink>
+                  <RLink to={"/signup/?user_type=dealer"}><Button size={{base: 'sm', sm: 'md'}} colorScheme='blue' bg={'primary'}> Register </Button></RLink>
+                </Fragment>
+              }
+              {isMobile &&
+                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+                </Button>
+              }
             </Flex>
-            
-            
-            <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-              <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-            </Button>
-          </Fragment>
-        ):(
-          <Flex flex={3/4} flexWrap={'wrap'} className='navbar-nav' gap={8} alignItems={'center'}>
-              <Text as={NavLink} to={"/home/#welcome"}> Home </Text>
-              <Text as={NavLink} to={"/home/#what-we-offer"}> About </Text>
-              <Text as={NavLink} to={"/home/#find-mechanics"}> Features </Text>
-              <Text as={NavLink} to={"/home/#partner-with-us"}> For Businesses </Text>
-              {
-                  isLoggedIn ? (
-                    <Fragment>
-                      <Button onClick={onLogout}> Sign out </Button>
-                    </Fragment>
-                  ) : (
-                      <Fragment>
-                        <RLink to={"/login"}><Button> Sign In </Button></RLink>
-                        <RLink to={"/signup/?user_type=dealer"}><Button> Register </Button></RLink>
-                      </Fragment>
-                  )
-              }
-          </Flex>
-        )}
+          )}
 
-        <Sidebar onClose={hideNav} show={navIsOpen} />
+          <Sidebar onClose={hideNav} show={navIsOpen} />
         </Flex>
+
+        {isMobile && searchIsOpen &&
+          <Fragment>
+            <Box px={2} py={2}  w={'100%'} bg="#fff">
+              <SearchBar />
+            </Box>
+          </Fragment>
+        }
+
       </Box>
     )
 }
@@ -134,20 +161,14 @@ export const Sidebar = ({ show, onClose, }) => {
                 <DrawerBody>
                   {
                     isLoggedIn ? (
-                      isMobile ?
+                      // isMobile &&
                       <Stack>
-                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/"} >Home</Text>
+                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/dashboard"}>Dashboard</Text>
+                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/"}>Home</Text>
                         <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
                         <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/sell"}>Sell</Text>
                         <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
                         <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
-                      </Stack>
-                      :
-                      <Stack>
-                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#welcome"} >Home</Text>
-                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#what-we-offer"} >About</Text>
-                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#find-mechanics"} >Features</Text>
-                        <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#partner-with-us"} >For Businesses</Text>
                       </Stack>
                     ) : (
                     <Stack>
