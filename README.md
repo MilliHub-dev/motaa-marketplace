@@ -1,5 +1,11 @@
 # Getting Started with Create React App
 
+  Welcome to
+Africa's Largest
+Car Marketplace.
+
+Buy, sell, rent and find trusted mechanics all with ease and confidence of verified dealers. 
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
