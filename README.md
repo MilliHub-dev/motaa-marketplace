@@ -1,6 +1,5 @@
 # Motaa Marketplace
 
-# Getting Started with Create React App
 
 Welcome to
 Africa's Largest
