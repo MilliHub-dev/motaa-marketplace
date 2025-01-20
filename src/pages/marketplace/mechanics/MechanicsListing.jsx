@@ -23,22 +23,34 @@ import {
     MenuItem,
     MenuButton,
     MenuItemOption,
+    Grid,
+    GridItem,
+    Image,
+    Tag,
+    ButtonGroup,
+    Divider,
     Checkbox,
+    useColorModeValue,
  } from "@chakra-ui/react";
 import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
-import { useSearchParams } from "react-router-dom";
-// import { SearchIcon, StarIcon, ZapIcon } from '@chakra-ui/icons';
+import { useSearchParams, Link } from "react-router-dom";
+import { SearchIcon, StarIcon, ZapIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
 import { motion } from "framer-motion";
+import {BiBuildings} from 'react-icons/bi';
+import {GrLocation} from 'react-icons/gr';
+import {ArrowLeft, ArrowRight} from 'lucide-react';
 import { MechanicListSkeleton } from "../../../components/loaders";
-
-
+import { Paginator } from "../../../components/nav";
 
 export const MechanicListPage = ({ props }) => {
+    const bgColor = useColorModeValue('white', 'gray.800')
+    const borderColor = useColorModeValue('gray.200', 'gray.700')
     const [searchResults, setSearchResults] = useState(null);
     const [matches, setMatches] = useState([]);
+    const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
 
@@ -50,10 +62,11 @@ export const MechanicListPage = ({ props }) => {
 
     async function getData(){
         const res = await axios.get(`/mechanics/`);
-        const data = objectifyJSON(res.data);
-        setSearchResults(data.data);
-        setMatches(data?.data?.results);
-        // console.log("Search results:", data);
+        const _data = objectifyJSON(res.data);
+        console.log("Mechs:", _data)
+        setSearchResults(_data.data);
+        setMatches(_data?.data?.results);
+        setData(_data?.data?.pagination)
     }
 
     useEffect(() => {
@@ -64,125 +77,182 @@ export const MechanicListPage = ({ props }) => {
         return <MechanicListSkeleton />;
     }
 
-    return (
-        <Box px={4} py={4}>
-            <Container maxW="container.lg" py={4}>
-                <Heading className="subtitle" size={'lg'} mb={5}>Find Qualified Professionals</Heading>
+    return(
+    <Box minH="100vh">
+        <Container maxW="container.xl" py={8}>
+            {/* Search and Location */}
+            <Container maxW={"600px"}>
+                <Flex gap={4} mb={6}>
+                  <InputGroup size="lg" flex={1}>
+                    <InputLeftElement>
+                      <SearchIcon className="w-5 h-5 text-gray-400" />
+                    </InputLeftElement>
+                    <Input placeholder="Engine Service" bg={bgColor} />
+                  </InputGroup>
+                  <Button
+                    size="lg"
+                    rightIcon={<ChevronDownIcon />}
+                    variant="outline"
+                    bg={bgColor}
+                  >
+                    Abuja, Garki
+                  </Button>
+                </Flex>
+            </Container>
 
-                {/* Filters */}
-                <Flex gap={2} mb={6} flexWrap="wrap">
-                    <Menu placeholder="Location" w={'max-content'}>
-                        <Select as={MenuButton} maxW={'max-content'}>
-                            <option selected disabled> Services </option>
-                        </Select>
-                        <MenuList>
-                            <MenuItem gap={3} value="worldwide" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Engine Repair </Text>
-                            </MenuItem>
+            {/* Filters */}
+            <HStack spacing={4} mb={8} overflowX="auto" pb={2}>
+              <Select bg="white" placeholder="Service type" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Engine Service</option>
+                <option>HVAC Repair</option>
+                <option>Car Detail</option>
+              </Select>
+              
+              <Select bg="white" placeholder="Price" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Low to High</option>
+                <option>High to Low</option>
+              </Select>
+              
+              <Select bg="white" placeholder="Location" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Nearest</option>
+                <option>Farthest</option>
+              </Select>
+              
+              <Select bg="white" placeholder="Skill Level" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Expert</option>
+                <option>Intermediate</option>
+                <option>Beginner</option>
+              </Select>
+              
+              <Select bg="white" placeholder="Ratings" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Highest</option>
+                <option>Lowest</option>
+              </Select>
 
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Paint Job </Text>
-                            </MenuItem>
-                        </MenuList>
-                    </Menu>
+              <Select bg="white" placeholder="Tier" w="auto" size="md" borderRadius="10px" borderWidth="2">
+                <option>Premium</option>
+                <option>Standard</option>
+              </Select>
+            </HStack>
 
-                    <Menu placeholder="Location" w={'max-content'}>
-                        <Select as={MenuButton} maxW={'max-content'}>
-                            <option selected disabled> Location </option>
-                        </Select>
-                        <MenuList>
-                            <MenuItem gap={3} value="worldwide" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Nearest to Me </Text>
-                            </MenuItem>
+            {/* Results Count */}
+            <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" mb={6}>
+              {matches?.length} Mechanic{matches?.length > 1 && 's'} are available near you.
+            </Text>
 
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Nationwide </Text>
-                            </MenuItem>
+            {/* Mechanics List */}
+            <Flex gap={6} alignItems="self-start" flexWrap="wrap-reverse">
+              <VStack spacing={0} flex={1}>
+                {matches?.map((mechanic) => (
+                  <Box
+                    key={mechanic.id}
+                    w="full"
+                    bg={bgColor}
+                    p={6}
+                    borderBottomWidth={2}
+                    borderColor={borderColor}
+                  >
+                    <Flex gap={4}>
+                        <Link to={`/mechanics/${mechanic?.uuid}`}>
+                            <Avatar size="lg" name={mechanic?.business_name ? mechanic?.business_name : mechanic?.user?.name} />
+                        </Link>
+                      <Box flex={1}>
+                        <Flex justify="space-between" align="start">
+                          <Box>
+                            <Link to={`/mechanics/${mechanic?.uuid}`}>
+                                <Heading size="sm" mb={1}> {mechanic?.business_name ? mechanic?.business_name : mechanic?.user?.name} {mechanic?.mechanic_type === 'business' && <Icon> <BiBuildings size={25} /> </Icon>} </Heading>
+                            </Link>
+                            <Text color="gray.800" fontWeight="md" fontSize="lg"> {mechanic?.headline} </Text>
+                          </Box>
 
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Abuja </Text>
-                            </MenuItem>
+                          <Badge colorScheme="blue" fontSize="xs">
+                            TOP RATED
+                          </Badge>
+                        </Flex>
 
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Kaduna </Text>
-                            </MenuItem>
-                        </MenuList>
-                    </Menu>
+                        <Flex align="center" gap={1} mt={2} color="gray.600">
+                          <GrLocation />
+                          <Text fontSize="md">{mechanic?.location}</Text>
+                          <Text fontSize="md" color="gray.700">
+                            • {mechanic.distance || "> 2km away"}
+                          </Text>
+                        </Flex>
+
+                        <HStack spacing={2} mt={4} flexWrap="wrap">
+                            {mechanic?.services?.map((service, idx) => {
+                                if (idx >= 3){
+                                    return (
+                                        <Tag size="lg" py={3} px={4} variant="subtle" bgColor="lightgrey" opacity={.9} borderRadius="30px">
+                                          +{(mechanic?.services?.length - idx)}
+                                        </Tag>
+                                    )
+                                }else{
+                                    return (
+                                        <Tag
+                                          key={idx}
+                                          size="lg"
+                                          variant="subtle"
+                                          borderRadius="30px"
+                                          p={3}
+                                          bgColor="lightgrey"
+                                          opacity={".9"}
+                                        >
+                                          {service?.service}
+                                        </Tag>
+                                    )}
+                                })
+                            }
+                        </HStack>
+
+                        <Divider my={4} />
+
+                        <Flex justify="flex-start" columnGap={5} flexWrap="wrap" align="center">
+                          <Flex align="center" gap={1}>
+                            <Text color="gray.600">
+                              Services start from:
+                            </Text>
+                            <Text fontSize="lg" fontWeight="bold">
+                              {mechanic?.startingPrice}
+                            </Text>
+                          </Flex>
+
+                          <Flex align="center" gap={1}>
+                            <Text color="gray.600">Average Rating: {mechanic?.rating}</Text>
+                            <StarIcon className="w-4 h-4" color="tertiary" />
+                          </Flex>
+                        </Flex>
+                      </Box>
+                    </Flex>
+                  </Box>
+                ))}
+              </VStack>
+
+              {/* Map Section */}
+              <Box
+                w={{base: "300px", md: "300px", lg: "400px"}}
+                h="500px"
+                bg={bgColor}
+                borderRadius="20px"
+                borderWidth={1}
+                borderColor={borderColor}
+                px={4} py={4}
+                top={4}
+              >
+                <Box h={'320px'} borderWidth="1px" rounded="15px" ></Box>
+                
+                <Flex my={5} gap={2} borderWidth="1px" rounded="lg" px={2} py={4}>
+                  <Text> Location: </Text>
+                  <Text flex={1}> {'Abuja, FCT'} </Text>
                 </Flex>
 
-                {/* Results */}
-                <Stack spacing={4}>
-                {
-                    matches?.map((mech, idx) =>
-                        <Card key={idx} shadow={'lg'} my={3}>
-                            <CardBody>
-                                <Flex gap={4} flexWrap={'wrap'}>
-                                    <Avatar size="lg" name={mech?.user?.name} src="/placeholder.svg?height=50&width=50" />
-                                    <Box flex={1}>
-                                        <Flex justify="space-between" alignItems={'center'} mb={2}>
-                                            <Box>
-                                                <Text fontWeight="semibold">{mech?.user?.name}</Text>
-                                                <Text fontSize="lg" fontWeight="medium">   </Text>
-                                                <Text fontSize="sm" color="gray.500">{mech?.location}</Text>
-                                            </Box>
-                                            <Badge title="Availablility"
-                                             textTransform={'capitalize'}
-                                             fontSize={'13px'}
-                                             rounded={'lg'}
-                                             colorScheme={mech?.available ? 'green' : 'gray'}
-                                            >
-                                                {mech?.available ? "Available" : "Not Available"}
-                                            </Badge>
-                                        </Flex>
-                                        {/* MIGHT DELETE LATER
-                                        <HStack spacing={4} mb={2}>
-                                            <Text fontWeight="medium">$147/hr</Text>
-                                            <Flex align="center">
-                                                <Icon as={RiGasStationLine} color="yellow.400" />
-                                                <Text ml={1}>98% Job Success</Text>
-                                            </Flex>
-                                            <Text>$800K+ earned</Text>
-                                        </HStack> 
-                                        */}
+                <Button w="100%" size="lg" colorScheme="blue" p={4}>Expand Map</Button>
+              </Box>
+            </Flex>
 
-                                        <Wrap spacing={2} mb={4}>
-                                            {/* Services offered */}
-                                            {mech?.services?.map((service, key) => 
-                                                <WrapItem key={key}>
-                                                    <Badge>{service.service}</Badge>
-                                                </WrapItem>
-                                            )}
-                                        </Wrap>
-
-                                        <Text fontSize="sm" color="gray.600" mb={2}>
-                                            {mech?.about || "No description available."}
-                                        </Text>
-
-                                        {mech?.job_history &&
-                                            <Text fontSize="sm" color="green.500">
-                                                {mech?.user?.name} has worked {mech?.job_history?.length} jobs related to your search.
-                                            </Text>
-                                        }
-
-                                        <Wrap gap={3} my={2}>
-                                            <Button w={{base: '100%', md: 'auto' }} variant={'ghost'} colorScheme={'yellow'} leftIcon={<RiMessage2Line />}>  Contact {mech?.user?.name.split(' ')[0]} </Button>
-                                            <Button w={{base: '100%', md: 'auto' }} colorScheme="blue" bg={'primary'}> Hire {mech?.user?.name} </Button>
-                                        </Wrap>
-                                    </Box>
-                                </Flex>
-                            </CardBody>
-                        </Card>
-                    )
-                }
-                </Stack>
-            </Container>
-        </Box>
+            {/* Pagination */}
+            {/*<Paginator pagination={data?.pagination} onPrevious onNext onClick />*/}
+        </Container>
+    </Box>
     )
 }
 

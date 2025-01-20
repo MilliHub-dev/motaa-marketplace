@@ -18,6 +18,7 @@ import {
     ModalContent,
     ModalBody,
     useDisclosure,
+    Tag,
     AspectRatio,
     Select,
     Menu,
@@ -30,8 +31,12 @@ import {
 } from '@chakra-ui/react';
 import {Fragment, useContext, useEffect, useState} from 'react';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiSearch2Line } from 'react-icons/ri'
+import { FaCaretLeft, FaCaretRight } from 'react-icons/fa6'
+import { HiMiniReceiptPercent } from 'react-icons/hi2'
+import { LuMapPin } from 'react-icons/lu'
 import { RxCaretLeft, RxCaretRight, RxTimer } from 'react-icons/rx';
 import { TbManualGearbox } from 'react-icons/tb';
+import { BsFillPatchCheckFill } from 'react-icons/bs';
 import { GlobalStore } from '../App';
 import { FcCheckmark } from 'react-icons/fc';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
@@ -107,8 +112,8 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         {
                             vehicle?.images.length > 1 &&
                             <Flex position={'absolute'} bottom={'15px'} gap={2} right={'15px'}>
-                                <Icon cursor={'pointer'} rounded={'5px'} bg={'rgba(210, 210, 210, 0.48)'} color={'#fff'} p={'5px'} onClick={() => nextImage(-1)} className='icon' > <RxCaretLeft /> </Icon>
-                                <Icon cursor={'pointer'} rounded={'5px'} bg={'rgba(210, 210, 210, 0.48)'} color={'#fff'} p={'5px'} onClick={() => nextImage(1)}  className='icon'> <RxCaretRight /> </Icon>
+                                <Icon cursor={'pointer'} rounded={'5px'} bg={'black.700'} color={'#fff'} p={'5px'} onClick={() => nextImage(-1)} className='icon' > <FaCaretLeft /> </Icon>
+                                <Icon cursor={'pointer'} rounded={'5px'} bg={'black.700'} color={'#fff'} p={'5px'} onClick={() => nextImage(1)}  className='icon'> <FaCaretRight /> </Icon>
                             </Flex>
                         }
                         {/* <Image width={'100%'} height={'100%'} src={image.url} rounded={'10px'} /> */}
@@ -128,16 +133,22 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RiGasStationLine /> {listing.vehicle.fuel_system}</Text>
                     </Flex>
 
-                    <Heading size="sm" className="subtitle"> ₦{commaInt(listing?.price)} </Heading>
+                    <Flex alignItems="center" gap={2}>
+                        <Heading size="sm" className="subtitle"> ₦{commaInt(listing?.price)} </Heading>
+                        <Tag as={Flex} alignItems="center" gap={1.25}>
+                            <Icon> <HiMiniReceiptPercent size={25} /> </Icon>
+                            <Text>+0.5% added fees</Text>
+                        </Tag>
+                    </Flex>
 
                     <Divider my={3} />
 
                     <Flex justifyContent={'space-between'} alignItems={'center'} my={2}>
-                        <Text className="small-text"> {listing?.vehicle.dealer.location} </Text>
-                        {/*
+                        <Text className="small-text" as={Flex} alignItems="center" gap={1.25}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle.dealer.location} </Text>
+                        {
                             listing.vehicle.custom_duty &&
-                            <Badge fontWeight={'bold'}> <span> Custom Duty </span> <Icon> <BxCheck /> </Icon> </Badge>
-                        */}
+                            <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon> <BsFillPatchCheckFill size={25} /> </Icon> </Tag>
+                        }
                         {/* } */}
                     </Flex>
                 </CardBody>

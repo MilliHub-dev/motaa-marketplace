@@ -4,13 +4,13 @@ import { Outlet } from "react-router-dom";
 
 
 
-export const Layout = ({ children, ...props }) => {
+export const Layout = ({ children, hideFooter, ...props }) => {
     return(
-        <div>
+        <Stack bgColor="#fff" gap={0} spacing={0}>
             <Navbar />
             <Box minH={'50vh'}>{children}</Box>
-            <Footer />
-        </div>
+            {!hideFooter && <Footer />}
+        </Stack>
     )
 }
 

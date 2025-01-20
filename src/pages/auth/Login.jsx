@@ -42,9 +42,16 @@ export const LoginView = ({ ...props }) => {
                 onAuthenticated(data)
                 notify({
                     'title': 'Success',
-                    'body': 'Successfully logged in!'
+                    'body': `Successfully logged in! Welcome back ${data?.user_type}`
                 });
-                return redirect(`/buy?user=${data.email}`, 200)
+
+                switch(data?.user_type){
+                    case 'dealer': return redirect('/dashboard', 200);
+                    case 'mechanic': return redirect('/dashboard', 200);
+                    default: return redirect(`/buy?user=${data.email}`, 200);
+                }
+
+                
             }else{
                 return onError(data?.message, true)
             }

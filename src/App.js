@@ -19,6 +19,15 @@ import MechanicDetailPage from './pages/marketplace/mechanics/MechanicDetail';
 import LoginView from './pages/auth/Login';
 import SignupView from './pages/auth/Signup';
 import ChatRoom from './pages/marketplace/chat/ChatRoom';
+import CartPage from './pages/marketplace/CartPage';
+import WalletPage from './pages/marketplace/WalletPage';
+import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
+import DealerProfile from './pages/marketplace/DealerProfile';
+import NotificationsPage from './pages/marketplace/Notifications';
+import DealershipLayout from './pages/dashboard/dealer';
+import DealerDashboard from './pages/dashboard/dealer/Dashboard';
+// import WalletPage from './pages/marketplace/WalletPage';
+// import WalletPage from './pages/marketplace/WalletPage';
 
 
 const BrandColors = extendTheme({
@@ -35,8 +44,8 @@ export const GlobalStore = createContext({
   notify: undefined,
   loading: undefined,
   authUser: undefined,
-  // apiUrl: 'http://localhost:8000/api',
-  apiUrl: 'https://motaadev.pythonanywhere.com/api',
+  // apiUrl: 'http://localhost:8000/api/v1',
+  apiUrl: 'https://motaadev.pythonanywhere.com/api/v1',
   getCookie: undefined,
   setCookie: undefined,
   axios: Axios,
@@ -52,20 +61,13 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-    baseURL: 'https://motaadev.pythonanywhere.com/api',
-    // baseURL: 'http://localhost:8000/api',
+    // baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
     },
   });
-
-  if (!authUser){
-    // delete axiosClient.defaults.headers.common['Authorization']
-    // axiosClient.defaults
-    // axiosClient.options
-  }
-  
   
   function getCookie(name){
     let cookie = Cookies.getJSON(name)
@@ -169,10 +171,54 @@ function App() {
   }, [isAuthenticated,])
 
 
-  // if (loading){
-  //   return null
-  // }
+  if (loading){
+    return null
+  }
 
+  if (authUser && authUser.user_type === 'dealer'){
+    return(
+      <ChakraProvider theme={BrandColors}>
+        <Router>
+          <GlobalStore.Provider value={context}>
+            <Layout hideFooter={true}>
+              <Routes>
+                <Route ErrorBoundary={ErrorPage} element={<DealershipLayout />}>
+                  <Route ErrorBoundary={ErrorPage} path='/dashboard' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/orders' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/listings' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/discounts' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
+                  <Route ErrorBoundary={ErrorPage} path='/analytics' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/settings' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/support' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+                </Route>
+                <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
+                <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/dashboard'} />} />
+              </Routes>
+            </Layout>
+          </GlobalStore.Provider>
+        </Router>
+      </ChakraProvider>
+    )
+  }
+
+  if (authUser && authUser.user_type === 'mechanic'){
+    return(
+      <ChakraProvider theme={BrandColors}>
+        <Router>
+          <GlobalStore.Provider value={context}>
+            <Layout hideFooter={true}>
+              <Routes>
+                <Route ErrorBoundary={ErrorPage} path='/home' element={<RentListing />} />
+                <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/home'} />} />
+              </Routes>
+            </Layout>
+          </GlobalStore.Provider>
+        </Router>
+      </ChakraProvider>
+    )
+  }
   
   return (
     <ChakraProvider theme={BrandColors}>
@@ -188,16 +234,24 @@ function App() {
             
             <Route ErrorBoundary={ErrorPage} path='/mechanics' element={<MechanicListPage />} />
             <Route ErrorBoundary={ErrorPage} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/sell' element={<ErrorPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/dealers/:dealerId' element={<DealerProfile />} />
             
             <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
             
+            <Route ErrorBoundary={ErrorPage} path='/cart' element={<CartPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/checkout/pay' element={<CheckoutPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/checkout/docs' element={<CheckoutPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/checkout/inspection' element={<CheckoutPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/checkout/' element={<CheckoutPage />} />
+            
             <Route ErrorBoundary={ErrorPage} path='/search/cars/' element={<CarSearchPage />} />
             <Route ErrorBoundary={ErrorPage} path='/search/mechanics/' element={<MechanicSearchPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+            <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
             
             <Route ErrorBoundary={ErrorPage} path='/login' element={<LoginView />} />
             <Route ErrorBoundary={ErrorPage} path='/signup' element={<SignupView />} />
+            <Route ErrorBoundary={ErrorPage} path='/signup/business' element={<SignupView type={'business'} />} />
             
             <Route ErrorBoundary={ErrorPage} path='/home' element={<HomePage />} />
             <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/home'} />} />

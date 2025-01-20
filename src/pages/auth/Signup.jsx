@@ -13,6 +13,7 @@ import {
     Image,
     Input,
     Link,
+    ButtonGroup,
     PinInput,
     PinInputField,
     Select,
@@ -20,69 +21,151 @@ import {
     Stack,
     Text,
 } from "@chakra-ui/react";
-import { useContext, useRef, useState } from "react";
+import { useContext, useRef, useState, createContext, useEffect } from "react";
 import { GlobalStore } from "../../App";
 import {motion} from 'framer-motion';
 import { CenteredLayout, OTPField, TwoFactorPinForm } from "../../components";
-import { redirect, useNavigate, useParams } from "react-router-dom";
+import { redirect, useNavigate, useParams, Link as RLink } from "react-router-dom";
 import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
 import { FcSms, FcVoicemail } from "react-icons/fc";
+import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
 import { RxChatBubble, RxEnvelopeOpen } from "react-icons/rx";
 import { jsonifyObject, objectifyJSON } from "../../utils";
+import {ArrowRight} from 'lucide-react';
+import { auth } from "../../firebase";
+import firebase from 'firebase/compat/app';
 
-export const SignupView = ({ ...props }) => {
-    const params = new URLSearchParams(document.location.search);
-    let user_type = params.get('user_type');
-    // ('user_type');
-    console.log("User:", user_type)
+
+const SignupContext = createContext({});
+
+export const SignupView = ({ type="personal", ...props }) => {
     const {onAuthenticated, axios, notify, onError} = useContext(GlobalStore)
     const [step, setStepValue] = useState(0);
     const [payload, setPayload] = useState({});
-    const [verification, setVerification] = useState('email')
+    const [user, setUser] = useState(null);
+    const [skipConfirmation, setSkipStep] = useState({email: false, phone_number: false});
+    const [verification, setVerification] = useState('email');
+    const [userProvider, setUserProvider] = useState('email'); // email | google | facebook
+    const [user_type, setUserType] = useState('customer');
+
+    const context = {
+        nextStep,
+        gotoStep,
+        addToPayload: onSubmit,
+        payload,
+        userProvider,
+        setUserProvider,
+        user_type,
+        setUserType,
+        createAccount,
+        checkEmail,
+    }
+
+
+    const signInWithGoogle = async () => {
+        try{
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await auth.signInWithPopup(provider);
+            
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+
+            // The signed-in user info.
+            const _user = result.user;
+            let [first_name, last_name] = _user.displayName.split(" ");
+            const data = {
+                email: _user.email,
+                first_name,
+                last_name,
+                provider: 'google',
+            };
+
+            const newUser = await checkEmail(_user.email);
+            if (newUser){
+                setPayload({...data});
+                setUser(user);
+                setSkipStep({...skipConfirmation, email: true});
+                gotoStep(1);
+            }
+        }catch(error){
+            console.error("Signup with google error", error);
+        }
+    };
 
     const steps = [
-        { title: 'Create your account',
+        { title: `Create ${type === 'business'? 'a business' : 'your'} account`,
             description: 'Start your 30-day free trial', 
-            component: <EmailStep nextStep={nextStep} onSubmit={onSubmit} />
+            component: <EmailStep signInWithGoogle={signInWithGoogle} type={type} />
         },
         { title: 'Create your account',
             description: 'Start your 30-day free trial', 
-            component: <SignupStep nextStep={nextStep} onSubmit={onSubmit} payload={payload} user_type={user_type} />
+            component: <SignupStep skipConfirmation={skipConfirmation} />
         },
         { title: 'Confirm your email',
             description: 'Verify your email to get notifications and updates from Motaa.',
-            component: <ConfirmationStep verification={verification} nextStep={() => setVerification('email')} onSubmit={onSubmit} payload={payload} />
+            component: <ConfirmationStep verification={verification}  />
         },
         { title: 'Confirm your phone number',
             description: 'Verify your email to get notifications and updates from Motaa.',
-            component: <ConfirmationStep verification={verification} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} onSubmit={onSubmit} payload={payload} />
+            component: <ConfirmationStep verification={verification} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
         },
     ]
 
     function nextStep(){
         setStepValue((step+1))
     }
+
+    function gotoStep(num){
+        setStepValue(num)
+    }
     
     function onSubmit(data){
+        if (verification === 'email' && skipConfirmation?.email){
+            return createAccount(data)
+        }
         setPayload({
             ...payload,
             ...data
-        })
+        });
+    }
+
+    async function checkEmail(email){
+        try{
+            const res = await axios.get(`/accounts/register/?email=${email}`);
+            const data = objectifyJSON(res.data);
+            if (res.status === 200){
+                return true;
+            }else{
+                notify({
+                    title: 'Error!',
+                    body: data.message,
+                    color: 'red',
+                })
+                return false;
+            }
+
+        }catch(err){
+            // return false;
+            notify({
+                title: 'An error occurred!',
+                body: err.message
+            })
+        }
     }
 
     async function createAccount(formData){
         onSubmit(formData);
 
         try{
-            const res = await axios.post('/accounts/register/', {
-                data: {
-                    ...payload,
-                    user_type: user_type || 'customer'
-                }
-            })
+            // const res = await axios.post('/accounts/register/', {
+            //     data: {
+            //         ...payload,
+            //     }
+            // })
 
-            const data = JSON.parse(res.data)
-            console.log("Got Data:", data)
+            // const data = JSON.parse(res.data)
+            // console.log("Got Data:", data)
+            console.log("Got Data:", payload)
 
         }catch(error){
 
@@ -90,6 +173,7 @@ export const SignupView = ({ ...props }) => {
     }
 
     return(
+        <SignupContext.Provider value={context}>
         <CenteredLayout>
             <Box as={motion.div} style={{ width: '90%', maxWidth: '600px', margin: 'auto', placeSelf: 'center', paddingTop: '3vh', paddingBottom: '5%'}} px={3}>
                 <Image src="/assets/images/motaa-logo-3.png" alt="Logo" mb={4} mx={'auto'} width="100px" />
@@ -101,32 +185,35 @@ export const SignupView = ({ ...props }) => {
                 </Box>
             </Box>
         </CenteredLayout>
+        </SignupContext.Provider>
     )
 }
 
 
-const EmailStep = ({ nextStep, onSubmit }) => {
+const EmailStep = ({ signInWithGoogle, type }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const {axios, notify, onError} = useContext(GlobalStore)
+    const {axios, notify, onError} = useContext(GlobalStore);
+    const {checkEmail, user_type, addToPayload, setUserType, payload, nextStep} = useContext(SignupContext);
 
     async function handleSubmit(e){
         e.preventDefault();
         try{
-            const res = await axios.get(`/accounts/register/?email=${email}`);
-            const data = objectifyJSON(res.data)
-            if (res.status === 200){
-                onSubmit({
+            const canProceed = await checkEmail(email);
+            if (canProceed){
+                if (type === 'business' && ['dealer', 'mechanic'].includes(user_type)){
+        
+                }else if (type === 'personal'){
+                    setUserType('customer');
+                }else{
+                    throw new Error("Please select a business type!" + ' that matches ' + type);
+                }
+                addToPayload({
                     email,
-                    password
+                    password,
+                    provider: 'motaa'
                 });
                 nextStep();
-            }else{
-                notify({
-                    title: 'Error!',
-                    body: data.message,
-                    color: 'red',
-                })
             }
         }catch(err){
             notify({
@@ -141,6 +228,29 @@ const EmailStep = ({ nextStep, onSubmit }) => {
     return(
         <Box>
             <form onSubmit={handleSubmit} method="post" name="sign-up-form">
+                {type === 'business' && 
+                <Box textAlign="center" my={2}>
+                    <FormLabel textAlign="center"> Select your business type </FormLabel>
+                    <ButtonGroup isAttached mx="auto">
+                        <Button
+                         fontSize="sm"
+                         rounded="lg"
+                         variant={user_type === 'dealer' ? 'block' : 'outline'}
+                         bgColor={user_type === 'dealer' ? 'primary' : 'transparent'}
+                         color={user_type === 'dealer' ? 'white' : 'black'}
+                         onClick={() => setUserType('dealer')}
+                        > Car Dealer </Button>
+                        <Button
+                         fontSize="sm"
+                         rounded="lg"
+                         variant={user_type === 'mechanic' ? 'block' : 'outline'}
+                         bgColor={user_type === 'mechanic' ? 'primary' : 'transparent'}
+                         color={user_type === 'mechanic' ? 'white' : 'black'}
+                         onClick={() => setUserType('mechanic')}
+                        > Mechanic </Button>
+                    </ButtonGroup>
+                    </Box>
+                }
 
                 <Stack flex={1}>
                     <FormControl name={'email'} my={2} isRequired>
@@ -168,7 +278,7 @@ const EmailStep = ({ nextStep, onSubmit }) => {
                     </FormControl>
 
                     <FormControl my={4}>
-                        <Button type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Get Started  </Button>
+                        <Button py={6} type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Get Started  </Button>
                     </FormControl>
                 </Stack>
             
@@ -178,24 +288,30 @@ const EmailStep = ({ nextStep, onSubmit }) => {
                     <Divider />
                 </HStack>
 
-                <Stack flex={1} columnGap={4}>
-                    <Button w={'100%'} colorScheme="white" shadow="dark-lg" color={'secondary'} bg={'white'}> Log in with Google </Button>
-                    <Button w={'100%'} colorScheme="blue" bg={'primary'}> Log in with Facebook </Button>
+                <Stack flex={1} columnGap={4} rowGap={4} my={3}>
+                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signInWithGoogle} leftIcon={<FaGoogle />} colorScheme="white" color={'secondary'} bg={'white'}> Sign up with Google </Button>
+                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signInWithGoogle} leftIcon={<FaFacebook />} colorScheme="white" color={'secondary'} bg={'white'}>Sign up with Facebook </Button>
                 </Stack>
 
+                <Divider my={3} />
+                <RLink to={`/signup/${type !== 'business' ? 'business' : ''}`}>
+                    <Button py={5} rightIcon={<FaArrowRight />} colorScheme="blue" variant="outline" borderWidth={3} borderColor="primary" w={"100%"} rounded="lg"> Create {type === 'business' ? 'Personal' : 'Business'} Account </Button>
+                </RLink>
             </form>
         </Box>
     )
 }
 
 
-const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
+const SignupStep = ({ skipEmailConfirmation }) => {
     const {axios, notify, onAuthenticated} = useContext(GlobalStore);
-    const [first_name, setFirstName] = useState('');
-    const [last_name, setLastName] = useState('');
+    const {payload, addToPayload, nextStep, user_type, gotoStep} = useContext(SignupContext);
+    const [first_name, setFirstName] = useState(payload?.first_name);
+    const [last_name, setLastName] = useState(payload?.last_name);
     const [phone_number, setPhoneNumber] = useState('');
     const [cac_number, setCACNumber] = useState('');
     const [id_type, setIdType] = useState('nin');
+    const redirect = useNavigate();
 
     async function handleSubmit(e){ 
         e.preventDefault();
@@ -207,11 +323,11 @@ const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
             last_name,
             phone_number,
             id_type,
-            user_type: user_type || 'customer'
+            user_type
         }
 
         try{
-            onSubmit({ ...newPayload });
+            addToPayload({ ...newPayload });
 
             const res = await axios.post('/accounts/register/', JSON.stringify(newPayload));
             const data = objectifyJSON(res.data)
@@ -223,8 +339,14 @@ const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
                     body: "Successfully created your account"
                 });
 
-                nextStep();
+                if (skipEmailConfirmation){
+                    // gotoStep(3); // no phone number verification
+                    return redirect('/');
+                }else{
+                    return nextStep();
+                }
             }else{
+                console.log("Signup Error", data)
                 notify({
                     title: 'Error!',
                     color: 'red',
@@ -289,7 +411,7 @@ const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
             </Flex>
 
             {
-                user_type === "dealer" && 
+                user_type === "dealer" || user_type === "mechanic" && 
                 <Flex justifyContent={'space-between'} columnGap={3} flexWrap={{base: 'wrap', md: 'nowrap'}}>
                     <FormControl width={{ base: '100%', md: '50%' }} my={2}>
                         <FormLabel> CAC Registration number </FormLabel>
@@ -299,20 +421,6 @@ const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
                             placeholder="RC 12 4128 234"
                         />
                     </FormControl>
-
-                    {/* <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                        <FormLabel> Means of Identification </FormLabel>
-                        <Input as={SelectField}
-                            onChange={e => setIdType(e.target.value)}
-                            value={id_type}
-                            defaultValue={'nin'}
-                        >
-                            <option value={'nin'}> NIN Number </option>
-                            <option value={'voters-card'}> Voter's Card </option>
-                            <option value={'drivers-license'}> Driver's License </option>
-                            <option value={'passport'}> Passport </option>
-                        </Input>
-                    </FormControl> */}
                 </Flex>
             }
 
@@ -324,8 +432,9 @@ const SignupStep = ({ nextStep, onSubmit, canProceed, payload, user_type }) => {
 }
 
 
-const ConfirmationStep = ({ nextStep, payload, verification }) => {
+const ConfirmationStep = ({ verification }) => {
     const {axios, notify, onAuthenticated} = useContext(GlobalStore);
+    const {nextStep, payload} = useContext(SignupContext);
     const [otp, setOTP] = useState('');
     const [timeout, setCodeTimer] = useState(0);
     const timer = useRef();
@@ -357,8 +466,6 @@ const ConfirmationStep = ({ nextStep, payload, verification }) => {
                 'Authorization': `Token ${token}`
             }
         })
-        
-        
     }
     
     async function verifyCode(){
@@ -395,7 +502,7 @@ const ConfirmationStep = ({ nextStep, payload, verification }) => {
             <Card my={5} py={5} px={5} width={'max-content'} mx={'auto'}>
                 <Icon className="icon" color={'primary'} my={3} mx={'auto'}> {verification === 'email' ? <RxEnvelopeOpen /> : <RiMessage3Line /> }</Icon>
                 <Heading className="subtitle" size={'md'} mb={3}> Please check your {verification === 'email' ? 'inbox' : 'messages'}. </Heading>
-                <Text className="small-text" size={'xs'}> We've sent a code to {verification === 'email' ? `${payload.email}` : `${payload.phone_number}`} </Text>
+                <Text className="small-text" size={'xs'}> We've sent a code to {verification === 'email' ? `${payload?.email}` : `${payload?.phone_number}`} </Text>
 
                 <OTPField value={otp} onChange={val => setOTP(val)} />
 
@@ -416,7 +523,6 @@ const ConfirmationStep = ({ nextStep, payload, verification }) => {
         </Box>
     )
 }
-
 
 const PhoneConfirmationStep = ({ nextStep, payload }) => {
     const [otp, setOTP] = useState('');
@@ -477,11 +583,5 @@ const PhoneConfirmationStep = ({ nextStep, payload }) => {
         </Box>
     )
 }
-
-
-
-
-
-
 
 export default SignupView;

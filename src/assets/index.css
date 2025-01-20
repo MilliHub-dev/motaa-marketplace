@@ -67,7 +67,7 @@ body {
 body * {
   font-family: 'Manrope' ;
   line-height: 1.5;
-  z-index: 0;
+  z-index: unset;
 }
 .icon{
   font-size: 25px;
@@ -118,10 +118,6 @@ body * {
   width: 100%;
   left: 0px;
   justify-content: space-around;
-}
-
-.sidebar{
-  z-index: 5;
 }
 
 /* Homepage */

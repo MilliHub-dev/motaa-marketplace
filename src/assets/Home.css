@@ -47,9 +47,9 @@
 
 
 @media screen and (min-width: 500px) {
-  .feature-card{
+  /*.feature-card{
     max-width: 300px;
-  }
+  }*/
   
   .title{
     font-size: 43px;
@@ -74,7 +74,7 @@
 
 .feature-card{
   width: 100%;
-  min-height: 450px;
+  min-height: 350px;
   border-radius: 20px;
   background-color: rgba(0, 0, 0, 0.192);
   /* background-blend-mode: overlay; */

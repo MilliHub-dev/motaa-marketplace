@@ -63,7 +63,7 @@ export const RentListing = ({ props }) => {
 
     return(
         <Fragment>
-            <Container maxWidth={'container.lg'} py={4}>
+            <Container maxWidth={'container.xl'} py={4}>
                 <Heading size={'lg'} className="subtitle"> Cars for Rent </Heading>
 
                 <Flex my={2} flexWrap={'nowrap'} gap={4} py={4} overflowX={'auto'}>

@@ -25,7 +25,7 @@ import {
 export const ListingSkeleton = ({ props }) => {
   return (
     <Fragment>
-      <Container maxWidth="container.lg" px={4} py={4}>
+      <Container maxWidth="container.xl" px={4} py={4}>
         {/* Heading Skeleton */}
         <Skeleton height="24px" width="200px" mb={4} />
 
@@ -71,7 +71,7 @@ export const ListingSkeleton = ({ props }) => {
 
 export const ListingDetailSkeleton = ({ props }) => {
   return (
-    <Container maxW={'container.lg'} py={8}>
+    <Container maxW={'container.xl'} py={8}>
       {/* Breadcrumb and Title */}
       <Skeleton height="20px" width="200px" mb={4} />
       <Skeleton height="30px" width="300px" mb={8} />
@@ -141,7 +141,7 @@ export const ListingDetailSkeleton = ({ props }) => {
 export const MechanicListSkeleton = () => {
   return (
     <Box px={4} py={4}>
-      <Container maxW="container.lg" py={4}>
+      <Container maxW="container.xl" py={4}>
         {/* Page title */}
         <Skeleton height="30px" width="60%" mb={5} />
 
@@ -208,7 +208,7 @@ export const MechanicListSkeleton = () => {
 export const SearchCarsSkeleton = () => {
   return(
     <Box py={4}>
-      <Container maxW="container.lg" py={4}>
+      <Container maxW="container.xl" py={4}>
           <Skeleton height="30px" width="50%" mb={5} />
           
           {/* Search Header */}

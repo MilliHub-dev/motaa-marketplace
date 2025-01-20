@@ -1,4 +1,8 @@
-import { Avatar, Badge, Box, Button, Container, Divider, Flex, Heading, Icon, Image, List, ListItem, Stack, Text } from "@chakra-ui/react"
+import {
+    Avatar, Badge, Box, Button, Container,
+    Divider, Flex, Heading, Icon, Image, List,
+    ListItem, Stack, Text, IconButton,
+} from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { GlobalStore } from "../../../App";
@@ -6,24 +10,45 @@ import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
 import {ImageCarousel, LocationBreadcrumb} from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { objectifyJSON } from "../../../utils";
+import {FaCartPlus} from 'react-icons/fa'
+
+
 
 const BuyDetail = ({ }) => {
     const {listingId} = useParams();
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoadingState] = useState(true);
-    const [listing, setListing] = useState();
+    const [listing, setListing] = useState({});
     const {authUser, axios, notify, commaInt} = useContext(GlobalStore);
 
     async function getData(){
-        const res = await axios.get(`/listings/buy/${listingId}/`, {
-            headers: {
-                'Authorization': `Token ${authUser.token}`
-            }
-        });
-        let data = objectifyJSON(res.data);
+        const res = await axios.get(`/listings/buy/${listingId}/`);
         if (res.status === 200){
+            let data = objectifyJSON(res.data);
+            console.log("Viewing ", data);
             setListing(data.data.listing);
             setRecommended(data.data.recommended);
+        }
+    }
+
+    async function addToCart(){
+        const res = await axios.post(`/listings/buy/${listingId}/`, JSON.stringify({
+                action: 'add-to-cart',
+                item_type: 'sale',
+            })
+        )
+
+        if (res.status === 200){
+            notify({
+                title: 'Success!',
+                body: `${listing?.vehicle?.name} was added to your cart!`
+            })
+        }else{
+            const data = await objectifyJSON(res.data)
+            notify({
+                title: 'An error occurred!',
+                body: `${data?.message}`
+            })
         }
     }
 
@@ -41,7 +66,7 @@ const BuyDetail = ({ }) => {
     }
 
     return(
-        <Container display={'block'} w={'100%'} maxW={'container.lg'} py={'2rem'}>
+        <Container display={'block'} w={'100%'} maxW={'container.xl'} py={'2rem'}>
             <LocationBreadcrumb label={listing?.title} />
             
             <Box my={5}>
@@ -59,7 +84,7 @@ const BuyDetail = ({ }) => {
                         <Avatar name={listing?.vehicle?.dealer?.business_name} src={listing?.vehicle?.dealer?.logo}  />
                         <Stack>
                             <Heading size={'sm'}> {listing?.vehicle?.dealer?.business_name} </Heading>
-                            <Text size={'sm'} className="small"> {listing?.vehicle.dealer.location} </Text>
+                            <Text size={'sm'} className="small"> {listing?.vehicle?.dealer?.location} </Text>
                         </Stack>
                     </Flex>
 
@@ -71,13 +96,16 @@ const BuyDetail = ({ }) => {
                     <Divider my={5} />
 
                     <Stack columnGap={4}>
-                        <Button as={Link} to={`/checkout/?listingId=${listingId}`} bg={'primary'} colorScheme="blue" w={'100%'}> Start Transaction </Button>
-                        <Button variant={'outline'} colorScheme="blue" w={'100%'}> Enquire Now </Button>
+                        <Flex justify="space-between" align="center" gap={3}>
+                            <Button as={Link} to={`/checkout/?listingId=${listingId}`} bg={'primary'} colorScheme="blue" w={'100%'}> Buy Now </Button>
+                            <IconButton variant="outline" colorScheme="blue" icon={<FaCartPlus />} onClick={addToCart} />
+                        </Flex>
+                        <Button variant={'outline'} colorScheme="blue" w={'100%'}> Message Seller </Button>
                     </Stack>
                 </Box>
             </Flex>
 
-            <Stack w={{md: 8/12, lg: (8/12)}} py="4rem">
+            <Stack w={{md: 8/12, lg: (8/12)}} pb="4rem" pt="1.25rem">
                 <Box my={5}>
                     <Heading className="subtitle" size={'md'} mb={4}> Overview </Heading>
                     
@@ -85,32 +113,32 @@ const BuyDetail = ({ }) => {
                         <List w={{ base: '100%', md: '50%'}}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Mileage: </span>
-                                <span> {listing.vehicle.mileage} miles </span>
+                                <span> {listing?.vehicle.mileage} miles </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Transmission: </span>
-                                <span> {listing.vehicle.transmission} </span>
+                                <span> {listing?.vehicle.transmission} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Usage: </span>
-                                <span> {listing.vehicle.condition} </span>
+                                <span> {listing?.vehicle.condition} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Power: </span>
-                                <span> {listing.vehicle.power || "N/A"} </span>
+                                <span> {listing?.vehicle.power || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Engine size: </span>
-                                <span> {listing.vehicle.engine_size || "N/A"} </span>
+                                <span> {listing?.vehicle.engine_size || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Fuel type: </span>
-                                <span> {listing.vehicle.fuel_system} </span>
+                                <span> {listing?.vehicle.fuel_system} </span>
                             </ListItem>
 
                         </List>
@@ -118,32 +146,32 @@ const BuyDetail = ({ }) => {
                         <List w={{ base: '100%', md: '50%'}}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Custom Duty: </span>
-                                <span> {listing.vehicle.custom_duty ? 'Yes' : 'No'} </span>
+                                <span> {listing?.vehicle.custom_duty ? 'Yes' : 'No'} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Doors: </span>
-                                <span> {listing.vehicle.doors || "N/A"} </span>
+                                <span> {listing?.vehicle.doors || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Seats: </span>
-                                <span> {listing.vehicle.seats || "N/A"} </span>
+                                <span> {listing?.vehicle.seats || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Drivetrain: </span>
-                                <span> {listing.vehicle.drivetrain || "N/A"} </span>
+                                <span> {listing?.vehicle.drivetrain || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Vehicle type: </span>
-                                <span> {listing.vehicle.vehicle_type || "N/A"} </span>
+                                <span> {listing?.vehicle.vehicle_type || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Color: </span>
-                                <span> {listing.vehicle.color || "N/A"} </span>
+                                <span> {listing?.vehicle.color || "N/A"} </span>
                             </ListItem>
 
                         </List>
