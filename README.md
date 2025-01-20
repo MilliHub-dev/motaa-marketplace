@@ -1,9 +1,7 @@
-<<<<<<< HEAD
 # Motaa Marketplace
-=======
-# Getting Started with Create React App
 
-  Welcome to
+
+Welcome to
 Africa's Largest
 Car Marketplace.
 
