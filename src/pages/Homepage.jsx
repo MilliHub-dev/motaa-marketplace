@@ -271,7 +271,8 @@ function Partnership() {
         <VStack spacing={6} textAlign="center">
           <Heading size="lg" display="flex" align="center">
             Ready to drive your business forward<Text as={'span'} color="tertiary">?</Text>
-          <Heading/>
+          </Heading>
+
           <Heading>
             partner with us today.
           </Heading>
