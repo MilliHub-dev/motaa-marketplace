@@ -134,12 +134,15 @@ export const HomePage = ({ props }) => {
 
                 >
                     {/* Hero */}
+                  <Container maxW={'700px'}>
                     <Box position={'relative'} className='hero' width={{ base: '100%', md: '70%', lg: '60%'}}>
-                      <Text as={motion.p} lineHeight={1} mb={3} className='title pt-sans-regular'>
-                       One Platform for All your Car Needs <span className="dot">.</span>
+                      <Text as={motion.p} lineHeight={1} mb={3} className='title'>
+                       One Platform for <br /> 
+                       All your Car Needs <Text as='span' color="primary">.</Text>
                       </Text>
                       <Text className='text'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                     </Box>
+                  </Container>
 
                     <SimpleGrid columns={4} spacing={4} width="full" maxW="4xl" justifyConten="center">
                         {[
@@ -150,12 +153,16 @@ export const HomePage = ({ props }) => {
                         ].map((item) => (
                           <Box
                             key={item.label}
-                            size="lg"
                             variant="solid"
+                            maxW="130px"
                             bg="whiteAlpha.200"
                             _hover={{ bg: 'whiteAlpha.300' }}
-                            height="auto"
-                            py={4}
+                            height="150px"
+                            py={6}
+                            px={3}
+                            alignContent="center"
+                            borderWidth={2}
+                            borderRadius="10px"
                           >
                             <VStack spacing={2}>
                               <item.icon size={24} />
@@ -262,8 +269,8 @@ function Partnership() {
     <Box py={16} bg="blue.600" color="white">
       <Container maxW="7xl">
         <VStack spacing={6} textAlign="center">
-          <Heading size="lg">
-            Ready to drive your business forward<Text color="tertiary">?</Text>
+          <Heading size="lg" display="flex" align="center">
+            Ready to drive your business forward<Text as={'span'} color="tertiary">?</Text>
             <br />
             partner with us today.
           </Heading>
@@ -290,7 +297,7 @@ function FeatureCard({ icon, title, description }) {
       borderRadius="20px"
       boxShadow="2xl"
       spacing={4}
-      maxW={{base: '70%', lg: '250px'}}
+      maxW="300px"
       align="center"
       mx={{base: 'auto', md: '0px'}}
       textAlign="center"
@@ -328,7 +335,7 @@ function Features() {
 
   return (
     <Box py={16} bg="gray.50">
-      <Container maxW="7xl">
+      <Container maxW="1000px">
         <Heading size="lg" textAlign="center" mb={12}>
           Why Choose Us?
         </Heading>
