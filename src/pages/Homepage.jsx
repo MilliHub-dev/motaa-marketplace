@@ -22,12 +22,12 @@ import {
     Input,
     Avatar,
 } from "@chakra-ui/react";
+import {Link} from 'react-router-dom';
 import { Globe, Shield, Clock, Star, } from 'lucide-react'
 import { Search, Car, DollarSign, Key, PenToolIcon as Tools } from 'lucide-react'
 import Layout from "./Layout";
 import {motion, } from 'framer-motion';
 import {FaCirclePlus, FaCircleMinus} from 'react-icons/fa6';
-// import {RxArrowRight} from 'react-icons/rx';
 import {RxArrowRight} from 'react-icons/rx';
 import faqs from '../data/faqs.json';
 import '../assets/Home.css';
@@ -135,14 +135,13 @@ export const HomePage = ({ props }) => {
                 >
                     {/* Hero */}
                   <Container maxW={'700px'}>
-                    <Box position={'relative'} className='hero' width={{ base: '100%', md: '70%', lg: '60%'}}>
+                    <Box position={'relative'} className='hero'>
                       <Text as={motion.p} lineHeight={1} mb={3} className='title'>
                        One Platform for <br /> 
                        All your Car Needs <Text as='span' color="primary">.</Text>
                       </Text>
                       <Text className='text'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                     </Box>
-                  </Container>
 
                     <SimpleGrid columns={4} spacing={4} width="full" maxW="4xl" justifyConten="center">
                         {[
@@ -171,12 +170,13 @@ export const HomePage = ({ props }) => {
                           </Box>
                         ))}
                     </SimpleGrid>
+                  </Container>
                 </Box>
             </motion.section>
 
             <Box py={20} px={10}>
-              <SimpleGrid columns={{base: 1, md: 2}} gap={4}>
-                <Heading> Explore our network of <Text color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
+              <SimpleGrid columns={{base: 1, md: 2}} gap={4} alignItems="baseline">
+                <Heading> Explore our network of <Text as="span" color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
                 <Text> Motaa connects you to verified dealers and certified mechanics across Nigeria. We believe in excellence and provide you with only partners you can trust.</Text>
               </SimpleGrid>
 
@@ -271,7 +271,8 @@ function Partnership() {
         <VStack spacing={6} textAlign="center">
           <Heading size="lg" display="flex" align="center">
             Ready to drive your business forward<Text as={'span'} color="tertiary">?</Text>
-            <br />
+          <Heading/>
+          <Heading>
             partner with us today.
           </Heading>
           <Text fontSize="lg" maxW="2xl">
@@ -279,9 +280,11 @@ function Partnership() {
             gives you the tools and help you need to accelerate your business growth.
           </Text>
           <HStack spacing={4}>
+            <Link to="/signup/business">
             <Button colorScheme="yellow" bg="tertiary" color="primary" rightIcon={<RxArrowRight />} size="md" width="200px">
               Get started
             </Button>
+            </Link>
           </HStack>
         </VStack>
       </Container>

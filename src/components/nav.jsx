@@ -336,7 +336,7 @@ export const Navbar = ({ props }) => {
     return(
       <Box
        position={'sticky'}
-       top={'0px'} bg={'white'}
+       top={'0px'} bg={isLoggedIn ? 'white' : 'primary'}
        as={motion.div}
        flex={1} w={'100%'}
        animate={{ opacity: 1, }}
@@ -362,14 +362,14 @@ export const Navbar = ({ props }) => {
           { authUser ? (
             <Fragment>
               <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-                {/*
+                
                 <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={4} alignItems={'center'}>
                   <Text as={RLink} fontWeight={'600'} to={"/"}> Home </Text>
                   <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
                   <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
                   <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
                 </Flex>
-                */}
+                
                 {!isMobile && <SearchBar flex={1} />}
               </Flex>
 
