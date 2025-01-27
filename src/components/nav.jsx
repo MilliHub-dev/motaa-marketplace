@@ -357,7 +357,9 @@ export const Navbar = ({ props }) => {
           flex={1} w={'100%'}
           >
           <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}><Image loading='eager' src='/assets/images/motaa-logo-3.png' width={'100%'} className='navbar-brand' /></RLink>
+            <RLink to={'/'}><Image loading='eager'
+                src={!authUser ? '/assets/images/motaa-logo-1.png' : '/assets/images/motaa-logo-3.png'
+                width={'100%'} className='navbar-brand' /></RLink>
           </Box>
 
           { authUser ? (
