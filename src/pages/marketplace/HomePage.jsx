@@ -1,0 +1,248 @@
+import {useState, useEffect, useContext} from 'react';
+import {
+  Box,
+  Container,
+  Flex,
+  Grid,
+  Heading,
+  HStack,
+  Icon,
+  Image,
+  Input,
+  ButtonGroup,
+  InputGroup,
+  InputLeftElement,
+  SimpleGrid,
+  Stack,
+  Tab,
+  TabList,
+  Tabs,
+  Text,
+  VStack,
+  Button,
+  Badge,
+  IconButton,
+  useColorModeValue,
+} from "@chakra-ui/react"
+import {
+  Search,
+  MessageCircle,
+  Bell,
+  ShoppingCart,
+  User,
+  Star,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Youtube,
+  Instagram,
+} from "lucide-react"
+import {ListingItemCard, ImageCarousel, LocationBreadcrumb} from "../../components";
+import {GlobalStore} from "../../App";
+import {objectifyJSON} from "../../utils";
+
+
+// Feature Card Component
+function FeatureCard({ icon, title, description, ...props }) {
+  return (
+    <Box bg="white" minW={'300px'} maxW={'300px'} p={8} borderRadius="xl" boxShadow="2xl" textAlign="center" {...props}>
+      <Box bg="blue.200" w="fit-content" px={4} py={3} borderRadius="10px" mx="auto" mb={4}>
+        {icon}
+      </Box>
+      <Text fontSize="lg" color="primary" fontWeight="bold" mb={2}>
+        {title}
+      </Text>
+      <Text color="gray.600">{description}</Text>
+    </Box>
+  )
+}
+
+export default function MainPage() {
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const {authUser, axios, notify} = useContext(GlobalStore);
+
+
+  async function getData(){
+    const res = await axios.get(`/listings/my-listings/?scope=recents`);
+    const data = objectifyJSON(res.data);
+
+    setRecentlyViewed(data.data);
+  }
+
+  useEffect(() => {
+    getData();
+  }, [])
+
+  return (
+    <Box minH="100vh">
+      {/* Hero Section */}
+      <Box>
+        <Container maxW="container.xl" pb={8} pt={6}>
+          <LocationBreadcrumb />
+
+          <Grid mt={5} templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={8} alignItems="center">
+            <Box>
+              <Heading size="xl" mb={4} className="subtitle">
+                Welcome Back, {authUser?.first_name} {authUser?.last_name}
+              </Heading>
+
+              <Text fontSize="md" mb={4}>
+                Buy, Sell, Rent and Find Mechanics all in one platform
+              </Text>
+
+              <VStack spacing={4} align="stretch" mb={4}>
+                <InputGroup size="lg">
+                  <InputLeftElement>
+                    <Search size="20px"/>
+                  </InputLeftElement>
+                  <Input placeholder="Search for cars, rentals or mechanic services..." borderRadius="30px" bg="gray.200" />
+                </InputGroup>
+
+                <Button colorScheme="blue" bg="primary" size="lg">
+                  Browse cars for sale
+                </Button>
+                <Button colorScheme="blue" bg="primary" size="lg">
+                  Browse cars for rent
+                </Button>
+                <Button colorScheme="blue" variant="outline" borderColor="primary" borderWidth={2} size="lg">
+                  Find a Mechanic
+                </Button>
+              </VStack>
+            </Box>
+
+            <Box position="relative">
+              <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
+              <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
+                <HStack> 
+                  <Icon as={Star} color="yellow.400" />
+                  <Text fontWeight="bold">Certified Mechanic</Text>
+                </HStack>
+              </Box>
+            </Box>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Recently Viewed Section */}
+      <Container maxW="7xl" py={12}>
+        <Heading size="lg" mb={2}>
+          Recently viewed
+        </Heading>
+        <Text as="p" color="gray.600" mb={8}>
+          Catchup where you left!
+        </Text>
+
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
+          {recentlyViewed?.map((listing, index) => (
+            <ListingItemCard key={index} listing={listing} />
+          ))}
+        </SimpleGrid>
+      </Container>
+
+      {/* Promotional Banner */}
+      <Box bg="primary" color="white">
+        <Container maxW="7xl" py={12}>
+          <Grid templateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap={8} alignItems="center">
+            <Image src="/assets/images/motaa-car-mid.png" alt="BMW Promotional" />
+
+            <Box>
+              <Heading size={{base: "3xl", md: "4xl"}} mb={4}>
+                NEED A CAR?
+              </Heading>
+
+              <Heading className="title" fontWeight="400" size={{base: 'md', md: "lg"}} mb={4} px={4} py={4} bg="tertiary" color="primary">
+                Get upto 30% OFF your first order
+              </Heading>
+              
+              <Text mb={6}>
+                Explore a range of cars on Motaa, buy from verified car dealerships across the country.
+              </Text>
+
+              <Button fontWeight={'600'} bg="tertiary" color="primary" w={{base: '100%', md: '250px'}} size="lg">
+                BUY NOW!
+              </Button>
+            </Box>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Why Choose Us Section */}
+      <Container maxW="container.lg" py={16}>
+        <Heading size="lg" textAlign="center" mb={12}>
+          Why Choose Us<Text as="span" color="primary">?</Text>
+        </Heading>
+        <Box>
+
+        <Flex w={'100%'} alignItems="center" px={4} gap={8} justify="space-evenly" flexWrap="nowrap" overflowX='auto' py={10}>
+          <FeatureCard
+            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
+            title="All in One Marketplace"
+            description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
+          />
+          <FeatureCard
+            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
+            title="Trust & Transparency"
+            description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
+          />
+          <FeatureCard
+            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
+            title="Ease of Use"
+            description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
+          />
+        </Flex>
+        </Box>
+      </Container>
+
+      {/* Top Deals Section */}
+      
+      <Container maxW="7xl" py={12} align="center">
+        <Heading size="lg" mb={6} textAlign="center">
+          Top Deals
+        </Heading>
+
+        <Tabs colorScheme="blue"  align="center" mb={8}>
+          <TabList align="center" mx="auto" as={ButtonGroup} size='md' border="none" isAttached variant='outline' mt={3}>
+            <Tab as={Button}
+              color="primary"
+             _selected={{
+               bgColor: 'primary',
+               color: 'white'
+             }}
+             borderWidth="1px"
+             colorScheme={'blue'}
+             borderColor="cornflowerblue"
+             borderRadius="30px" px={'35px'}
+            >Buy</Tab>
+
+            <Tab as={Button}
+              color="primary"
+             _selected={{
+               bgColor: 'primary',
+               color: 'white'
+             }}
+             borderWidth="1px"
+             colorScheme={'blue'}
+             borderColor="cornflowerblue"
+             borderRadius="30px" px={'35px'}
+            >Rent</Tab>
+
+            <Tab as={Button}
+              color="primary"
+             _selected={{
+               bgColor: 'primary',
+               color: 'white'
+             }}
+             borderWidth="1px"
+             colorScheme={'blue'}
+             borderColor="cornflowerblue"
+             borderRadius="30px" px={'35px'}
+            >Mechanic</Tab>
+          </TabList>
+        </Tabs>
+      </Container>
+
+
+    </Box>
+  )
+}
+
