@@ -130,6 +130,7 @@ export const HomePage = ({ props }) => {
                 <Box
                   className='header'
                   position={'relative'}
+                  loading="eager"
                   backgroundImage={`linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), ${isMobile ? 'url("/assets/images/hero-image-mobile.png")' : 'url("/assets/images/hero-image.png")'}`}
 
                 >
@@ -185,7 +186,7 @@ export const HomePage = ({ props }) => {
               <SimpleGrid columns={{base: 1, sm: 2, md: 2}} gap={6}>
                 {
                   featureList.map((feature, idx) =>
-                  <Box key={idx} className='feature-card' sx={{
+                  <Box loading="eager" key={idx} className='feature-card' sx={{
                     position: 'relative',
                     display: 'block',
                     backgroundColor: 'rgba(0, 0, 0, 0.27)',
