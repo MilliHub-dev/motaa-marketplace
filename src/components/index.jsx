@@ -189,7 +189,7 @@ export const SearchBar = ({ onSearch, ...props }) => {
              onInput={(e) => setQuery(e.target.value)}
             />
             <Menu>
-                <Select  maxW={'min-content'} onClick={() => setMenuState(!menuOpen)} type='button' rounded={'30px'} as={MenuButton} textTransform={'capitalize'}>
+                <Select minW="30px" maxW={'min-content'} onClick={() => setMenuState(!menuOpen)} type='button' rounded={'30px'} as={MenuButton} textTransform={'capitalize'}>
                     <option value={target}>{target}</option>
                 </Select>
 
