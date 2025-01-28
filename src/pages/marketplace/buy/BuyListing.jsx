@@ -200,6 +200,7 @@ const BuyListing = ({ }) => {
                              listing={listing}
                              key={idx}
                              w="100%"
+                             maxW={'350px'}
                             />
                         )
                     }
