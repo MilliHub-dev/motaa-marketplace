@@ -148,7 +148,7 @@ export const HomePage = ({ props }) => {
                       <Text size='md'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                     </Box>
 
-                    <SearchBar onSearch={(query) => console.log(query)} />
+                    <SearchBar onSearch={(query) => console.log(query)} bg="white" />
 
                     <SimpleGrid
                      placeItems="center"
