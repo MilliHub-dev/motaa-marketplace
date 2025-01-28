@@ -34,6 +34,7 @@ import {RxArrowRight} from 'react-icons/rx';
 import faqs from '../data/faqs.json';
 import '../assets/Home.css';
 import ScrollAnimation from 'react-animate-on-scroll';
+import { SearchBar } from '../components';
 
 const featureList = [
   {
@@ -138,7 +139,7 @@ export const HomePage = ({ props }) => {
                 >
                     {/* Hero */}
                   <Container maxW={'700px'} pt={15} pb={'2rem'}>
-                    <Box position={'relative'} className='hero'>
+                    <Box position={'relative'} className='hero' mb={5}>
                       <Text position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
                        One Platform for </Text>  
                       <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
@@ -147,12 +148,15 @@ export const HomePage = ({ props }) => {
                       <Text size='md'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                     </Box>
 
+                    <SearchBar onSearch={(query) => console.log(query)} />
+
                     <SimpleGrid
                      placeItems="center"
                      justify="center"
                      columns={{sm: 2, md: 4}}
                      spacing={4}
                      width="100%"
+                     mt={5}
                      minChildWidth={isMobile ? '150px' : '130px'}
                     >
                         {[
