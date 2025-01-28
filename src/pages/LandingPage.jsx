@@ -554,7 +554,7 @@ function Testimonials() {
         <Heading size="lg" textAlign="center" mb={12}>
           What our clients say
         </Heading>
-        <Flex px={4} py={10} flexWrap="nowrap" justify="space-evenly" overflowX="scroll" className="hidden-scroll" gap={4}>
+        <Flex px={4} py={10} flexWrap="nowrap" justify="space-between" overflowX="scroll" className="hidden-scroll" gap={4}>
           {testimonials.map((testimonial, index) => (
             <TestimonialCard key={index} {...testimonial} />
           ))}
