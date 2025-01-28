@@ -2,7 +2,7 @@
 
 @media screen and (min-width: 300px) {
   .hero{
-    padding: 10% 2rem;
+    padding: 10% 0rem;
   }
   .hero-title{
     font-size: 34px;
@@ -24,7 +24,7 @@
 
 @media screen and (min-width: 425px) {
   .hero{
-    padding: 10% 2rem;
+    padding: 10% 0rem;
   }
   .hero-title{
     font-size: 40px;

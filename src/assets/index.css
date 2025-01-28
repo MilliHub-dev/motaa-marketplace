@@ -53,6 +53,10 @@ html{
   display: none;
 }
 
+.hidden-scroll::-webkit-scrollbar{
+  display: none;
+}
+
 
 body {
   margin: 0;
@@ -104,7 +108,6 @@ body * {
 }
 
 .navbar {
-  border-bottom: 1px solid lightgray;
   z-index: 2;
   position: relative;
 }
@@ -132,6 +135,29 @@ body * {
   z-index: 1;
 }
 
+.header .after-line {
+  position: relative;
+  z-index: 2;
+}
+
+.header {
+  position: relative;
+  z-index: 2;
+}
+
+
+
+.header .after-line:after {
+  content: "";
+  background-color: var(--primary);
+  height: 10px !important;
+  width: 90%;
+  display: block;
+  position: absolute;
+  right: 20px;
+  bottom: 7px;
+  z-index: -1;
+}
 
 .link{
   color: var(--primary);

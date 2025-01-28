@@ -18,6 +18,8 @@ import {
     AccordionItem,
     AccordionPanel,
     AccordionButton,
+    Tabs, TabList, Tab,
+    ButtonGroup, 
     Stack,
     Input,
     Avatar,
@@ -27,7 +29,7 @@ import { Globe, Shield, Clock, Star, } from 'lucide-react'
 import { Search, Car, DollarSign, Key, PenToolIcon as Tools } from 'lucide-react'
 import Layout from "./Layout";
 import {motion, } from 'framer-motion';
-import {FaCirclePlus, FaCircleMinus} from 'react-icons/fa6';
+import {FaCirclePlus, FaCircleMinus, FaPlus} from 'react-icons/fa6';
 import {RxArrowRight} from 'react-icons/rx';
 import faqs from '../data/faqs.json';
 import '../assets/Home.css';
@@ -137,40 +139,47 @@ export const HomePage = ({ props }) => {
                     {/* Hero */}
                   <Container maxW={'700px'} pt={15} pb={'2rem'}>
                     <Box position={'relative'} className='hero'>
-                      <Text as={motion.p} lineHeight={1} mb={3} className='title'>
-                       One Platform for <br /> 
-                       All your Car Needs <Text as='span' color="primary">.</Text>
+                      <Text position="relative" lineHeight={1} mb={0} className='title' >
+                       One Platform for </Text> 
+                      <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title' >
+                       All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
                       </Text>
-                      <Text className='text'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
+                      <Text size='md'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                     </Box>
 
-                    <SimpleGrid justify="center" columns={{base: 2, md: 4}} spacing={4} width="100%" minChildWidth="130px" maxChildWidth="150px">
+                    <SimpleGrid
+                     placeItems="center"
+                     justify="center"
+                     columns={{sm: 2, md: 4}}
+                     spacing={4}
+                     width="100%"
+                     minChildWidth={isMobile ? '150px' : '130px'}
+                    >
                         {[
-                          { icon: Car, label: 'Buy a Car' },
-                          { icon: DollarSign, label: 'Sell your Car' },
-                          { icon: Key, label: 'Rent a Car' },
-                          { icon: Tools, label: 'Find Mechanic' },
+                          { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car' },
+                          { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car' },
+                          { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car' },
+                          { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic' },
                         ].map((item) => (
-                          <Box
+                          <Flex
                             key={item.label}
                             variant="solid"
                             w="100%"
-                            maxW="130px"
                             bg="whiteAlpha.200"
                             _hover={{ bg: 'whiteAlpha.300' }}
-                            height="150px"
+                            height={isMobile ? "max-content" : "150px"}
                             py={6}
                             px={3}
                             align="center"
-                            alignContent="center"
+                            alignItems="center"
+                            placeContent="center"
                             borderWidth={2}
                             borderRadius="10px"
+                            gap={2} direction={isMobile ? 'row' : 'column'}
                           >
-                            <VStack spacing={2}>
-                              <item.icon size={24} />
-                              <Text fontSize="sm">{item.label}</Text>
-                            </VStack>
-                          </Box>
+                            <Icon as={Image} src={item.icon} fontSize={27} />
+                            <Text fontSize="sm">{item.label}</Text>
+                          </Flex>
                         ))}
                     </SimpleGrid>
                   </Container>
@@ -178,7 +187,7 @@ export const HomePage = ({ props }) => {
             </motion.section>
 
             <Box py={20} px={10}>
-              <SimpleGrid my={4} columns={{base: 1, md: 2}} gap={4} alignItems="baseline">
+              <SimpleGrid my={4} columns={{base: 1, md: 2}} gap={4} alignItems="baseline" textAlign={isMobile && 'center'}>
                 <Heading> Explore our network of <Text as="span" color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
                 <Text> Motaa connects you to verified dealers and certified mechanics across Nigeria. We believe in excellence and provide you with only partners you can trust.</Text>
               </SimpleGrid>
@@ -229,35 +238,93 @@ export const HomePage = ({ props }) => {
 
             <Features />
 
+            <Container maxW="container.xl" px={4} py={10}>
+              <Heading my={5} textAlign="center" size="lg"> Browse all Cars </Heading>
+
+              <Tabs colorScheme="blue"  align="center" mb={8}>
+                <TabList align="center" mx="auto" as={ButtonGroup} size='md' border="none" isAttached variant='outline' mt={3}>
+                  <Tab as={Button}
+                    color="primary"
+                   _selected={{
+                     bgColor: 'primary',
+                     color: 'white'
+                   }}
+                   borderWidth="1px"
+                   colorScheme={'blue'}
+                   borderColor="cornflowerblue"
+                   width="150px"
+                   borderRadius="30px" px={'35px'}
+                  >Buy</Tab>
+
+                  <Tab as={Button}
+                    color="primary"
+                   _selected={{
+                     bgColor: 'primary',
+                     color: 'white'
+                   }}
+                   borderWidth="1px"
+                   colorScheme={'blue'}
+                   borderColor="cornflowerblue"
+                   width="150px"
+                   borderRadius="30px" px={'35px'}
+                  >Rent</Tab>
+                </TabList>
+              </Tabs>
+
+              <Stack px={4}>
+                <Heading size="md"> Top Brands </Heading>
+
+                <Stack placeItems="center">
+                  <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
+                    {[
+                      {name: 'Toyota', logo: '/assets/icons/ToyotaLogo.svg'},
+                      {name: 'Ford', logo: '/assets/icons/FordLogo.svg'},
+                      {name: 'BMW', logo: '/assets/icons/BmwLogo.svg'},
+                      {name: 'Mercedes Benz', logo: '/assets/icons/MercedesLogo.svg'},
+                    ].map((brand) => 
+                      <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100" placeItems="center">
+                        <Image loading="eager" src={brand.logo} width={'100px'} />
+
+                        <Heading size="md" textTransform="uppercase" mt={5}> {brand.name} </Heading>
+                      </Stack>
+                    )}
+                  </Flex>
+
+                  <Button variant="outline" maxW={'200px'} rightIcon={<FaPlus />}> Show all Brands </Button>
+                </Stack>
+              </Stack>
+            </Container>
+
             <Testimonials />
 
             <Partnership />
 
+            {/* FAQs */}
             <Container maxW={{md: '75%'}} py={'100px'} textAlign={'center'}>
-            <Text my={2} className='title'> Frequently Asked Questions </Text>
-            <Text my={2} className='text'> Still not convinced? <a href={'/'} className='link'>Chat with our team here.</a> </Text>
+              <Text my={2} className='title'> Frequently Asked Questions </Text>
+              <Text my={2} className='text'> Still not convinced? <a href={'/'} className='link'>Chat with our team here.</a> </Text>
 
-            <Stack mt={10} maxW={{md: '500px'}} mx={'auto'}>
-              <Accordion allowMultiple allowToggle border={'none'} textAlign={'left'}>
-                {
-                  faqs.map((faq, idx) => 
-                      <AccordionItem borderRadius={5} my={4} border={'1px solid lavender'}>
-                        {({ isExpanded }) => (
-                          <Fragment key={idx}>
-                          <AccordionButton as={Flex} wrap={'nowrap'} alignItems={'center'} justifyContent={'space-between'}>
-                            <Text flex={1} className='smalltext' textAlign={'left'}> {faq?.question} </Text>
-                            <Icon className='icon' fontSize={'20px'}>{isExpanded ? <FaCircleMinus /> : <FaCirclePlus /> }</Icon>
-                          </AccordionButton>
+              <Stack mt={10} maxW={{md: '500px'}} mx={'auto'}>
+                <Accordion allowMultiple allowToggle border={'none'} textAlign={'left'}>
+                  {
+                    faqs.map((faq, idx) => 
+                        <AccordionItem borderRadius={5} my={4} border={'1px solid lavender'}>
+                          {({ isExpanded }) => (
+                            <Fragment key={idx}>
+                            <AccordionButton as={Flex} wrap={'nowrap'} alignItems={'center'} justifyContent={'space-between'}>
+                              <Text flex={1} className='smalltext' textAlign={'left'}> {faq?.question} </Text>
+                              <Icon className='icon' fontSize={'20px'}>{isExpanded ? <FaCircleMinus /> : <FaCirclePlus /> }</Icon>
+                            </AccordionButton>
 
-                          <AccordionPanel px={3} py={3}>
-                            <Text className='smalltext'>{faq?.answer}</Text>
-                          </AccordionPanel>
-                          </Fragment>
-                        )}
-                      </AccordionItem>
-                )}
-              </Accordion>
-            </Stack>
+                            <AccordionPanel px={3} py={3}>
+                              <Text className='smalltext'>{faq?.answer}</Text>
+                            </AccordionPanel>
+                            </Fragment>
+                          )}
+                        </AccordionItem>
+                  )}
+                </Accordion>
+              </Stack>
           </Container>
         </div>
     )
@@ -269,7 +336,15 @@ export default HomePage;
 
 function Partnership() {
   return (
-    <Box py={16} bg="blue.600" color="white">
+    <Box
+      py={16}
+      bgColor="blue.600"
+      color="white"
+      backgroundImage={`url('/assets/images/partner-banner-background.png')`}
+      backgroundRepeat="no-repeat"
+      backgroundSize="cover"
+      backgroundPosition="left"
+    >
       <Container maxW="7xl">
         <VStack spacing={6} textAlign="center">
           <Heading size="lg" align="center">
@@ -314,13 +389,13 @@ function FeatureCard({ icon, title, description, ...props }) {
 
 function Features() {
   return (
-    <Box py={16} bg="gray.50">
+    <Box py={16}>
       <Container maxW="container.xl">
         <Heading size="lg" textAlign="center" mb={12}>
           Why Choose Us<Text as="span" color="primary">?</Text>
         </Heading>
 
-        <Flex w={'100%'} alignItems="center" px={4} gap={8} justify="space-evenly" flexWrap="nowrap" overflowX='auto' py={10}>
+        <Flex w={'100%'} className="hidden-scroll" alignItems="center" px={4} gap={8} justify="space-between" flexWrap="nowrap" overflowX='scroll' py={10}>
           <FeatureCard
             icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
             title="All in One Marketplace"
@@ -434,7 +509,7 @@ function Testimonials() {
         <Heading size="lg" textAlign="center" mb={12}>
           What our clients say
         </Heading>
-        <Flex px={4} py={10} flexWrap="nowrap" justify="space-evenly" overflowX="auto" gap={4}>
+        <Flex px={4} py={10} flexWrap="nowrap" justify="space-evenly" overflowX="scroll" className="hidden-scroll" gap={4}>
           {testimonials.map((testimonial, index) => (
             <TestimonialCard key={index} {...testimonial} />
           ))}
