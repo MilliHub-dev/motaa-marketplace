@@ -33,7 +33,7 @@ import {FaCirclePlus, FaCircleMinus, FaPlus} from 'react-icons/fa6';
 import {RxArrowRight} from 'react-icons/rx';
 import faqs from '../data/faqs.json';
 import '../assets/Home.css';
-
+import ScrollAnimation from 'react-animate-on-scroll';
 
 const featureList = [
   {
@@ -139,9 +139,9 @@ export const HomePage = ({ props }) => {
                     {/* Hero */}
                   <Container maxW={'700px'} pt={15} pb={'2rem'}>
                     <Box position={'relative'} className='hero'>
-                      <Text position="relative" lineHeight={1} mb={0} className='title' >
-                       One Platform for </Text> 
-                      <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title' >
+                      <Text position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
+                       One Platform for </Text>  
+                      <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
                        All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
                       </Text>
                       <Text size='md'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
@@ -160,8 +160,11 @@ export const HomePage = ({ props }) => {
                           { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car' },
                           { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car' },
                           { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic' },
-                        ].map((item) => (
+                        ].map((item, idx) => (
+                          
                           <Flex
+                            as={ScrollAnimation}
+                           animateIn={"flipInY"}
                             key={item.label}
                             variant="solid"
                             w="100%"
@@ -180,6 +183,7 @@ export const HomePage = ({ props }) => {
                             <Icon as={Image} src={item.icon} fontSize={27} />
                             <Text fontSize="sm">{item.label}</Text>
                           </Flex>
+                          
                         ))}
                     </SimpleGrid>
                   </Container>
@@ -195,6 +199,7 @@ export const HomePage = ({ props }) => {
               <SimpleGrid columns={{base: 1, sm: 2, md: 2}} gap={6}>
                 {
                   featureList.map((feature, idx) =>
+                  <ScrollAnimation animateIn={idx % 2 === 0 ? "fadeInLeft" : "fadeInRight"}>
                   <Box loading="eager" key={idx} className='feature-card' sx={{
                     position: 'relative',
                     display: 'block',
@@ -231,6 +236,7 @@ export const HomePage = ({ props }) => {
                       <Button variant="outine" borderColor="white" color="white" borderWidth={2} rightIcon={<RxArrowRight />}>{feature.cta.label}</Button>
                     </Box>
                   </Box>
+                  </ScrollAnimation>
                 )
               }
               </SimpleGrid>
@@ -272,6 +278,34 @@ export const HomePage = ({ props }) => {
               </Tabs>
 
               <Stack px={4}>
+                <Heading size="md"> Search by Budget </Heading>
+
+                <Stack placeItems="center">
+                  <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
+                    {[
+                      {amount: '3,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                      {amount: '5,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                      {amount: '10,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                      {amount: '20,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                    ].map((budget) => 
+                      <ScrollAnimation animateIn="bounceIn">
+                        <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100">
+                          <Flex gap={2} justifyContent="space-between" w={'100%'}>
+                            <Image loading="eager" src={budget.logo} width={'70px'} />
+                            <VStack flex={1} textAlign="left" w="100%" placeItems="flex-start" placeContent="flex-start" pl={2}>
+                              <Text textAlign="left !important" flex={1} fontSize="12px" color="gray"> Cars less than </Text>
+                              <Text textAlign="left !important" flex={1} size="md"> <Text as='span' fontWeight="800">₦</Text>{budget.amount} </Text>
+                            </VStack>
+                          </Flex>
+
+                        </Stack>
+                      </ScrollAnimation>
+                    )}
+                  </Flex>
+                </Stack>
+              </Stack>
+
+              <Stack px={4}>
                 <Heading size="md"> Top Brands </Heading>
 
                 <Stack placeItems="center">
@@ -282,11 +316,13 @@ export const HomePage = ({ props }) => {
                       {name: 'BMW', logo: '/assets/icons/BmwLogo.svg'},
                       {name: 'Mercedes Benz', logo: '/assets/icons/MercedesLogo.svg'},
                     ].map((brand) => 
-                      <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100" placeItems="center">
-                        <Image loading="eager" src={brand.logo} width={'100px'} />
+                      <ScrollAnimation animateIn="bounceIn">
+                        <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100" placeItems="center">
+                          <Image loading="eager" src={brand.logo} width={'100px'} />
 
-                        <Heading size="md" textTransform="uppercase" mt={5}> {brand.name} </Heading>
-                      </Stack>
+                          <Heading size="md" textTransform="uppercase" mt={5}> {brand.name} </Heading>
+                        </Stack>
+                      </ScrollAnimation>
                     )}
                   </Flex>
 
@@ -396,22 +432,31 @@ function Features() {
         </Heading>
 
         <Flex w={'100%'} className="hidden-scroll" alignItems="center" px={4} gap={8} justify="space-between" flexWrap="nowrap" overflowX='scroll' py={10}>
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
-            title="All in One Marketplace"
-            description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
-          />
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
-            title="Trust & Transparency"
-            description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
-          />
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
-            title="Ease of Use"
-            description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
-          />
-        </Flex>
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
+              title="All in One Marketplace"
+              description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
+            />
+          </ScrollAnimation>
+
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
+              title="Trust & Transparency"
+              description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
+            />
+          </ScrollAnimation>
+
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
+              title="Ease of Use"
+              description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
+            />
+        </ScrollAnimation>
+        </
+        Flex>
       </Container>
     </Box>
   )
