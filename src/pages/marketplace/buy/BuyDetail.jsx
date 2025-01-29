@@ -1,7 +1,7 @@
 import {
     Avatar, Badge, Box, Button, Container,
     Divider, Flex, Heading, Icon, Image, List,
-    ListItem, Stack, Text, IconButton,
+    ListItem, Stack, Text, IconButton, SimpleGrid,
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
@@ -109,7 +109,7 @@ const BuyDetail = ({ }) => {
                 <Box my={5}>
                     <Heading className="subtitle" size={'md'} mb={4}> Overview </Heading>
                     
-                    <Flex columnGap={5} flexWrap="wrap">
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} flexWrap="wrap">
                         <List w={{ base: '100%', md: '50%'}}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Mileage: </span>
@@ -172,9 +172,8 @@ const BuyDetail = ({ }) => {
                                 <span> Color: </span>
                                 <span> {listing?.vehicle.color || "N/A"} </span>
                             </ListItem>
-
                         </List>
-                    </Flex>
+                    </SimpleGrid>
                 </Box>
                 
                 <Box my={5}>
@@ -195,8 +194,31 @@ const BuyDetail = ({ }) => {
 
                 <Box my={5}>
                     <Heading className="subtitle" size={'md'} mb={4}> Seller notes </Heading>
-                    <Text border={'1px solid grey'} dangerouslySetInnerHTML={{__html: listing.notes || "No additional info."}} p={3} rounded={'md'}></Text>
+                    <Text border={'1px solid grey'} dangerouslySetInnerHTML={{__html: listing?.notes || "No additional info."}} p={3} rounded={'md'}></Text>
                 </Box>  
+            </Stack>
+
+
+            <Stack>
+                <Heading textAlign="center"> Recommended Cars for You </Heading>
+
+                <SimpleGrid
+                 minChildWidth="300px"
+                 maxChildWidth={'350px'}
+                 placeItems={isMobile ? 'center' : 'unset'}
+                 gap={8}
+                 spacing={8}
+                 columns={{base: 1, md: 2, lg: 3, xl: 4}}
+                >
+                    recommended?.map((listing, idx) =>
+                        <ListingItemCard
+                         listing={listing}
+                         key={idx}
+                         w="100%"
+                         maxW={'350px'}
+                        />
+                    )
+                </SimpleGrid>
             </Stack>
         </Container>
     )

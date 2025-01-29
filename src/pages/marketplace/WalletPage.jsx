@@ -100,7 +100,16 @@ function WalletPage() {
   return (
     <Flex position="relative">
       {/* Sidebar */}
-      <Box w="280px" position={"absolute"} left="0" h={"100vh"} bgColor="#fff" zIndex="200000" borderRightWidth={1} p={6}>
+      <Box
+        w="280px"
+        position="fixed"
+        left="0"
+        h="100vh"
+        bgColor="#fff"
+        zIndex="200000"
+        borderRightWidth={1}
+        p={6}
+      >
         <VStack align="stretch" spacing={6}>
           <HStack spacing={3}>
             <Avatar size="sm" name={`${authUser?.first_name} ${authUser?.last_name}`} />
@@ -149,41 +158,50 @@ function WalletPage() {
       </Box>
 
       {/* Main Content */}
-      <Box flex={1} w="calc(100% - 280px)" ml={"280px"}>
+      <Box flex={1} ml="280px">
         <Container maxW="container.xl">
           <Box py={6} borderBottom="2px solid lavender">
             <Text size="md" className="text" fontWeight="600">Dashboard</Text>
             <Text size="xs" className="small">Welcome back, {authUser?.first_name}👋</Text>
           </Box>
 
-          <Flex gap={5} my={8}>
+          <Flex gap={5} my={8} flexWrap="wrap">
             {/* Wallet Balance */}
             <Box
-              flex={1}
+              flex="1"
+              minW="280px"
               p={3}
               borderWidth={1}
               borderRadius="15px"
               position="relative"
             >
               <Text mb={2}>Wallet balance</Text>
-              <Heading size="2xl" fontWeight="600" className="title" mb={2}>₦{commaInt(wallet?.balance)}</Heading>
+              <Heading size="2xl" fontWeight="600" className="title" mb={2}>
+                ₦{commaInt(wallet?.balance)}
+              </Heading>
               <HStack color="green.500" mb={6}>
                 <TrendingUp size={16} />
                 <Text>+26% vs last month</Text>
               </HStack>
               <HStack spacing={2}>
-                <Button flex={1} leftIcon={<PiHandDepositBold />} colorScheme="blue" bgColor="primary"> Deposit </Button>
-                <Button flex={1} leftIcon={<PiHandWithdrawBold />} colorScheme="blue" bgColor="primary">Withdraw</Button>
-                <Button flex={1} leftIcon={<RiCoinsFill />} colorScheme="blue" bgColor="primary">Save</Button>
+                <Button flex={1} leftIcon={<PiHandDepositBold />} colorScheme="blue" bgColor="primary">
+                  Deposit
+                </Button>
+                <Button flex={1} leftIcon={<PiHandWithdrawBold />} colorScheme="blue" bgColor="primary">
+                  Withdraw
+                </Button>
+                <Button flex={1} leftIcon={<RiCoinsFill />} colorScheme="blue" bgColor="primary">
+                  Save
+                </Button>
               </HStack>
             </Box>
 
             {/* Referral Card */}
             <Box
-              w="400px"
+              w={{ base: "100%", md: "400px" }}
               px={6}
               py={2}
-              pt={'40px'}
+              pt="40px"
               bg="blue.600"
               color="white"
               borderRadius="15px"
@@ -197,7 +215,7 @@ function WalletPage() {
                 <Avatar name="User 6" />
               </AvatarGroup>
               <Text fontSize="lg" fontWeight="medium" mb={2}>
-                Invite your friends to Motaa and get upto 30% cashback on payments with wallet.
+                Invite your friends to Motaa and get up to 30% cashback on payments with wallet.
               </Text>
             </Box>
           </Flex>
@@ -219,9 +237,11 @@ function WalletPage() {
                   <Tr key={transaction.id}>
                     <Td>
                       <HStack>
-                        <Avatar size="sm" name={transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}` } />
+                        <Avatar size="sm" name={transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}`} />
                         <Box>
-                          <Text fontWeight="medium">{transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}`}</Text>
+                          <Text fontWeight="medium">
+                            {transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}`}
+                          </Text>
                           <Text fontSize="sm" color="gray.500">
                             {transaction.type}
                           </Text>
@@ -230,11 +250,7 @@ function WalletPage() {
                     </Td>
                     <Td>
                       <Text
-                        color={
-                          transaction.amount.startsWith('+')
-                            ? 'green.500'
-                            : 'red.500'
-                        }
+                        color={transaction.amount.startsWith('+') ? 'green.500' : 'red.500'}
                         fontWeight="medium"
                       >
                         {commaInt(transaction.amount)}
@@ -251,12 +267,7 @@ function WalletPage() {
                     </Td>
                     <Td>
                       <Menu>
-                        <MenuButton
-                          as={IconButton}
-                          icon={<MoreVertical size={16} />}
-                          variant="ghost"
-                          size="sm"
-                        />
+                        <MenuButton as={IconButton} icon={<MoreVertical size={16} />} variant="ghost" size="sm" />
                         <MenuList>
                           <MenuItem>View details</MenuItem>
                           <MenuItem>Download receipt</MenuItem>
@@ -271,6 +282,7 @@ function WalletPage() {
         </Container>
       </Box>
     </Flex>
+
   )
 }
 
