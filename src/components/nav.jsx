@@ -149,16 +149,16 @@ export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setS
 export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
   const [currentPage, setCurrentPage] = useState(1); // page 1 by default, unaffected by parent state.
   const [pages, setPages] = useState([]); // page 1 by default, unaffected by parent state.
-  const {next, previous, count, offset} = pagination;
+  // const {next, previous, count, offset} = pagination;
 
   function destructurePages(){
-    let _offset = offset;
+    let _offset = pagination?.offset;
     // just in case there's no offset, prevents zero division error
     if (_offset === 0){
       _offset = 1;
     }
     // make the pages from the offset count, appx.
-    let _pages, length = Math.round(count/_offset);
+    let _pages, length = Math.round(pagination?.count/_offset);
 
     // create a Number Array with the number of pages gotten from div.
     _pages = Array.from({length}, (_, i) => (i + 1)); // [1, 2, 3, ..., n]
@@ -177,7 +177,7 @@ export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
 
   return(
     <ButtonGroup justifyContent="center" w="100%" isAttached align="center" mt={8}>
-      <Button onClick={onPrevious} disabled={!previous} variant="outline" size="sm" leftIcon={<ArrowLeft size={20} />}>
+      <Button onClick={onPrevious} disabled={!pagination?.previous} variant="outline" size="sm" leftIcon={<ArrowLeft size={20} />}>
         Previous
       </Button>
 
@@ -194,7 +194,7 @@ export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
         </Button>
       ))}
           
-      <Button onClick={onNext} disabled={!next} variant="outline" size="sm" rightIcon={<ArrowRight size={20} />}>
+      <Button onClick={onNext} disabled={!pagination?.next} variant="outline" size="sm" rightIcon={<ArrowRight size={20} />}>
         Next
       </Button>
     </ButtonGroup>
@@ -466,7 +466,6 @@ export const Sidebar = ({ show, onClose, }) => {
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/dashboard"}>Dashboard</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/home"}>Home</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/sell"}>Sell</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
                   </Stack>

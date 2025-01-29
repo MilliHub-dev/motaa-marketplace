@@ -20,6 +20,8 @@ import {motion} from 'framer-motion';
 import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
 import { CenteredLayout, TwoFactorPinForm } from "../../components";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../../firebase";
+import firebase from 'firebase/compat/app';
 
 export const LoginView = ({ ...props }) => {
     const self = this;
@@ -27,19 +29,22 @@ export const LoginView = ({ ...props }) => {
     const {onAuthenticated, axios, notify,} = useContext(GlobalStore)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [provider, setProvider] = useState('motaa');
     const [rememberMe, setRemeberMe] = useState(false);
     const redirect = useNavigate();
 
     async function handleLogin(e){
         e.preventDefault();
+
         try{
             const res = await axios.post('/accounts/login/', JSON.stringify({
                 email,
-                password
+                password,
+                provider,
             }));
             const data = await JSON.parse(res.data);
 
-            if (res.status === 200){
+            if (res.status === 200 && !data?.error){
                 onAuthenticated(data)
                 notify({
                     'title': 'Success',
@@ -50,9 +55,7 @@ export const LoginView = ({ ...props }) => {
                     case 'dealer': return redirect('/dashboard', 200);
                     case 'mechanic': return redirect('/dashboard', 200);
                     default: return redirect(`/home?user=${data.email}`, 200);
-                }
-
-                
+                }                
             }else{
                 return onError(data?.message, true)
             }
@@ -60,6 +63,47 @@ export const LoginView = ({ ...props }) => {
             return onError(error.message)
         }
     }
+
+    const signInWithGoogle = async () => {
+        try{
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await auth.signInWithPopup(provider);
+            
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+
+            // The signed-in user info.
+            const user = result.user;
+            if (user){
+                const res = await axios.post('/accounts/login/', JSON.stringify({
+                    provider: 'google',
+                    email: user.email,
+                    password: ''
+                })
+                );
+                const data = await JSON.parse(res.data);
+
+                if (res.status === 200 && !data?.error){
+                    onAuthenticated(data)
+                    notify({
+                        'title': 'Success',
+                        'body': `Successfully logged in! Welcome back ${data?.user_type}`
+                    });
+
+                    switch(data?.user_type){
+                        case 'dealer': return redirect('/dashboard', 200);
+                        case 'mechanic': return redirect('/dashboard', 200);
+                        default: return redirect(`/home?user=${data.email}`, 200);
+                    }                
+                }else{
+                    return onError(data?.message, true)
+                }
+
+            }
+        }catch(error){
+            console.error("Signup with google error", error);
+        }
+    };
     
     function onError(message, reload=false){
         notify({
@@ -75,6 +119,7 @@ export const LoginView = ({ ...props }) => {
     function refresh(){
         setEmail('');
         setPassword('');
+        setProvider('motaa');
         setRemeberMe(false);
     }
 
@@ -125,7 +170,7 @@ export const LoginView = ({ ...props }) => {
                         </HStack>
 
                         <Stack flex={1} columnGap={4} rowGap={8}>
-                            <Button w={'100%'} leftIcon={<FaGoogle />} colorScheme="white" color={'secondary'} variant={'outline'}> Log in with Google </Button>
+                            <Button w={'100%'} leftIcon={<FaGoogle />} onClick={signInWithGoogle} colorScheme="white" color={'secondary'} variant={'outline'}> Log in with Google </Button>
                             <Button w={'100%'} leftIcon={<FaFacebook />} colorScheme="blue" bg={'primary'}> Log in with Facebook </Button>
                             <Button w={'100%'} variant="outline" borderWidth={'2px'} rightIcon={<FaArrowRight />} colorScheme="blue" borderColor={'primary'}> Log in to Business Account </Button>
                         </Stack>
