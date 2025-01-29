@@ -4,6 +4,7 @@ import {
     Container, Divider, Flex, Heading, HStack, Image,
     Menu, MenuButton, MenuItem, MenuList, Switch, Text,
     ButtonGroup, Checkbox, Input, SimpleGrid,
+    useMediaQuery,
 
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
@@ -18,10 +19,12 @@ import { ListingSkeleton } from "../../../components/loaders"
 
 const BuyListing = ({ }) => {
     const [listings, setListings] = useState([]);
+    const [matches, setMatches] = useState([]);
     const [data, setData] = useState(null);
     const [carType, setCarType] = useState('new');
     const {axios, notify, commaInt} = useContext(GlobalStore);
     const [loading, setLoadingState] = useState(true);
+    const [isMobile] = useMediaQuery('(max-width: 768px)')
     const banners = [
         {
             url: '/assets/images/workshop.png',
@@ -97,8 +100,15 @@ const BuyListing = ({ }) => {
     }, [])
 
     useEffect(() => {
+        // if (carType === 'new'){
+        //     const _matches = listings?.filter((elem) => elem.vehicle.condition === 'new' )
+        //     setMatches(_matches)
+        // }else{
+        //     const _matches = listings?.filter((elem) => elem.vehicle.condition !== 'new' )
+        //     setMatches(_matches)
+        // }
 
-    }, [listings])
+    }, [listings, carType])
 
     const filters = [
         {
@@ -171,7 +181,7 @@ const BuyListing = ({ }) => {
                     <BannerCarousel images={banners} />
                 </Flex>
 
-                <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="">
+                <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
                     {
                         filters.map(({name, component}, idx) =>
                             <Menu closeOnSelect={false}>
@@ -179,10 +189,11 @@ const BuyListing = ({ }) => {
                                     <Fragment>
                                         <MenuButton minW={'max-content'} size={'md'} borderRadius={'10px'} isActive={isOpen} as={Button} rightIcon={<ChevronDownIcon />}> {name} </MenuButton>
                                         <MenuList>
-                                            {component({
-                                             onChange: (value) => console.log(value),
-                                             onClose: onClose
-                                            })
+                                            {
+                                                component({
+                                                     onChange: (value) => console.log(value),
+                                                     onClose: onClose
+                                                })
                                             }
                                         </MenuList>
                                     </Fragment>
@@ -192,20 +203,36 @@ const BuyListing = ({ }) => {
                     }
                 </Flex>
 
-                <SimpleGrid minChildWidth="300px" maxWidthChild={'350px'} gap={8} spacing={8} columns={{base: 1, md: 2, lg: 3, xl: 4}}>
-                {/*<Flex flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} rowGap={{base: 6, lg: 10}} columnGap={{base: 2, lg: 6}} pt={'1.25rem'} pb={'4rem'}>*/}
+                <SimpleGrid
+                 minChildWidth="300px"
+                 maxChildWidth={'350px'}
+                 placeItems={isMobile ? 'center' : 'unset'}
+                 gap={8}
+                 spacing={8}
+                 columns={{base: 1, md: 2, lg: 3, xl: 4}}
+                >
                     {
-                        listings.map((listing, idx) =>
-                            <ListingItemCard
-                             listing={listing}
-                             key={idx}
-                             w="100%"
-                             maxW={'350px'}
-                            />
+                        carType === 'new' ? (
+                            listings.filter((listing) => listing?.vehicle?.condition === 'new').map((listing, idx) =>
+                                <ListingItemCard
+                                 listing={listing}
+                                 key={idx}
+                                 w="100%"
+                                 maxW={'350px'}
+                                />
+                            )
+                        ):(
+                            listings.filter((listing) => listing?.vehicle?.condition !== 'new').map((listing, idx) =>
+                                <ListingItemCard
+                                 listing={listing}
+                                 key={idx}
+                                 w="100%"
+                                 maxW={'350px'}
+                                />
+                            )
                         )
                     }
                 </SimpleGrid>
-                {/*</Flex>*/}
 
                 <Paginator pagination={data?.pagination} onNext={gotoNextPage} onPrevious={gotoPrevPage} onClick={console.log} />
             </Container>
@@ -224,6 +251,7 @@ function BannerCarousel({ images }) {
         src={images[currentImage].url}
         alt="Vehicle"
         w="full"
+        loading="eager"
         h="180px"
         objectFit="cover"
         borderRadius="20px"

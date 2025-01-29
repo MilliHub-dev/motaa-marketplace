@@ -40,6 +40,7 @@ import {
 import {ListingItemCard, ImageCarousel, LocationBreadcrumb} from "../../components";
 import {GlobalStore} from "../../App";
 import {objectifyJSON} from "../../utils";
+import ScrollAnimation from 'react-animate-on-scroll';
 
 
 // Feature Card Component
@@ -59,6 +60,7 @@ function FeatureCard({ icon, title, description, ...props }) {
 
 export default function MainPage() {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [promotedListings, setPromotedListings] = useState([]);
   const {authUser, axios, notify} = useContext(GlobalStore);
 
 
@@ -110,15 +112,13 @@ export default function MainPage() {
               </VStack>
             </Box>
 
-            <Box position="relative">
-              <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
-              <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
-                <HStack> 
-                  <Icon as={Star} color="yellow.400" />
-                  <Text fontWeight="bold">Certified Mechanic</Text>
-                </HStack>
+            <ScrollAnimation animateIn="lightSpeedInRight">
+              <Box position="relative">
+                <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
+                <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
+                </Box>
               </Box>
-            </Box>
+            </ScrollAnimation>
           </Grid>
         </Container>
       </Box>
@@ -167,30 +167,44 @@ export default function MainPage() {
       </Box>
 
       {/* Why Choose Us Section */}
-      <Container maxW="container.lg" py={16}>
+      <Container maxW="container.xl" my={20}>
         <Heading size="lg" textAlign="center" mb={12}>
           Why Choose Us<Text as="span" color="primary">?</Text>
         </Heading>
-        <Box>
 
-        <Flex w={'100%'} alignItems="center" px={4} gap={8} justify="space-evenly" flexWrap="nowrap" overflowX='auto' py={10}>
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
-            title="All in One Marketplace"
-            description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
-          />
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
-            title="Trust & Transparency"
-            description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
-          />
-          <FeatureCard
-            icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
-            title="Ease of Use"
-            description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
-          />
+        <Flex
+         w={'100%'}
+         className="hidden-scroll"
+         alignItems="center"
+         px={4} gap={8} justify="space-between"
+         flexWrap="nowrap"
+         overflowX='scroll'
+         py={10}
+        >
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
+              title="All in One Marketplace"
+              description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
+            />
+          </ScrollAnimation>
+
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
+              title="Trust & Transparency"
+              description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
+            />
+          </ScrollAnimation>
+
+          <ScrollAnimation animateIn="zoomIn">
+            <FeatureCard
+              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
+              title="Ease of Use"
+              description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
+            />
+          </ScrollAnimation>
         </Flex>
-        </Box>
       </Container>
 
       {/* Top Deals Section */}

@@ -383,6 +383,9 @@ function Partnership() {
       backgroundImage={`url('/assets/images/partner-banner-background.png')`}
       backgroundRepeat="no-repeat"
       backgroundSize="cover"
+      minH={'450px'}
+      placeContent="center"
+      placeItems="center"
       backgroundPosition="left"
     >
       <Container maxW="7xl">
@@ -435,7 +438,15 @@ function Features() {
           Why Choose Us<Text as="span" color="primary">?</Text>
         </Heading>
 
-        <Flex w={'100%'} className="hidden-scroll" alignItems="center" px={4} gap={8} justify="space-between" flexWrap="nowrap" overflowX='scroll' py={10}>
+        <Flex
+         w={'100%'}
+         className="hidden-scroll"
+         alignItems="center"
+         px={4} gap={8} justify="space-between"
+         flexWrap="nowrap"
+         overflowX='scroll'
+         py={10}
+        >
           <ScrollAnimation animateIn="zoomIn">
             <FeatureCard
               icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
@@ -458,9 +469,8 @@ function Features() {
               title="Ease of Use"
               description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
             />
-        </ScrollAnimation>
-        </
-        Flex>
+          </ScrollAnimation>
+        </Flex>
       </Container>
     </Box>
   )
@@ -560,7 +570,9 @@ function Testimonials() {
         </Heading>
         <Flex px={4} py={10} flexWrap="nowrap" justify="space-between" overflowX="scroll" className="hidden-scroll" gap={4}>
           {testimonials.map((testimonial, index) => (
-            <TestimonialCard key={index} {...testimonial} />
+            <ScrollAnimation animateIn="slideIn" delay={`0.${index}s`}>
+              <TestimonialCard key={index} {...testimonial} />
+            </ScrollAnimation>
           ))}
         </Flex>
       </Container>
