@@ -222,7 +222,7 @@ const BuyListing = ({ }) => {
                                 />
                             )
                         ):(
-                            listings.filter((listing) => listing?.vehicle?.condition !== 'new').map((listing, idx) =>
+                            listings.filter((listing) => listing?.vehicle?.condition !== 'new' || listing?.vehicle?.condition === "New").map((listing, idx) =>
                                 <ListingItemCard
                                  listing={listing}
                                  key={idx}
