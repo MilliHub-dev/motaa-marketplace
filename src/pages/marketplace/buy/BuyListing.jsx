@@ -251,6 +251,7 @@ function BannerCarousel({ images }) {
         src={images[currentImage].url}
         alt="Vehicle"
         w="full"
+        loading="eager"
         h="180px"
         objectFit="cover"
         borderRadius="20px"

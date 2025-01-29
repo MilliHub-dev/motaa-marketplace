@@ -381,19 +381,29 @@ export const Navbar = ({ props }) => {
                 {isMobile && 
                   <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
                 }
-                {!isMobile && isLoggedIn && ["customer", "mechanic"].includes(authUser?.user_type) &&
-                  <Button as={RLink} to="/wallet" borderRadius={'30px'} leftIcon={
+
+                {!isMobile && isLoggedIn &&
+                  <Button
+                   as={RLink}
+                   to="/wallet"
+                   borderRadius={'30px'}
+                   leftIcon={
                     <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-                    // <Wallet3 size="32" color="#FF8A65"/>
-                } variant="outline" fontWeight="600" colorScheme="blue" color="primary">Wallet</Button>
+                   }
+                   variant="outline"
+                   fontWeight="600"
+                   colorScheme="blue"
+                   color="primary"
+                  >Wallet</Button>
                 }
+
                 <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
                 <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
 
                 {authUser?.user_type === "customer" &&
                   <>
-                  <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-                  <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
+                    <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
+                    <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
                   </>
                 }
               </Flex>
@@ -410,8 +420,9 @@ export const Navbar = ({ props }) => {
                   <Text as={NavLink} fontWeight={'600'} to={"/home/#what-we-offer"}> About </Text>
                   <Text as={NavLink} fontWeight={'600'} to={"/home/#find-mechanics"}> Features </Text>
                   <Text as={NavLink} fontWeight={'600'} to={"/home/#partner-with-us"}> For Businesses </Text>
-              </Fragment>
+                </Fragment>
               }
+
               {!isLoggedIn &&
                 <Fragment>
                   <RLink to={"/signup/"}>
@@ -423,6 +434,7 @@ export const Navbar = ({ props }) => {
                   </RLink>
                 </Fragment>
               }
+
               {isMobile &&
                 <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
                   <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
