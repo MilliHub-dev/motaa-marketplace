@@ -94,9 +94,8 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         borderRadius={'10px'}
                         position={'relative'}
                     >
-                        <NavLink to={`/${type}/${listing.uuid}`}>
+                        <NavLink to={`/${type}/${listing?.uuid}`}>
                             <LinkBox
-                                // to
                                 flex={1} w={'100%'} height={'200px'}
                                 position={'relative'}
                                 sx={{
@@ -116,21 +115,19 @@ export const ListingItemCard = ({ listing, ...props }) => {
                                 <Icon cursor={'pointer'} rounded={'5px'} bg={'black.700'} color={'#fff'} p={'5px'} onClick={() => nextImage(1)}  className='icon'> <FaCaretRight /> </Icon>
                             </Flex>
                         }
-                        {/* <Image width={'100%'} height={'100%'} src={image.url} rounded={'10px'} /> */}
-
                     </Box>
                 </CardHeader>
 
                 <CardBody p={3}>
                     <Flex justifyContent={'space-between'} alignItems={'center'}>
                         <Heading size="sm" className="subtitle"> {listing?.title} </Heading>
-                        <Badge> {listing?.vehicle.condition} </Badge>
+                        <Badge> {listing?.vehicle?.condition} </Badge>
                     </Flex>
 
                     <Flex justifyContent={'flex-start'} alignItems={'center'} gap={2} my={2}>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RxTimer /> {commaInt(listing.vehicle.mileage) || 0} miles</Text>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <TbManualGearbox /> {listing.vehicle.transmission}</Text>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RiGasStationLine /> {listing.vehicle.fuel_system}</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RxTimer /> {commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
                     </Flex>
 
                     <Flex alignItems="center" gap={2}>
@@ -144,9 +141,9 @@ export const ListingItemCard = ({ listing, ...props }) => {
                     <Divider my={3} />
 
                     <Flex justifyContent={'space-between'} alignItems={'center'} my={2}>
-                        <Text className="small-text" as={Flex} alignItems="center" gap={1.25}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle.dealer.location} </Text>
+                        <Text className="small-text" as={Flex} alignItems="center" gap={1.25}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle?.dealer?.location} </Text>
                         {
-                            listing.vehicle.custom_duty &&
+                            listing?.vehicle?.custom_duty &&
                             <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon> <BsFillPatchCheckFill size={25} /> </Icon> </Tag>
                         }
                         {/* } */}
