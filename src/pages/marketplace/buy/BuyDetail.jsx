@@ -2,6 +2,7 @@ import {
     Avatar, Badge, Box, Button, Container,
     Divider, Flex, Heading, Icon, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid,
+    useMediaQuery,
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
@@ -20,6 +21,7 @@ const BuyDetail = ({ }) => {
     const [loading, setLoadingState] = useState(true);
     const [listing, setListing] = useState({});
     const {authUser, axios, notify, commaInt} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)')
 
     async function getData(){
         const res = await axios.get(`/listings/buy/${listingId}/`);
@@ -210,14 +212,14 @@ const BuyDetail = ({ }) => {
                  spacing={8}
                  columns={{base: 1, md: 2, lg: 3, xl: 4}}
                 >
-                    recommended?.map((listing, idx) =>
+                    {recommended?.map((listing, idx) =>
                         <ListingItemCard
                          listing={listing}
                          key={idx}
                          w="100%"
                          maxW={'350px'}
                         />
-                    )
+                    )}
                 </SimpleGrid>
             </Stack>
         </Container>
