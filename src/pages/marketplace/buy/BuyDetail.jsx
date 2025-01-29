@@ -3,15 +3,15 @@ import {
     Divider, Flex, Heading, Icon, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid,
     useMediaQuery,
-} from "@chakra-ui/react"
-import { Fragment, useContext, useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+} from "@chakra-ui/react";
+import { Fragment, useContext, useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { GlobalStore } from "../../../App";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
-import {ImageCarousel, LocationBreadcrumb} from "../../../components";
+import {ImageCarousel, LocationBreadcrumb, ListingItemCard} from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { objectifyJSON } from "../../../utils";
-import {FaCartPlus} from 'react-icons/fa'
+import {FaCartPlus} from 'react-icons/fa';
 
 
 
@@ -21,7 +21,7 @@ const BuyDetail = ({ }) => {
     const [loading, setLoadingState] = useState(true);
     const [listing, setListing] = useState({});
     const {authUser, axios, notify, commaInt} = useContext(GlobalStore);
-    const [isMobile] = useMediaQuery('(max-width: 768px)')
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
 
     async function getData(){
         const res = await axios.get(`/listings/buy/${listingId}/`);
