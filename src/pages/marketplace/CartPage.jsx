@@ -90,7 +90,7 @@ export const CartPage = ({ props }) => {
                 <Heading className="subtitle" size={'lg'} mb={5}>Your Cart</Heading>
 
                 <Tabs>
-                    <TabList border="none">
+                    <TabList border="none" className="hidden-scroll" overflowX="scroll">
                         <Tab gap={4} mx={2} className="subtitle" fontWeight="">
                             Cars 
                             <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.cars?.length}</Badge>

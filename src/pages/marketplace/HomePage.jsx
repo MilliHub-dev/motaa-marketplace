@@ -82,8 +82,17 @@ export default function MainPage() {
         <Container maxW="container.xl" pb={8} pt={6}>
           <LocationBreadcrumb />
 
-          <Grid mt={5} templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={8} alignItems="center">
-            <Box>
+          <Grid
+           mt={5}
+           templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+           gap={8}
+           alignItems="center"
+           templateAreas={{
+              base: `"image" "content"`,  // Reverse order on small screens
+              md: `"content image"`,       // Normal order on larger screens
+           }}
+          >
+            <Box gridArea="content">
               <Heading size="xl" mb={4} className="subtitle">
                 Welcome Back, {authUser?.first_name} {authUser?.last_name}
               </Heading>
@@ -112,13 +121,11 @@ export default function MainPage() {
               </VStack>
             </Box>
 
-            <ScrollAnimation animateIn="lightSpeedInRight">
-              <Box position="relative">
-                <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
-                <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
-                </Box>
+            <Box position="relative" gridArea="image">
+              <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
+              <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
               </Box>
-            </ScrollAnimation>
+            </Box>
           </Grid>
         </Container>
       </Box>
