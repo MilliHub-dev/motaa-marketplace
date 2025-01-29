@@ -212,7 +212,7 @@ const BuyDetail = ({ }) => {
                  spacing={8}
                  columns={{base: 1, md: 2, lg: 3, xl: 4}}
                 >
-                    {recommended?.map((listing, idx) =>
+                    {recommended && recommended?.map((listing, idx) =>
                         <ListingItemCard
                          listing={listing}
                          key={idx}
