@@ -179,7 +179,7 @@ export const SearchBar = ({ onSearch, ...props }) => {
     return (
         <form method='post' onSubmit={handleSearch}>
         <Flex rounded={'30px'} alignItems={'center'} zIndex={'100'} gap={2} justifyContent={'space-between'} pl={4} pr={0} py={0} border={'1px solid lightgrey'} {...props}>
-            <Icon className='icon' fontSize={'20px'}><RiSearch2Line /> </Icon>
+            <Icon className='icon' color="inherit" fontSize={'20px'}><RiSearch2Line /> </Icon>
             <Input
              type='search'
              value={query} pl={0}
@@ -189,13 +189,13 @@ export const SearchBar = ({ onSearch, ...props }) => {
              onInput={(e) => setQuery(e.target.value)}
             />
             <Menu>
-                <Select  maxW={'min-content'} onClick={() => setMenuState(!menuOpen)} type='button' rounded={'30px'} as={MenuButton} textTransform={'capitalize'}>
+                <Select color="inherit" minW="30px" maxW={'min-content'} onClick={() => setMenuState(!menuOpen)} type='button' rounded={'30px'} as={MenuButton} textTransform={'capitalize'}>
                     <option value={target}>{target}</option>
                 </Select>
 
                 <MenuList minW={'max-content'} py={0}>
-                    <MenuItem as={motion.button} type='button' onClick={() => setTarget('cars')} > Cars </MenuItem>
-                    <MenuItem as={motion.button} type='button' onClick={() => setTarget('mechanics')}  maxW={'max-content'}> Mechanics </MenuItem>
+                    <MenuItem color="inherit" as={motion.button} type='button' onClick={() => setTarget('cars')} > Cars </MenuItem>
+                    <MenuItem color="inherit" as={motion.button} type='button' onClick={() => setTarget('mechanics')}  maxW={'max-content'}> Mechanics </MenuItem>
                 </MenuList>
             </Menu>
         </Flex>
