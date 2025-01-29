@@ -112,7 +112,7 @@ const BuyDetail = ({ }) => {
                     <Heading className="subtitle" size={'md'} mb={4}> Overview </Heading>
                     
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} flexWrap="wrap">
-                        <List w={{ base: '100%', md: '50%'}}>
+                        <List w={'100%'}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Mileage: </span>
                                 <span> {listing?.vehicle.mileage} miles </span>
@@ -144,7 +144,7 @@ const BuyDetail = ({ }) => {
                             </ListItem>
                         </List>
                         
-                        <List w={{ base: '100%', md: '50%'}}>
+                        <List w={'100%'}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Custom Duty: </span>
                                 <span> {listing?.vehicle.custom_duty ? 'Yes' : 'No'} </span>
@@ -202,7 +202,7 @@ const BuyDetail = ({ }) => {
 
 
             <Stack>
-                <Heading textAlign="center"> Recommended Cars for You </Heading>
+                <Heading textAlign="center" size="md"> Recommended Cars for You </Heading>
 
                 <SimpleGrid
                  minChildWidth="300px"
