@@ -390,7 +390,7 @@ export const Navbar = ({ props }) => {
                    leftIcon={
                     <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
                    }
-                   variant="unstyled"
+                   variant="outline"
                    bgColor="#d9ebf5"
                    fontWeight="600"
                    colorScheme="blue"
