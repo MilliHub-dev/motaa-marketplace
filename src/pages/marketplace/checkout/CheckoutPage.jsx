@@ -194,7 +194,7 @@ function CheckoutPage({ props }) {
     const data = objectifyJSON(res.data);
     if(res.status === 200){
       setListing(data.listing);
-      changeValue({amount: listing?.price})
+      changeValue({amount: parseInt(data.listing.price)})
     }
     console.log("Got Data:", data);
   }
@@ -317,7 +317,7 @@ function CheckoutPage({ props }) {
 
               <Box>
                 <Text fontWeight="medium" mb={4}>Choose a payment option</Text>
-                <Flex flexWrap="nowrap" w="100%" overflowX="auto" className="hidden-scroll" gap={4}>
+                <Flex flexWrap="nowrap" w="100%" overflowX="auto" flexDirection="row" className="hidden-scroll" gap={4}>
                   {PaymentOptions.map((option, index) => {
                     const radio = getRadioProps({ value: option.value, isDisabled: option.disabled });
 
@@ -354,10 +354,8 @@ function CheckoutPage({ props }) {
                   PROCEED
                 </Button>
 
-                <Button bgColor="blue.50" size="xl" color="primary" variant="ghost" width="100%">
-                <Link to="/">
+                <Button bgColor="blue.50" size="xl" p="12px" color="primary" variant="ghost" width="100%" as={Link} to="/">
                   CANCEL
-                </Link>
                 </Button>
               </VStack>
             </VStack>
@@ -428,18 +426,18 @@ const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) =
     // public_key: process.env.REACT_APP_FLW_TEST_PUBLIC_KEY,
     public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
     tx_ref: Date.now(),
-    amount: amount,
+    amount: amount > 500000 ? 500000 : amount,
     currency: currency,
     payment_options: payment_option,
     customer: {
-      email: {email},
-      phone_number: {phone_number},
+      email: email,
+      phone_number: phone_number,
       name: `${first_name} ${last_name}`,
     },
     customizations: {
-      title: `${listing?.dealer?.business_name}`,
+      title: `${listing?.vehicle?.dealer?.business_name}`,
       description: `Payment for: ${listing?.title}`,
-      logo: listing?.dealer?.logo,
+      logo: listing?.vehicle?.dealer?.logo,
     },
     meta: {
       listing: listing?.uuid,
@@ -476,10 +474,10 @@ const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) =
 
   return(
       <Modal isCentered isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
+        <ModalOverlay px={4} />
+        <ModalContent w={'90%'} maxW={'700px'}>
           <ModalHeader>
-            <Heading> Checkout </Heading>
+            <Heading size="md"> Checkout </Heading>
             <ModalCloseButton />
           </ModalHeader>
 
