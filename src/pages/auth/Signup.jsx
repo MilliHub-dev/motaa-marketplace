@@ -78,12 +78,13 @@ export const SignupView = ({ type="personal", ...props }) => {
                 first_name,
                 last_name,
                 provider: 'google',
+                // action: 'create-account',
             };
 
             const newUser = await checkEmail(_user.email);
             if (newUser){
-                setPayload({...data});
-                setUser(user);
+                await setPayload({...data});
+                await setUser(user);
                 setSkipStep({...skipConfirmation, email: true});
                 gotoStep(1);
             }
@@ -322,6 +323,7 @@ const SignupStep = ({ skipEmailConfirmation }) => {
             first_name,
             last_name,
             phone_number,
+            action: 'create-account',
             id_type,
             user_type
         }
