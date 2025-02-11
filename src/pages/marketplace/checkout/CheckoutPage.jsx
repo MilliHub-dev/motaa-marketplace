@@ -149,6 +149,7 @@ function CheckoutPage({ props }) {
     address: '',
     zip_code: '',
     payment_option: 'card',
+    amount: 0.0,
   });
 
   const { getRootProps, getRadioProps } = useRadioGroup({
@@ -193,6 +194,7 @@ function CheckoutPage({ props }) {
     const data = objectifyJSON(res.data);
     if(res.status === 200){
       setListing(data.listing);
+      changeValue({amount: listing?.price})
     }
     console.log("Got Data:", data);
   }
