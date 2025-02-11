@@ -1,8 +1,9 @@
 import {useState, useEffect, useContext} from 'react';
 import {motion} from "framer-motion";
-import {useParams, useSearchParams, Link} from 'react-router-dom';
+import {useParams, useSearchParams, Link, useNavigate} from 'react-router-dom';
 import {GlobalStore} from "../../../App";
 import {objectifyJSON, jsonifyObject} from "../../../utils";
+import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import {
   Box,
   Container,
@@ -13,6 +14,7 @@ import {
   FormLabel,
   Input,
   Select,
+  Tag,
   Button,
   Text,
   Image,
@@ -27,10 +29,34 @@ import {
   RadioGroup,
   Checkbox,
   Radio,
+  Icon,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+  ModalOverlay,
+  ModalContent,
+  ModalCloseButton,
   useRadio,
   useRadioGroup,
+  useMediaQuery,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { Clock, Gauge, Zap, MoreVertical, PiggyBank, Wallet, CreditCard, Warehouse, BanknoteIcon } from 'lucide-react'
+import { HiMiniReceiptPercent } from 'react-icons/hi2'
+import { LuMapPin } from 'react-icons/lu'
+import { RxCaretLeft, RxCaretRight, RxTimer } from 'react-icons/rx';
+import { RiGasStationLine } from 'react-icons/ri';
+import { TbManualGearbox } from 'react-icons/tb';
+import { BsFillPatchCheckFill } from 'react-icons/bs';
+// import {
+//   CitySelect,
+//   StateSelect,
+//   CountrySelect,
+//   GetCountries,
+//   GetState,
+// } from "react-country-state-city";
+
 
 
 const PaymentOptions = [
@@ -99,48 +125,89 @@ const RadioCard = ({ option, onInput, ...props }) => {
 
 
 function CheckoutPage({ props }) {
-  const {axios, authUser} = useContext(GlobalStore);
   const params = new URLSearchParams(document.location.search);
   const listingId = params.get('listingId');
+  const redirect = useNavigate();
+  const {axios, authUser, commaInt} = useContext(GlobalStore);
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
+  const [listing, setListing] = useState();
+  const [order, setOrder] = useState();
+  const [countryList, setCountryList] = useState([]);
+  const [stateList, setStateList] = useState([]);
+  const [cityList, setCityList] = useState([]);
   const [checkoutPayload, setCheckoutPayload] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone_number: '',
+    listing: listingId,
+    first_name: authUser?.first_name || '',
+    last_name: authUser?.last_name || '',
+    email: authUser?.email || '',
+    phone_number: authUser?.phone_number || '',
+    currency: 'NGN',
     country: '', // get from phone number extension
     state: '',
     city: '', // also used as lga
     lga: '', // also used as lga
     address: '',
     zip_code: '',
-    payment_option: '',
+    payment_option: 'card',
   });
 
   const { getRootProps, getRadioProps } = useRadioGroup({
     name: 'payment-option',
     onChange: val => {
       let payload = checkoutPayload;
-      payload.payment_option = val;
-      setCheckoutPayload({...payload})
+      checkoutPayload.payment_option = val;
+      setCheckoutPayload({...checkoutPayload})
     },
   });
 
   const groupy = getRootProps();
 
+  function redeemCoupon(e){
+    e.preventDefault();
+  }
+
+  function changeValue(val){
+    let data = checkoutPayload;
+
+    setCheckoutPayload({...data, ...val})
+  }
+
   function init(){
     getData();
+    // GetCountries()
+    // .then((result) => setCountryList(result));
+
+    /* Country
+    {
+      id: '',
+      iso2: '', // e.g NG US AF ZA CH
+      phone_code: '', // e.g 1 234 233 93
+      name: '',
+      emoji: '',
+    }
+    */
   }
 
   async function getData(){
     const res = await axios.get(`/listings/checkout/${listingId}/`);
     const data = objectifyJSON(res.data);
-
-    console.log("Got Data:", data)
+    if(res.status === 200){
+      setListing(data.listing);
+    }
+    console.log("Got Data:", data);
   }
 
+  function proceedToCheckout(e){
+    e.preventDefault();
+    console.table("Checking out with: ", checkoutPayload);
+    onOpen()
+  }
+
+  const {onClose, onOpen, isOpen} = useDisclosure();
   useEffect(() => {
     init();
   }, [])
+
 
   return (
     <Box bg="white" minH="100vh">
@@ -151,43 +218,43 @@ function CheckoutPage({ props }) {
         </Container>
       </Box>
 
-      <Container maxW="90%">
-        <Flex gap={8}>
+      <Container maxW="90%" pb={10}>
+        <Flex gap={8} flexWrap={{base: 'wrap', md: 'unset'}}>
           {/* Form Section */}
-          <Box flex={2.9/4} pb={10}>
-            <Heading size="lg" mb={6}>Confirm your details</Heading>
+          <Box flex={{base: 1, md: 2.65/4}} pb={10} w={'100%'}>
+            <Text className="bold" fontSize="22px" mb={6}>Confirm your details</Text>
             <VStack spacing={6} align="stretch">
-              <SimpleGrid columns={2} spacing={4}>
-                <FormControl>
+              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
+                <FormControl flex={1}>
                   <FormLabel>First name</FormLabel>
-                  <Input defaultValue={authUser?.first_name} px={4} py={5} />
+                  <Input onInput={(e) => changeValue({ first_name: e.target.value})} defaultValue={checkoutPayload?.first_name} px={4} py={5} />
                 </FormControl>
 
-                <FormControl>
+                <FormControl flex={1}>
                   <FormLabel>Last name</FormLabel>
-                  <Input defaultValue={authUser?.last_name} px={4} py={5} />
+                  <Input onInput={(e) => changeValue({ last_name: e.target.value})} defaultValue={checkoutPayload?.last_name} px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
 
-              <SimpleGrid columns={2} spacing={4}>
+              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>Phone Number</FormLabel>
                   <InputGroup>
                     <InputLeftAddon children="+234" px={4} py={5} />
-                    <Input defaultValue={authUser?.phone_number} px={4} py={5} />
+                    <Input onInput={(e) => changeValue({ phone_number: e.target.value})} defaultValue={checkoutPayload?.phone_number} px={4} py={5} />
                   </InputGroup>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel>Email</FormLabel>
-                  <Input defaultValue={authUser?.email} type="email" px={4} py={5} />
+                  <Input onInput={(e) => changeValue({ email: e.target.value})} defaultValue={checkoutPayload?.email} type="email" px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
 
-              <SimpleGrid columns={2} spacing={4}>
+              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>State of Residency</FormLabel>
-                  <Select defaultValue="FCT ABUJA" py={5}>
+                  <Select onInput={(e) => changeValue({ state: e.target.value})} defaultValue="FCT ABUJA">
                     <option>FCT ABUJA</option>
                     <option>LAGOS</option>
                     <option>KANO</option>
@@ -196,7 +263,7 @@ function CheckoutPage({ props }) {
 
                 <FormControl>
                   <FormLabel>LGA</FormLabel>
-                  <Select defaultValue="AMAC" py={5}>
+                  <Select onInput={(e) => changeValue({ lga: e.target.value})} defaultValue="AMAC">
                     <option>AMAC</option>
                     <option>BWARI</option>
                     <option>GWAGWALADA</option>
@@ -206,10 +273,10 @@ function CheckoutPage({ props }) {
 
               <FormControl>
                 <FormLabel>Current Address</FormLabel>
-                <Input as={motion.textarea} minH="70px" defaultValue="No.13 Asemankase street, Wuse Zone 2 Abuja" px={4} py={5} />
+                <Input as={motion.textarea} minH="70px" onInput={(e) => changeValue({ address: e.target.value})} defaultValue={checkoutPayload?.address} px={4} py={5} />
               </FormControl>
 
-              <SimpleGrid columns={2} spacing={4}>
+              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>Date of Birth</FormLabel>
                   <Input type="date" defaultValue="1964-12-05" px={4} py={5} />
@@ -224,26 +291,31 @@ function CheckoutPage({ props }) {
 
               <Box>
                 <SimpleGrid columns={2} spacing={4} mb={4}>
-                  <Text>Price:</Text>
-                  <Text textAlign="right">₦41,500,000</Text>
-                  <Text>0.5% VAT & fees</Text>
-                  <Text textAlign="right">₦60,000</Text>
-                  <Text>Inspection fee:</Text>
-                  <Text textAlign="right">₦5,000</Text>
+                  <Text fontWeight="600">Price:</Text>
+                  <Text fontWeight="600" textAlign="right">₦{commaInt(listing?.price)}</Text>
+                  <Text fontWeight="600">0.5% VAT & fees</Text>
+                  <Text fontWeight="600" textAlign="right">₦60,000</Text>
+                  <Text fontWeight="600">Inspection fee:</Text>
+                  <Text fontWeight="600" textAlign="right">₦5,000</Text>
                 </SimpleGrid>
-                <FormControl>
-                  <Input placeholder="Enter Promo Code" px={4} py={5} />
-                </FormControl>
+
+                <form method="POST" onSubmit={redeemCoupon}>
+                  <Flex gap={8}>
+                    <Input placeholder="Enter Promo Code" px={4} py={5} />
+                    <Button w={'100px'} colorScheme="blue" bg="primary"> Apply </Button>
+                  </Flex>
+                </form>
+
                 <Divider my={4} />
                 <Flex justify="space-between" fontWeight="bold">
-                  <Text>Total:</Text>
-                  <Text>41,565,000</Text>
+                  <Heading size="md">Total:</Heading>
+                  <Heading size="md">₦{commaInt(listing?.price)}</Heading>
                 </Flex>
               </Box>
 
               <Box>
                 <Text fontWeight="medium" mb={4}>Choose a payment option</Text>
-                <SimpleGrid columns={5} spacing={4} {...groupy}>
+                <Flex flexWrap="nowrap" w="100%" overflowX="auto" className="hidden-scroll" gap={4}>
                   {PaymentOptions.map((option, index) => {
                     const radio = getRadioProps({ value: option.value, isDisabled: option.disabled });
 
@@ -251,90 +323,174 @@ function CheckoutPage({ props }) {
                       <RadioCard key={index} option={option} value={option.value} {...radio} />
                     )}
                   )}
-                </SimpleGrid>
+                </Flex>
               </Box>
 
-              {/*<Text fontSize="sm" color="gray.600">
+              <Divider my={3} />
+
+              <Text fontSize="sm" color="gray.600">
                 This is text field is meant to explain whatever payment option is chosen above,
                 prototype would be available if needed 👍
-              </Text>*/}
+              </Text>
 
 
-              <Box p={4} bg="blue.50" borderRadius="lg">
-                <HStack spacing={2}>
+              <Box placeItems="center">
+                <HStack spacing={4} p={4} borderWidth={1} borderColor="primary" bg="blue.50" borderRadius="lg">
                   <Checkbox defaultChecked />
                   <Text fontSize="sm">
                     Motaa does not sell cars. If you're buying online, any funds deducted from your card or
                     wallet are kept in an escrow account until you are satisfied with the dealer.
                   </Text>
                 </HStack>
-                <Button variant="link" colorScheme="blue" size="sm" mt={2}>
+                <Button variant="link" colorScheme="blue" mt={2} textDecoration="underline" size="sm" mt={2}>
                   What is escrow?
                 </Button>
               </Box>
 
               <VStack spacing={4}>
-                <Button colorScheme="blue" bg="primary" size="lg" width="100%">
+                <Button onClick={proceedToCheckout} size="xl" colorScheme="blue" bg="primary" size="lg" width="100%">
                   PROCEED
                 </Button>
-                <Button as={Link} to="/" variant="ghost" width="100%">
+
+                <Button bgColor="blue.50" size="xl" color="primary" variant="ghost" width="100%">
+                <Link to="/">
                   CANCEL
+                </Link>
                 </Button>
               </VStack>
             </VStack>
           </Box>
 
           {/* Car Details Section */}
-          <Box flex={1/4}>
+          <Box flex={{base: 1, md: 1.35/4}}>
             <Box
               borderWidth={1}
-              borderRadius="lg"
-              overflow="hidden"
+              borderRadius="30px"
               position="relative"
-              top={4}
             >
-              <Image
-                src="/placeholder.svg?height=300&width=500"
-                alt="2021 Hyundai Kona"
-              />
+              <Box w="100%" h="250px" px={3} py={3} >
+                <Image
+                  src={listing?.vehicle?.images[0]?.url}
+                  alt={listing?.title}
+                  w="100%"
+                  h="100%"
+                  borderRadius={'20px'}
+                />
+              </Box>
               <Box p={6}>
-                <Flex justify="space-between" align="start" mb={4}>
-                  <Box>
-                    <Heading size="lg">2021 Hyundai Kona</Heading>
-                    <Badge>FOREIGN USED</Badge>
-                  </Box>
-                  <IconButton
-                    icon={<MoreVertical size={16} />}
-                    variant="ghost"
-                    aria-label="More options"
-                  />
+                <Flex justifyContent={'space-between'} alignItems={'center'}>
+                    <Heading size="md" className="subtitle"> {listing?.title} </Heading>
+                    <Badge color="grey.500" className="bold"> {listing?.vehicle?.condition} </Badge>
                 </Flex>
-                <HStack spacing={4} mb={4}>
-                  <HStack>
-                    <Clock size={16} />
-                    <Text>800 miles</Text>
-                  </HStack>
-                  <HStack>
-                    <Gauge size={16} />
-                    <Text>Automatic</Text>
-                  </HStack>
-                  <HStack>
-                    <Zap size={16} />
-                    <Text>Electric</Text>
-                  </HStack>
-                </HStack>
-                <HStack>
-                  <Text>FCT, AMAC</Text>
-                  <Badge colorScheme="purple">CUSTOM DUTY ✓</Badge>
-                </HStack>
+
+                <Flex justifyContent={'flex-start'} alignItems={'center'} gap={2} my={2}>
+                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <RxTimer /> {commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
+                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
+                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
+                </Flex>
+
+                <Divider my={3} />
+
+                <Flex justifyContent={'space-between'} alignItems={'center'} my={2}>
+                    <Text className="small bold" color="gray.600" as={Flex} alignItems="baseline" gap={1}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle?.dealer?.location} </Text>
+                    {
+                      listing?.vehicle?.custom_duty &&
+                      <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon> <BsFillPatchCheckFill color="#de06bc" size={25} /> </Icon> </Tag>
+                    }
+                </Flex>
               </Box>
             </Box>
           </Box>
         </Flex>
+
+        <PaymentModal
+         isOpen={isOpen}
+         onClose={onClose}
+         checkoutPayload={checkoutPayload}
+         lisitng={listing}
+        />
       </Container>
     </Box>
   )
 }
+
+
+
+const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) => {
+  const {
+    currency, amount, payment_option,
+    email, phone_number, first_name, last_name,
+  } = checkoutPayload;
+
+  const config = {
+    // public_key: process.env.REACT_APP_FLW_TEST_PUBLIC_KEY,
+    public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
+    tx_ref: Date.now(),
+    amount: amount,
+    currency: currency,
+    payment_options: payment_option,
+    customer: {
+      email: {email},
+      phone_number: {phone_number},
+      name: `${first_name} ${last_name}`,
+    },
+    customizations: {
+      title: `${listing?.dealer?.business_name}`,
+      description: `Payment for: ${listing?.title}`,
+      logo: listing?.dealer?.logo,
+    },
+    meta: {
+      listing: listing?.uuid,
+      transaction_type: listing?.listing_type,
+    }
+  };
+
+  const handleFlutterPayment = useFlutterwave(config);
+
+  function onPaymentComplete(response){
+
+  }
+
+  function onModalClose(){
+    // user cancelled the payment flow
+  }
+
+  function payUp(){
+    try{
+      handleFlutterPayment({
+        callback: (response) => {
+          console.log(response);
+          onPaymentComplete(response);
+          closePaymentModal(); // this will close the modal programmatically
+        },
+        onClose: () => {
+          onModalClose();
+        },
+      });
+    }catch(err){
+      console.log("error paying up:", err)
+    }
+  }
+
+  return(
+      <Modal isCentered isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <Heading> Checkout </Heading>
+            <ModalCloseButton />
+          </ModalHeader>
+
+          <ModalBody>
+            <Button w="100%" bg="primary" colorScheme="blue" onClick={payUp}> Pay now </Button>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+  )
+}
+
+
+
 
 export default CheckoutPage;
 

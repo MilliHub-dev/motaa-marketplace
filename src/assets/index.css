@@ -8,19 +8,13 @@
 
 @font-face {
   font-family: 'Satoshi';
-  font-weight: 300;
   src: url('/public/assets/fonts/Satoshi-Black.ttf');
+  src: url('/public/assets/fonts/Satoshi-Regular.ttf');
 }
-/*
-@font-face {
-  font-family: 'Manrope';
-  src: url('/public/assets/fonts/Manrope.ttf');
-}*/
 
 .pt-sans-regular {
   font-family: "PT Sans", sans-serif;
   font-weight: 400;
-/*  font-style: normal;*/
 }
 
 .icon{
@@ -60,25 +54,26 @@ html{
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'PT Sans',
-    'Material Symbols Sharp',
-    sans-serif;
+  font-family: 'Satoshi', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+/*  font-weight: unset !important;*/
 }
 
 body * {
-  font-family: 'Satoshi' ;
+  font-family: 'Satoshi';
   line-height: 1.5;
   z-index: unset;
-  font-weight: 400;
 }
+
 .icon{
   font-size: 25px;
 }
 
+.bold{
+  font-weight: 600;
+}
 
 .small, .small-text, .smalltext {
   font-size: 14px !important;
@@ -87,7 +82,6 @@ body * {
 .ellipsis{
   text-overflow: ellipsis;
   text-wrap: pretty;
-  /* ov; */
 }
 
 .no-style{
@@ -144,8 +138,6 @@ body * {
   position: relative;
   z-index: 2;
 }
-
-
 
 .header .after-line:after {
   content: "";

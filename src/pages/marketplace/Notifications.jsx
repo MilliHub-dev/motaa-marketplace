@@ -5,7 +5,9 @@ import {
   HStack,
   Text,
   IconButton,
+  Divider,
   Badge,
+  Flex,
   Button,
   useColorModeValue,
 } from '@chakra-ui/react'
@@ -34,32 +36,21 @@ function NotificationCard({ type, title, message, action, onClose }) {
     <Box
       w="full"
       bg={bgColor}
-      borderRadius="lg"
+      borderRadius="5px"
+      borderColor="lavender"
+      borderWidth="2px"
       borderLeftWidth={4}
       borderLeftColor={borderColor}
       boxShadow="sm"
       position="relative"
       overflow="hidden"
     >
-      <HStack spacing={4} p={4}>
-        <Icon
-          className={`w-5 h-5 ${
-            type === 'info'
-              ? 'text-blue-500'
-              : type === 'success'
-              ? 'text-green-500'
-              : type === 'error'
-              ? 'text-red-500'
-              : 'text-orange-500'
-          }`}
-        />
-        <Box flex={1}>
-          <Text fontWeight="medium" mb={1}>
-            {title}
-          </Text>
-          <Text color="gray.600" fontSize="sm">
-            {message}
-          </Text>
+      <Flex gap={4} justifyContent="space-between" p={4} alignItems="flex-start">
+        <Icon size="17px" />
+        
+        <Box flex={1} borderRight="1px solid lavender">
+          <Text className="bold" mb={1}> {title} </Text>
+          <Text color="gray.600" fontSize="sm"> {message} </Text>
           {action && (
             <Button
               size="sm"
@@ -78,14 +69,16 @@ function NotificationCard({ type, title, message, action, onClose }) {
             </Button>
           )}
         </Box>
+
         <IconButton
-          icon={<X className="w-4 h-4" />}
+          icon={<X size="20px" />}
           variant="ghost"
           size="sm"
           onClick={onClose}
           aria-label="Close notification"
         />
-      </HStack>
+
+      </Flex>
     </Box>
   )
 }
@@ -133,40 +126,44 @@ function NotificationsPage() {
   return (
     <Box minH="100vh">
       <Container maxW="container.xl" py={8}>
-        <HStack mb={1}>
+        <HStack mb={1} alignItems="center">
           <Text fontSize="2xl" fontWeight="bold"> Notifications </Text>
-          <Badge px={4} colorScheme="blue" borderRadius="30px" fontSize="sm"> 14 </Badge>
+          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> 14 </Badge>
         </HStack>
 
         <Text color="gray.600" mb={8}>
           You have 14 unread messages.
         </Text>
 
-        <Container maxW="container.lg">
           <Box mb={8}>
             <Text
               color="gray.500"
+              as={Flex}
+              alignItems="center"
+              gap={3}
               fontSize="sm"
-              fontWeight="medium"
+              className="bold"
+              textAlign="center"
               mb={4}
-              textTransform="uppercase"
             >
-              Today
+              <Divider /> Today <Divider />
             </Text>
-            <VStack spacing={4} align="stretch">
-              {notifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  type={notification.type}
-                  title={notification.title}
-                  message={notification.message}
-                  action={notification.action}
-                  onClose={() => console.log('Close notification:', notification.id)}
-                />
-              ))}
-            </VStack>
+
+            <Container maxW="700px">
+              <VStack spacing={4} align="stretch">
+                {notifications.map((notification) => (
+                  <NotificationCard
+                    key={notification.id}
+                    type={notification.type}
+                    title={notification.title}
+                    message={notification.message}
+                    action={notification.action}
+                    onClose={() => console.log('Close notification:', notification.id)}
+                  />
+                ))}
+              </VStack>
+            </Container>
           </Box>
-        </Container>
         
       </Container>
     </Box>

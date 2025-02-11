@@ -120,14 +120,14 @@ export const ListingItemCard = ({ listing, ...props }) => {
 
                 <CardBody p={3}>
                     <Flex justifyContent={'space-between'} alignItems={'center'}>
-                        <Heading size="sm" className="subtitle"> {listing?.title} </Heading>
-                        <Badge> {listing?.vehicle?.condition} </Badge>
+                        <Heading size="md" className="subtitle"> {listing?.title} </Heading>
+                        <Badge color="grey.500" className="bold"> {listing?.vehicle?.condition} </Badge>
                     </Flex>
 
                     <Flex justifyContent={'flex-start'} alignItems={'center'} gap={2} my={2}>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RxTimer /> {commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
-                        <Text as={Flex} gap={1} alignItems={'center'} className="smalltext"> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className=""> <RxTimer /> ₦{commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className=""> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className=""> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
                     </Flex>
 
                     <Flex alignItems="center" gap={2}>

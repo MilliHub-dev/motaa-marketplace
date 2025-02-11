@@ -128,245 +128,249 @@ export const HomePage = ({ props }) => {
     const [isMobile] = useMediaQuery('(max-width: 760px)');
 
     return(
-        <div>
-            <motion.section id='welcome' ref={heroRef}>
-                <Box
-                  className='header'
-                  position={'relative'}
-                  loading="eager"
-                  backgroundImage={`linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), ${isMobile ? 'url("/assets/images/hero-image-mobile.png")' : 'url("/assets/images/hero-image.png")'}`}
-
-                >
-                    {/* Hero */}
-                  <Container maxW={'700px'} pt={15} pb={'2rem'}>
-                    <Box position={'relative'} className='hero' mb={5}>
-                      <Text position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
-                       One Platform for </Text>  
-                      <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
-                       All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
-                      </Text>
-                      <Text size='md'> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
-                    </Box>
-
-                    <SearchBar onSearch={(query) => console.log(query)} bg="white" color="black" />
-
-                    <SimpleGrid
-                     placeItems="center"
-                     justify="center"
-                     columns={{sm: 2, md: 4}}
-                     spacing={4}
-                     width="100%"
-                     mt={5}
-                     minChildWidth={isMobile ? '150px' : '130px'}
-                    >
-                        {[
-                          { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car' },
-                          { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car' },
-                          { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car' },
-                          { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic' },
-                        ].map((item, idx) => (
-                          
-                          <Flex
-                            as={ScrollAnimation}
-                           animateIn={"flipInY"}
-                            key={item.label}
-                            variant="solid"
-                            w="100%"
-                            bg="whiteAlpha.200"
-                            _hover={{ bg: 'whiteAlpha.300' }}
-                            height={isMobile ? "max-content" : "150px"}
-                            py={6}
-                            px={3}
-                            align="center"
-                            alignItems="center"
-                            placeContent="center"
-                            borderWidth={2}
-                            borderRadius="10px"
-                            gap={2} direction={isMobile ? 'row' : 'column'}
-                          >
-                            <Icon as={Image} src={item.icon} fontSize={27} />
-                            <Text fontSize="sm">{item.label}</Text>
-                          </Flex>
-                          
-                        ))}
-                    </SimpleGrid>
-                  </Container>
-                </Box>
-            </motion.section>
-
-            <Box py={20} px={10}>
-              <SimpleGrid my={4} columns={{base: 1, md: 2}} gap={4} alignItems="baseline" textAlign={isMobile && 'center'}>
-                <Heading> Explore our network of <Text as="span" color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
-                <Text> Motaa connects you to verified dealers and certified mechanics across Nigeria. We believe in excellence and provide you with only partners you can trust.</Text>
-              </SimpleGrid>
-
-              <SimpleGrid columns={{base: 1, sm: 2, md: 2}} gap={6}>
-                {
-                  featureList.map((feature, idx) =>
-                  <ScrollAnimation animateIn={idx % 2 === 0 ? "fadeInLeft" : "fadeInRight"}>
-                  <Box loading="eager" key={idx} className='feature-card' sx={{
-                    position: 'relative',
-                    display: 'block',
-                    backgroundColor: 'rgba(0, 0, 0, 0.27)',
-                    backgroundImage: `url("${feature.image}")`,
-                    backgroundSize: 'cover',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundBlendMode: 'overlay',
-                    borderRadius: '20px',
-                    px: 3, py: 3,
-                    backgroundPositionX: feature.background.xAxis,
-                  }}
-                  whileHover={{ scale: 1.025 }}
-                  >
-                    <Image
-                     src={isMobile ? feature.card.image.mobile : feature.card.image.desktop }
-                     width={'150px'}
-                     position={'absolute'}
-                     top={feature.card.posY}
-                     left={feature.card.posX}
-                    />
-
-                    <Box className=''
-                      sx={{
-                        position: 'absolute',
-                        bottom: '15px',
-                        color: '#fff',
-                        fontSize: '15px',
-                      }}
-                    >
-                      <Text px={3} py={1} borderRadius={'5px'} color={'#fff'} bg={'primary'} w={'max-content'}> {feature.label} </Text>
-                      <Text my={2}> {feature.content} </Text>
-
-                      <Button variant="outine" borderColor="white" color="white" borderWidth={2} rightIcon={<RxArrowRight />}>{feature.cta.label}</Button>
-                    </Box>
-                  </Box>
-                  </ScrollAnimation>
-                )
+      <div>
+        <motion.section id='welcome' ref={heroRef}>
+            <Box
+              className='header'
+              position={'relative'}
+              loading="eager"
+              backgroundImage={
+                `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), ${isMobile ? 
+                'url("/assets/images/hero-image-mobile.png")' 
+                :'url("/assets/images/hero-image.png")'}`
               }
-              </SimpleGrid>
+            >
+                {/* Hero */}
+              <Container maxW={'600px'} pt={15} pb={'2rem'}>
+                <Box position={'relative'} className='hero' mb={3}>
+                  <Text position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
+                   One Platform for </Text>  
+                  <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
+                   All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
+                  </Text>
+                  <Text size="lg"> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
+                </Box>
+
+                <SearchBar onSearch={(query) => console.log(query)} bg="white" color="black" />
+
+                <SimpleGrid
+                 placeItems="center"
+                 justify="center"
+                 columns={{sm: 2, md: 4}}
+                 spacing={4}
+                 width="100%"
+                 mt={5}
+                 minChildWidth={isMobile ? '150px' : '130px'}
+                >
+                    {[
+                      { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car' },
+                      { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car' },
+                      { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car' },
+                      { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic' },
+                    ].map((item, idx) => (
+                      
+                      <Flex
+                        as={ScrollAnimation}
+                       animateIn={"flipInY"}
+                        key={item.label}
+                        variant="solid"
+                        w="100%"
+                        bg="whiteAlpha.200"
+                        _hover={{ bg: 'whiteAlpha.300' }}
+                        height={isMobile ? "max-content" : "150px"}
+                        py={6}
+                        px={3}
+                        align="center"
+                        alignItems="center"
+                        placeContent="center"
+                        borderWidth={2}
+                        borderRadius="10px"
+                        gap={2} direction={isMobile ? 'row' : 'column'}
+                      >
+                        <Icon as={Image} src={item.icon} fontSize={27} />
+                        <Text fontSize="sm">{item.label}</Text>
+                      </Flex>
+                      
+                    ))}
+                </SimpleGrid>
+              </Container>
             </Box>
+        </motion.section>
 
-            <Features />
+        <Box py={20} px={10}>
+          <SimpleGrid my={4} columns={{base: 1, md: 2}} gap={4} alignItems="baseline" textAlign={isMobile && 'center'}>
+            <Heading> Explore our network of <Text as="span" color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
+            <Text> Motaa connects you to verified dealers and certified mechanics across Nigeria. We believe in excellence and provide you with only partners you can trust.</Text>
+          </SimpleGrid>
 
-            <Container maxW="container.xl" px={4} py={10}>
-              <Heading my={5} textAlign="center" size="lg"> Browse all Cars </Heading>
+          <SimpleGrid columns={{base: 1, sm: 2, md: 2}} gap={6}>
+            {
+              featureList.map((feature, idx) =>
+              <ScrollAnimation animateIn={idx % 2 === 0 ? "fadeInLeft" : "fadeInRight"}>
+              <Box loading="eager" key={idx} className='feature-card' sx={{
+                position: 'relative',
+                display: 'block',
+                backgroundColor: 'rgba(0, 0, 0, 0.27)',
+                backgroundImage: `url("${feature.image}")`,
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat',
+                backgroundBlendMode: 'overlay',
+                borderRadius: '20px',
+                px: 3, py: 3,
+                backgroundPositionX: feature.background.xAxis,
+              }}
+              whileHover={{ scale: 1.025 }}
+              >
+                <Image
+                 src={isMobile ? feature.card.image.mobile : feature.card.image.desktop }
+                 width={'150px'}
+                 position={'absolute'}
+                 top={feature.card.posY}
+                 left={feature.card.posX}
+                />
 
-              <Tabs colorScheme="blue"  align="center" mb={8}>
-                <TabList align="center" mx="auto" as={ButtonGroup} size='md' border="none" isAttached variant='outline' mt={3}>
-                  <Tab as={Button}
-                    color="primary"
-                   _selected={{
-                     bgColor: 'primary',
-                     color: 'white'
-                   }}
-                   borderWidth="1px"
-                   colorScheme={'blue'}
-                   borderColor="cornflowerblue"
-                   width="150px"
-                   borderRadius="30px" px={'35px'}
-                  >Buy</Tab>
+                <Box className=''
+                  sx={{
+                    position: 'absolute',
+                    bottom: '20px',
+                    left: '20px',
+                    color: '#fff',
+                    fontSize: '15px',
+                  }}
+                >
+                  <Text px={3} py={1} borderRadius={'5px'} color={'#fff'} bg={'primary'} w={'max-content'}> {feature.label} </Text>
+                  <Text my={2} maxW="75%"> {feature.content} </Text>
 
-                  <Tab as={Button}
-                    color="primary"
-                   _selected={{
-                     bgColor: 'primary',
-                     color: 'white'
-                   }}
-                   borderWidth="1px"
-                   colorScheme={'blue'}
-                   borderColor="cornflowerblue"
-                   width="150px"
-                   borderRadius="30px" px={'35px'}
-                  >Rent</Tab>
-                </TabList>
-              </Tabs>
+                  <Button variant="outine" borderColor="white" color="white" borderWidth={2} rightIcon={<RxArrowRight />}>{feature.cta.label}</Button>
+                </Box>
+              </Box>
+              </ScrollAnimation>
+            )
+          }
+          </SimpleGrid>
+        </Box>
 
-              <Stack px={4}>
-                <Heading size="md"> Search by Budget </Heading>
+        <Features />
 
-                <Stack placeItems="center">
-                  <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
-                    {[
-                      {amount: '3,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
-                      {amount: '5,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
-                      {amount: '10,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
-                      {amount: '20,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
-                    ].map((budget) => 
-                      <ScrollAnimation animateIn="bounceIn">
-                        <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100">
-                          <Flex gap={2} justifyContent="space-between" w={'100%'}>
-                            <Image loading="eager" src={budget.logo} width={'70px'} />
-                            <VStack flex={1} textAlign="left" w="100%" placeItems="flex-start" placeContent="flex-start" pl={2}>
-                              <Text textAlign="left !important" flex={1} fontSize="12px" color="gray"> Cars less than </Text>
-                              <Text textAlign="left !important" flex={1} size="md"> <Text as='span' fontWeight="800">₦</Text>{budget.amount} </Text>
-                            </VStack>
-                          </Flex>
+        <Container maxW="container.xl" px={4} py={10}>
+          <Heading my={5} textAlign="center" size="lg"> Browse all Cars </Heading>
 
-                        </Stack>
-                      </ScrollAnimation>
-                    )}
-                  </Flex>
-                </Stack>
-              </Stack>
+          <Tabs colorScheme="blue"  align="center" mb={8}>
+            <TabList align="center" mx="auto" as={ButtonGroup} size='md' border="none" isAttached variant='outline' mt={3}>
+              <Tab as={Button}
+                color="primary"
+               _selected={{
+                 bgColor: 'primary',
+                 color: 'white'
+               }}
+               borderWidth="1px"
+               colorScheme={'blue'}
+               borderColor="cornflowerblue"
+               width="150px"
+               borderRadius="30px" px={'35px'}
+              >Buy</Tab>
 
-              <Stack px={4}>
-                <Heading size="md"> Top Brands </Heading>
+              <Tab as={Button}
+                color="primary"
+               _selected={{
+                 bgColor: 'primary',
+                 color: 'white'
+               }}
+               borderWidth="1px"
+               colorScheme={'blue'}
+               borderColor="cornflowerblue"
+               width="150px"
+               borderRadius="30px" px={'35px'}
+              >Rent</Tab>
+            </TabList>
+          </Tabs>
 
-                <Stack placeItems="center">
-                  <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
-                    {[
-                      {name: 'Toyota', logo: '/assets/icons/ToyotaLogo.svg'},
-                      {name: 'Ford', logo: '/assets/icons/FordLogo.svg'},
-                      {name: 'BMW', logo: '/assets/icons/BmwLogo.svg'},
-                      {name: 'Mercedes Benz', logo: '/assets/icons/MercedesLogo.svg'},
-                    ].map((brand) => 
-                      <ScrollAnimation animateIn="bounceIn">
-                        <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100" placeItems="center">
-                          <Image loading="eager" src={brand.logo} width={'100px'} />
+          <Stack px={4}>
+            <Heading size="md"> Search by Budget </Heading>
 
-                          <Heading size="md" textTransform="uppercase" mt={5}> {brand.name} </Heading>
-                        </Stack>
-                      </ScrollAnimation>
-                    )}
-                  </Flex>
+            <Stack placeItems="center">
+              <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
+                {[
+                  {amount: '3,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                  {amount: '5,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                  {amount: '10,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                  {amount: '20,000,000', logo: '/assets/icons/BudgetCarsIcon.svg'},
+                ].map((budget) => 
+                  <ScrollAnimation animateIn="bounceIn">
+                    <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100">
+                      <Flex gap={2} justifyContent="space-between" w={'100%'}>
+                        <Image loading="eager" src={budget.logo} width={'70px'} />
+                        <VStack flex={1} textAlign="left" w="100%" placeItems="flex-start" placeContent="flex-start" pl={2}>
+                          <Text textAlign="left !important" flex={1} className="small" color="gray"> Cars less than </Text>
+                          <Text textAlign="left !important" flex={1} className="bold" size="md"> <Text as='span' fontWeight="800">₦</Text>{budget.amount} </Text>
+                        </VStack>
+                      </Flex>
 
-                  <Button variant="outline" maxW={'200px'} rightIcon={<FaPlus />}> Show all Brands </Button>
-                </Stack>
-              </Stack>
-            </Container>
+                    </Stack>
+                  </ScrollAnimation>
+                )}
+              </Flex>
+            </Stack>
+          </Stack>
 
-            <Testimonials />
+          <Stack px={4}>
+            <Heading size="md"> Top Brands </Heading>
 
-            <Partnership />
+            <Stack placeItems="center">
+              <Flex w={'100%'} alignItems="center" gap={8} justify="space-between" className="hidden-scroll" flexWrap="nowrap" overflowX='scroll' py={10}>
+                {[
+                  {name: 'Toyota', logo: '/assets/icons/ToyotaLogo.svg'},
+                  {name: 'Ford', logo: '/assets/icons/FordLogo.svg'},
+                  {name: 'BMW', logo: '/assets/icons/BmwLogo.svg'},
+                  {name: 'Mercedes Benz', logo: '/assets/icons/MercedesLogo.svg'},
+                ].map((brand) => 
+                  <ScrollAnimation animateIn="bounceIn">
+                    <Stack minW={'250px'} maxW={'250px'} px={4} py={4} rounded="xl" bgColor="gray.100" placeItems="center">
+                      <Image loading="eager" src={brand.logo} width={'100px'} />
 
-            {/* FAQs */}
-            <Container maxW={{md: '75%'}} py={'100px'} textAlign={'center'}>
-              <Text my={2} className='title'> Frequently Asked Questions </Text>
-              <Text my={2} className='text'> Still not convinced? <a href={'/'} className='link'>Chat with our team here.</a> </Text>
+                      <Heading size="md" textTransform="uppercase" mt={5}> {brand.name} </Heading>
+                    </Stack>
+                  </ScrollAnimation>
+                )}
+              </Flex>
 
-              <Stack mt={10} maxW={{md: '500px'}} mx={'auto'}>
-                <Accordion allowMultiple allowToggle border={'none'} textAlign={'left'}>
-                  {
-                    faqs.map((faq, idx) => 
-                        <AccordionItem borderRadius={5} my={4} border={'1px solid lavender'}>
-                          {({ isExpanded }) => (
-                            <Fragment key={idx}>
-                            <AccordionButton as={Flex} wrap={'nowrap'} alignItems={'center'} justifyContent={'space-between'}>
-                              <Text flex={1} className='smalltext' textAlign={'left'}> {faq?.question} </Text>
-                              <Icon className='icon' fontSize={'20px'}>{isExpanded ? <FaCircleMinus /> : <FaCirclePlus /> }</Icon>
-                            </AccordionButton>
+              <Button variant="outline" maxW={'200px'} rightIcon={<FaPlus />}> Show all Brands </Button>
+            </Stack>
+          </Stack>
+        </Container>
 
-                            <AccordionPanel px={3} py={3}>
-                              <Text className='smalltext'>{faq?.answer}</Text>
-                            </AccordionPanel>
-                            </Fragment>
-                          )}
-                        </AccordionItem>
-                  )}
-                </Accordion>
-              </Stack>
-          </Container>
-        </div>
+        <Testimonials />
+
+        <Partnership />
+
+        {/* FAQs */}
+        <Container maxW={{md: '75%'}} py={'100px'} textAlign={'center'}>
+          <Text my={2} className='title'> Frequently Asked Questions </Text>
+          <Text my={2} className='text'> Still not convinced? <a href={'/'} className='link'>Chat with our team here.</a> </Text>
+
+          <Stack mt={10} maxW={{md: '500px'}} mx={'auto'}>
+            <Accordion allowMultiple allowToggle border={'none'} textAlign={'left'}>
+              {
+                faqs.map((faq, idx) => 
+                    <AccordionItem borderRadius={5} my={4} border={'1px solid lavender'}>
+                      {({ isExpanded }) => (
+                        <Fragment key={idx}>
+                        <AccordionButton as={Flex} wrap={'nowrap'} alignItems={'center'} justifyContent={'space-between'}>
+                          <Text flex={1} className='' size="md" textAlign={'left'}> {faq?.question} </Text>
+                          <Icon className='icon' fontSize={'20px'}>{isExpanded ? <FaCircleMinus /> : <FaCirclePlus /> }</Icon>
+                        </AccordionButton>
+
+                        <AccordionPanel px={3} py={3}>
+                          <Text className=''>{faq?.answer}</Text>
+                        </AccordionPanel>
+                        </Fragment>
+                      )}
+                    </AccordionItem>
+              )}
+            </Accordion>
+          </Stack>
+        </Container>
+      </div>
     )
 }
 
@@ -395,7 +399,7 @@ function Partnership() {
             <br /> partner with us today.
           </Heading>
 
-          <Text fontSize="sm" maxW="2xl">
+          <Text fontSize="md" maxW="2xl">
             Whether you're a dealer, mechanic, or anything in between, Motaa
             gives you the tools and help you need to accelerate your business growth.
           </Text>

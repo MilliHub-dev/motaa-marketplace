@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { GlobalStore } from "../../../App"
-import { RiClockwiseLine, RiGasStationLine, } from "react-icons/ri"
+import { RiClockwiseLine, RiGasStationLine, RiFilterLine } from "react-icons/ri"
 import { RxTimer } from "react-icons/rx"
 import { TbManualGearbox } from "react-icons/tb"
 import { ListingItemCard } from "../../../components"
@@ -65,7 +65,6 @@ const BuyListing = ({ }) => {
             const res = await axios.get(`${prev}`,);
             const _data = objectifyJSON(res.data);
 
-
             if (res.status === 200){
                 setData(_data?.data);
                 setListings(_data?.data?.results);
@@ -100,13 +99,6 @@ const BuyListing = ({ }) => {
     }, [])
 
     useEffect(() => {
-        // if (carType === 'new'){
-        //     const _matches = listings?.filter((elem) => elem.vehicle.condition === 'new' )
-        //     setMatches(_matches)
-        // }else{
-        //     const _matches = listings?.filter((elem) => elem.vehicle.condition !== 'new' )
-        //     setMatches(_matches)
-        // }
 
     }, [listings, carType])
 
@@ -115,10 +107,13 @@ const BuyListing = ({ }) => {
             name: 'Make and Model',
             component: ({ onChange, onClose }) => (
                 <Box>
-                    <MenuItem as={Text}> Select Make and Model </MenuItem>
+                    <Text p={3} size="md"> Select Make </Text>
 
                     {
-                        ['BMW', 'Audi', 'Toyota', 'Benz']
+                        [
+                            'BMW', 'Audi', 'Toyota', 'Mercedis', 'Nissan', 'Mazda', 'Honda',
+                            'Peugeot', 'Opel', 'Volkswagen', 'Innoson', 'Ford',
+                        ]
                         .map((make) => <MenuItem key={make} as={Checkbox}> {make} </MenuItem>
                     )}
                 </Box>
@@ -128,7 +123,7 @@ const BuyListing = ({ }) => {
             name: 'Price',
             component: ({ onChange, onClose }) => (
                 <Box>
-                    <MenuItem as={Text}> Set min and max amount </MenuItem>
+                    <Text p={3} size="md"> Set min and max amount </Text>
                     <Box px={2} py={2} display={'block'}>
                         <Text> Min Amount </Text>
                         <Input type="number" min="1" step="0.01" />
@@ -140,6 +135,51 @@ const BuyListing = ({ }) => {
                     <Box px={2} display={'block'}>
                         <Button onClick={onClose} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
                     </Box>
+                </Box>
+            )
+        },
+        {
+            name: 'Mileage',
+            component: ({ onChange, onClose }) => (
+                <Box>
+                    <Text p={3} size="md"> Set min and max mileage </Text>
+                    {/*<MenuItem as={Input} min="0" type="range" min="1" step="0.01" />*/}
+                </Box>
+            )
+        },
+        {
+            name: 'Location',
+            component: ({ onChange, onClose }) => (
+                <Box>
+                    <Text p={3} size="md"> Select Locations </Text>
+                    {
+                        ['Abuja', 'Kaduna', 'Kano']
+                        .map((state) => <MenuItem key={state} as={Checkbox}> {state} </MenuItem>
+                    )}
+                </Box>
+            )
+        },
+        {
+            name: 'Transmission',
+            component: ({ onChange, onClose }) => (
+                <Box>
+                    <Text p={3} size="md"> Select Transmission </Text>
+                    {
+                        ['Auto', 'Manual', 'Assisted Manual']
+                        .map((trans) => <MenuItem key={trans} as={Checkbox}> {trans} </MenuItem>
+                    )}
+                </Box>
+            )
+        },
+        {
+            name: 'Vehicle Type',
+            component: ({ onChange, onClose }) => (
+                <Box>
+                    <Text p={3} size="md"> Choose a vehicle type </Text>
+                    {
+                        ['Sedan', 'SUV', 'Sub-urban', 'Convertible']
+                        .map((type) => <MenuItem key={type} as={Checkbox}> {type} </MenuItem>
+                    )}
                 </Box>
             )
         },
@@ -182,13 +222,27 @@ const BuyListing = ({ }) => {
                 </Flex>
 
                 <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
+                    <Button
+                     minW={'max-content'}
+                     size={'md'} borderRadius={'10px'}
+                     as={Box}
+                     bgColor="gray.100"
+                     leftIcon={<RiFilterLine />}
+                    > Filters </Button>
                     {
                         filters.map(({name, component}, idx) =>
                             <Menu closeOnSelect={false}>
                                 {({ isOpen, onClose, }) => (
                                     <Fragment>
-                                        <MenuButton minW={'max-content'} size={'md'} borderRadius={'10px'} isActive={isOpen} as={Button} rightIcon={<ChevronDownIcon />}> {name} </MenuButton>
-                                        <MenuList>
+                                        <MenuButton
+                                         minW={'max-content'}
+                                         size={'md'} borderRadius={'10px'}
+                                         isActive={isOpen}
+                                         as={Button}
+                                         bgColor="gray.100"
+                                         rightIcon={<ChevronDownIcon />}
+                                        > {name} </MenuButton>
+                                        <MenuList maxH="300px" overflowY="auto">
                                             {
                                                 component({
                                                      onChange: (value) => console.log(value),
@@ -213,7 +267,7 @@ const BuyListing = ({ }) => {
                 >
                     {
                         carType === 'new' ? (
-                            listings.filter((listing) => listing?.vehicle?.condition === 'new').map((listing, idx) =>
+                            listings.filter((listing) => ['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
                                 <ListingItemCard
                                  listing={listing}
                                  key={idx}
@@ -222,7 +276,7 @@ const BuyListing = ({ }) => {
                                 />
                             )
                         ):(
-                            listings.filter((listing) => listing?.vehicle?.condition !== 'new').map((listing, idx) =>
+                            listings.filter((listing) => !['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
                                 <ListingItemCard
                                  listing={listing}
                                  key={idx}

@@ -55,18 +55,20 @@ function ImageCarousel({ images }) {
         {images.map((_, index) => (
           <Box
             key={index}
-            w={2}
+            w={index === currentImage ? 7 : 2}
             h={2}
             borderRadius="full"
-            bg={index === currentImage ? "white" : "whiteAlpha.600"}
+            bg={index === currentImage ? "primary" : "whiteAlpha.600"}
             cursor="pointer"
             onClick={() => setCurrentImage(index)}
           />
         ))}
       </HStack>
       <IconButton
-        icon={<ChevronLeft />}
+        icon={<ChevronLeft size="30px" />}
         position="absolute"
+        p={5}
+        borderRadius="full"
         left={4}
         top="50%"
         transform="translateY(-50%)"
@@ -76,8 +78,10 @@ function ImageCarousel({ images }) {
         aria-label="Previous image"
       />
       <IconButton
-        icon={<ChevronRight />}
+        icon={<ChevronRight size="30px" />}
         position="absolute"
+        p={5}
+        borderRadius="full"
         right={4}
         top="50%"
         transform="translateY(-50%)"
@@ -93,42 +97,47 @@ function ImageCarousel({ images }) {
 // Feature Card Component
 function FeatureCard({ icon, label }) {
   return (
-    <HStack
-      p={3}
-      bg="gray.50"
-      borderRadius="md"
-      spacing={3}
-    >
-      <Icon as={icon} />
-      <Text fontSize="sm">{label}</Text>
+    <HStack spacing={3}>
+      <Box
+        px={4}
+        py={3}
+        bg="lavender"
+        borderRadius="full"
+        spacing={3}
+        placeItems="center"
+      >
+        <Icon size="27px" as={icon} />
+      </Box>
+      <Text fontSize="md">{label}</Text>
     </HStack>
   )
 }
 
+
 // Review Card Component
 function ReviewCard({ name, rating, date, comment, avatar }) {
   return (
-    <Box mb={6}>
+    <Box pb={6} borderBottom="1px solid lavender">
       <HStack mb={2}>
         <Avatar size="sm" name={name} src={avatar} />
-        <Box>
-          <Text fontWeight="medium">{name}</Text>
-          <HStack spacing={1}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon
-                key={i}
-                as={Star}
-                color={i < rating ? "yellow.400" : "gray.300"}
-                fill={i < rating ? "currentColor" : "none"}
-                w={3}
-                h={3}
-              />
-            ))}
+        <VStack spacing={-1} placeItems="flex-start">
+          <HStack>
+            <Text fontWeight="bold">{name}</Text>
+            <HStack spacing={1}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Icon
+                  key={i}
+                  as={Star}
+                  color={i < rating ? "yellow.400" : "gray.300"}
+                  fill={i < rating ? "currentColor" : "none"}
+                  w={3}
+                  h={3}
+                />
+              ))}
+            </HStack>
           </HStack>
-        </Box>
-        <Text fontSize="sm" color="gray.500" ml="auto">
-          {date}
-        </Text>
+          <Text fontSize="sm" color="gray.500"> {date} </Text>
+        </VStack>
       </HStack>
       <Text color="gray.600" fontSize="sm">
         {comment}
@@ -136,6 +145,7 @@ function ReviewCard({ name, rating, date, comment, avatar }) {
     </Box>
   )
 }
+
 
 // Car Card Component
 function CarCard({ image, title, price, rating, reviews, host }) {
@@ -174,6 +184,7 @@ function CarCard({ image, title, price, rating, reviews, host }) {
     </Box>
   )
 }
+
 
 export default function RentalDetails() {
     const [selectedDate, setSelectedDate] = useState('')
@@ -236,9 +247,15 @@ export default function RentalDetails() {
         <Container maxW="container.xl" pt={5} pb={16}>
             <LocationBreadcrumb label={listing?.title} />
 
-            <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} mt={10} gap={8}>
+            <Grid
+             templateColumns={{ base: '1fr', lg: '2fr 1fr' }}
+             templateAreas={{lg: `"listing form"`}}
+             mt={10}
+             gap={8}
+             // gridTemplateAreas={{ base: 'form listing', md: 'listing form' }}
+            >              
               {/* Left Column */}
-              <Box>
+              <Box gridArea="listing">
                 <ImageCarousel
                   images={listing?.vehicle?.images}
                 />
@@ -248,16 +265,25 @@ export default function RentalDetails() {
                     <Box>
                       <Heading size="lg">{listing?.title}</Heading>
                       <HStack spacing={1}>
-                        <Icon as={Star} color="yellow.400" />
                         <Text>5.0</Text>
-                        <Text color="gray.500">(89 trips)</Text>
+                        <Icon as={Star} fill="yellow" color="orange" />
+                        <Text color="gray.500">(5 leases)</Text>
                       </HStack>
                     </Box>
-                    <Heading size="lg" color="blue.600">₦{commaInt(listing?.price)}/{listing?.cycle}</Heading>
+                    <Heading size="lg">₦{commaInt(listing?.price)}<Text className="small" color="gray.700" fontWeight="light" as="span">/{listing?.cycle}</Text></Heading>
                   </HStack>
 
                   <Box mb={8}>
-                    <Heading size="md" mb={4}>Features & Accessories</Heading>
+                    <Heading size="md" fontWeight={'500'} mb={4}>Description</Heading>
+                    <Text color="gray.600" borderRadius="10px" px={2} py={3} border="1px solid gray">
+                      Experience luxury redefined with our 2023 Rolls Royce Ghost. 
+                      This masterpiece combines timeless elegance with cutting-edge technology, 
+                      offering an unparalleled driving experience.
+                    </Text>
+                  </Box>
+
+                  <Box mb={8}>
+                    <Heading size="md" mb={4} fontWeight={'500'}>Features & Accessories</Heading>
                     <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
                       {features.map((feature, index) => (
                         <FeatureCard key={index} {...feature} />
@@ -266,17 +292,7 @@ export default function RentalDetails() {
                   </Box>
 
                   <Box mb={8}>
-                    <Heading size="md" fontWeight={'500'} mb={4}>Description</Heading>
-                    <Text color="gray.600">
-                      Experience luxury redefined with our 2023 Rolls Royce Ghost. 
-                      This masterpiece combines timeless elegance with cutting-edge technology, 
-                      offering an unparalleled driving experience.
-                    </Text>
-                  </Box>
-
-
-                  <Box mb={8}>
-                    <Heading size="md" mb={4}>Host</Heading>
+                    <Heading size="md" mb={4} fontWeight={'500'}>Host</Heading>
                     <HStack spacing={4}>
                       <Avatar size="lg" src={listing?.vehicle?.dealer?.logo} name={listing?.vehicle?.dealer?.business_name} />
                       <Box flex={1}>
@@ -290,38 +306,38 @@ export default function RentalDetails() {
                           </Badge>
                         </HStack>
                         <HStack spacing={1}>
-                          <Icon as={Star} color="yellow.400" />
+                          <Icon as={Star} color="tertiary" fill="tertiary" />
                           <Text>5.0</Text>
                           <Text color="gray.500">(234 reviews)</Text>
                         </HStack>
-                        <Text fontSize="sm" color="gray.600">
-                          Top rated host on Motaa with exceptional rental provides on Motaa
-                        </Text>
                       </Box>
                     </HStack>
+                    <Text fontSize="sm">
+                      Top rated host on Motaa with exceptional rental provides on <span className="bold">Motaa</span>
+                    </Text>
                   </Box>
 
 
                   <Box mb={8}>
-                    <Heading size="md" mb={4}>Ratings & reviews</Heading>
+                    <Heading size="md" mb={4} fontWeight={'500'}>Ratings & reviews</Heading>
                     <HStack spacing={2} mb={6}>
                       <Heading size="lg">5.0</Heading>
                       <Icon as={Star} color="yellow.400" w={6} h={6} />
                     </HStack>
 
-                    <VStack align="stretch" spacing={4} mb={8}>
+                    <VStack align="stretch" spacing={2} mb={8}>
                       {Object.entries(ratings).map(([category, rating]) => (
                         <Box key={category}>
-                          <HStack justify="space-between" mb={2}>
+                          <SimpleGrid columns={3} justify="space-between">
                             <Text>{category}</Text>
-                            <Text>{rating}</Text>
-                          </HStack>
-                          <Progress value={rating * 20} colorScheme="blue" />
+                            <Progress flex={1} size="sm" value={(100/2 - rating * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
+                            <Text color="gray.500">({rating})</Text>
+                          </SimpleGrid>
                         </Box>
                       ))}
                     </VStack>
 
-                    <VStack align="stretch" spacing={6}>
+                    <VStack align="stretch" mb={4} spacing={6}>
                       {Array.from({ length: 4 }).map((_, index) => (
                         <ReviewCard
                           key={index}
@@ -334,13 +350,13 @@ export default function RentalDetails() {
                       ))}
                     </VStack>
 
-                    <Button variant="ghost" colorScheme="blue">
+                    <Button variant="outline" color="primary" colorScheme="blue">
                       See more reviews
                     </Button>
                   </Box>
 
                   <Box>
-                    <Heading size="md" mb={4}>Recommended cars for you</Heading>
+                    <Heading size="md" mb={4} fontWeight={'500'}>Recommended cars for you</Heading>
                     <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
                       {recommended?.map((car, index) => (
                         <CarCard key={index} {...car} />
@@ -351,51 +367,60 @@ export default function RentalDetails() {
               </Box>
 
               {/* Right Column - Booking Form */}
-              <Box position="sticky" top={24}>
-                <Box
-                  borderWidth="1px"
-                  borderRadius="lg"
-                  p={6}
-                  bg="white"
-                  boxShadow="sm"
-                >
-                  <VStack spacing={4} align="stretch">
-                    <Box>
-                      <Text mb={2}>From</Text>
-                      <Input type="datetime-local" />
-                    </Box>
-                    <Box>
-                      <Text mb={2}>Until</Text>
-                      <Input type="datetime-local" />
-                    </Box>
-                    <Box>
-                      <Text mb={2}>Pickup Location</Text>
-                      <Select placeholder="Select location">
-                        <option>Lagos Phase 1</option>
-                        <option>Abuja Central</option>
-                      </Select>
-                    </Box>
-                    <Box>
-                      <Text mb={2}>Return Location</Text>
-                      <Select placeholder="Select location">
-                        <option>Lagos Phase 1</option>
-                        <option>Abuja Central</option>
-                      </Select>
-                    </Box>
-
-                    <HStack justify="space-between">
-                      <Text>Driver</Text>
-                      <Switch colorScheme="blue" />
-                    </HStack>
-
-                    <Button colorScheme="blue" bg="primary" size="lg">
-                      Book Rental
-                    </Button>
-                  </VStack>
-                </Box>
-              </Box>
+              <BookingForm  gridArea="form" />
             </Grid>
       </Container>
+    </Box>
+  )
+}
+
+
+
+const BookingForm = ({ props }) => {
+
+  return(
+    <Box {...props}>
+      <Box
+        borderWidth="1px"
+        borderRadius="lg"
+        p={6}
+        bg="white"
+        boxShadow="sm"
+      >
+        <VStack spacing={4} align="stretch">
+          <Box>
+            <Text mb={2}>From</Text>
+            <Input type="datetime-local" />
+          </Box>
+          <Box>
+            <Text mb={2}>Until</Text>
+            <Input type="datetime-local" />
+          </Box>
+          <Box>
+            <Text mb={2}>Pickup Location</Text>
+            <Select placeholder="Select location">
+              <option>Lagos Phase 1</option>
+              <option>Abuja Central</option>
+            </Select>
+          </Box>
+          <Box>
+            <Text mb={2}>Return Location</Text>
+            <Select placeholder="Select location">
+              <option>Lagos Phase 1</option>
+              <option>Abuja Central</option>
+            </Select>
+          </Box>
+
+          <HStack justify="space-between">
+            <Text>Driver</Text>
+            <Switch colorScheme="blue" />
+          </HStack>
+
+          <Button colorScheme="blue" bg="primary" size="lg" borderRadius="10px">
+            Book Rental
+          </Button>
+        </VStack>
+      </Box>
     </Box>
   )
 }

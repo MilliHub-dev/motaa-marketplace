@@ -34,7 +34,7 @@ import {motion} from 'framer-motion';
 import {GlobalStore} from '../App';
 import {FcMenu} from 'react-icons/fc';
 import {CheckCircleIcon} from '@chakra-ui/icons'
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
 import { SearchBar } from '.';
 import { RiAccountCircleLine, RiBellLine, RiFacebookFill, RiHeadphoneLine, RiInstagramFill, RiLinkedinFill, RiLogoutBoxRLine, RiMenuLine, RiTwitterFill, RiAccountCircleFill } from 'react-icons/ri';
 import { TbBell, TbSearch } from 'react-icons/tb';
@@ -44,104 +44,48 @@ import { AiOutlineMessage } from 'react-icons/ai';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuWallet } from 'react-icons/lu';
-import { NavLink, Link as RLink } from 'react-router-dom';
+import { NavLink, Link as RLink, useNavigate } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react';
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { LuLineChart } from "react-icons/lu";
 import { GiHomeGarage } from "react-icons/gi";
-import { Wallet3 } from "iconsax-react";
+import {
+  Wallet3, Home3, Chart, Shop,
+  Chart1, Chart2, Chart21, ChartCircle, ChartFail, ChartSquare, ChartSuccess,
+  Coin, Coin1,Money, Money2, Money3, Money4, MoneyAdd, MoneyArchive,
+  MoneyChange, MoneyForbidden, MoneyRecive, MoneyRemove, MoneySend, MoneyTick, MoneyTime, Moneys
+} from "iconsax-react";
 import { AiOutlineTransaction } from "react-icons/ai";
 
 
-export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setSidebarState, onClose }) => {
-  const links = [
-    { icon: LayoutDashboard, label: 'Dashboard', active: true, path: '/dashboard' },
-    { icon: MoreVertical, label: 'Orders', path: '/orders'},
-    { icon: AiOutlineTransaction, label: 'Listings', path: '/listings', children: [
-        { icon: GiHomeGarage, label: 'Car Lot', active: true, path: '/listings' },
-      ]
-    },
-    { icon: RiCoinsLine, label: 'Discounts', path: '/discounts'},
-    { icon: Wallet, label: 'Wallet', path: '/wallet'},
-    { icon: LuLineChart, label: 'Analytics', path: '/analytics'},
-    { icon: HelpCircle, label: 'Support', path: '/support'},
-    { icon: Settings, label: 'Settings', path: '/settings'},
-  ]
+export const BackButton = ({ to, onClick }) => {
+  const redirect = useNavigate();
 
+  function goBack(){
+    if(to){
+      return redirect(to);
+    }
+    if (onClick){
+      return onClick();
+    }
+
+    const {navigation} = window;
+    if (navigation && navigation.canGoBack){
+      return navigation.back();
+    }else{
+      return redirect('/');
+    }
+  }
 
   return(
-    <Box
-      w={sidebarOpen ? "280px" : "70px"}
-      overflow={'hidden'}
-      position={"fixed"}
-      left="0"
-      h={"100vh"}
-      bgColor="#fff"
-      zIndex="20"
-      borderRightWidth={1}
-      p={sidebarOpen ? 6 : 2}
-    >
-      <VStack align="stretch" spacing={6}>
-        <HStack spacing={3}>
-          <Avatar size="sm" mx={sidebarOpen ? '0px' : 'auto'} name={`${authUser?.first_name} ${authUser?.last_name}`} />
-
-          {sidebarOpen &&
-            <>
-              <Box flex={1}>
-                <Text fontWeight="medium">{`${authUser?.first_name} ${authUser?.last_name}`}</Text>
-                <Text fontSize="sm" color="gray.500">Pay ID: 4557321238</Text>
-              </Box>
-              <Menu zIndex={2} display="block">
-                <MenuButton
-                  as={IconButton}
-                  icon={<Share2 size={18} />}
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Share"
-                />
-
-                <MenuList py={0} zIndex={'200 !important'}>
-                  <MenuItem>Copy Link</MenuItem>
-                  <MenuItem>Facebook</MenuItem>
-                  <MenuItem>Instagram</MenuItem>
-                  <MenuItem>X (Twitter)</MenuItem>
-                </MenuList>
-              </Menu>
-            </>
-          }
-        </HStack>
-
-        <VStack align="stretch" spacing={2}>
-          {links.map((item, index) => (
-            <RLink key={index} to={item.path} >
-            <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-            <Button
-              key={index}
-              w={'100%'}
-              leftIcon={<item.icon size={20} />}
-              variant={item.active ? 'solid' : 'ghost'}
-              colorScheme={item.active ? 'blue' : 'gray'}
-              justifyContent="start"
-            >
-              {sidebarOpen && item.label}
-            </Button>
-            </Tooltip>
-            </RLink>
-          ))}
-
-          {/* Main Content */}
-          <Button
-           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
-           onClick={() => setSidebarState(!sidebarOpen)}
-           justifyContent="start"
-           colorScheme="gray"
-           variant="solid"
-           bottom="0px"
-           zIndex="10"
-          > {sidebarOpen && 'Close'} </Button>
-        </VStack>
-      </VStack>
-    </Box>
+    <Button
+     borderColor="primary"
+     variant="outline"
+     colorScheme="blue"
+     leftIcon={<FaChevronLeft />}
+     mb={5}
+     onClick={goBack}
+    > Back </Button>
   )
 }
 
@@ -199,6 +143,680 @@ export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
       </Button>
     </ButtonGroup>
   )
+}
+
+
+export const UnauthenticatedNavbar = ({ props }) => {
+    const [navIsOpen, setNavState] = useState(false);
+    const [searchIsOpen, setSearchState] = useState(false);
+    const {authUser, onLogout} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const isLoggedIn = Boolean(authUser);
+
+    window.onscroll = (ev) => {
+      if(window.scrollY > 1000){
+        document.getElementById('navbar').classList.add('scrolled');
+      }else{
+        document.getElementById('navbar').classList.remove('scrolled');
+      }
+    }
+
+    function toggleSearch(){
+      setSearchState(!searchIsOpen);
+    }
+
+    function hideNav(){
+        setNavState(false)
+    }
+
+    function showNav(){
+        setNavState(true)
+    }
+
+    return(
+      <Box
+       position={'sticky'}
+       top={'0px'}
+       bg={'primary'}
+       as={motion.div}
+       color={"white"}
+       flex={1} w={'100%'}
+       animate={{ opacity: 1, }}
+       initial={{ opacity: 0.6, }}
+       transition={'.5s linear'}
+       className='navbar'
+       id='navbar'
+       zIndex="20"
+       mb={0}
+      >
+        <Flex className='navbar-inner'
+          alignItems={'center'}
+          px={4}
+          py={4}
+          justifyContent={'space-between'}
+          flex={1} w={'100%'}
+        >
+          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
+            <RLink to={'/'}>
+              <Image
+               loading='eager'
+               src={'/assets/images/motaa-logo-2.png'}
+               width={'100%'}
+               className='navbar-brand'
+              />
+            </RLink>
+          </Box>
+
+          <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
+            {!isMobile && 
+              <Fragment>
+                <Text as={NavLink} fontWeight={'600'} to={"/#welcome"}> Home </Text>
+                <Text as={NavLink} fontWeight={'600'} to={"/#what-we-offer"}> About </Text>
+                <Text as={NavLink} fontWeight={'600'} to={"/#find-mechanics"}> Features </Text>
+                <Text as={NavLink} fontWeight={'600'} to={"/#partner-with-us"}> For Businesses </Text>
+              </Fragment>
+            }
+
+            <Fragment>
+              <RLink to={"/signup/"}>
+                <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
+              </RLink>
+              
+              <RLink to={"/login"}>
+                <Button borderWidth={2} _hover={{bgColor: "white", color: "primary", }}  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
+              </RLink>
+            </Fragment>
+
+            {isMobile &&
+              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+              </Button>
+            }
+          </Flex>
+
+          <Sidebar onClose={hideNav} show={navIsOpen} />
+        </Flex>
+      </Box>
+    )
+}
+
+
+export const CustomerNavbar = ({ props }) => {
+    const [navIsOpen, setNavState] = useState(false);
+    const [searchIsOpen, setSearchState] = useState(false);
+    const {authUser, onLogout} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const [isLaptop] = useMediaQuery('(max-width: 1028px)');
+    const isLoggedIn = Boolean(authUser);
+
+    window.onscroll = (ev) => {
+      if(window.scrollY > 1000){
+        document.getElementById('navbar').classList.add('scrolled');
+      }else{
+        document.getElementById('navbar').classList.remove('scrolled');
+      }
+    }
+
+    function toggleSearch(){
+      setSearchState(!searchIsOpen);
+    }
+
+    function hideNav(){
+        setNavState(false)
+    }
+
+    function showNav(){
+        setNavState(true)
+    }
+
+    return(
+      <Box
+       position={'sticky'}
+       top={'0px'}
+       bg={'white'}
+       as={motion.div}
+       color={"black"}
+       flex={1} w={'100%'}
+       animate={{ opacity: 1, }}
+       initial={{ opacity: 0.6, }}
+       transition={'.5s linear'}
+       className='navbar'
+       id='navbar'
+       zIndex="20"
+       mb={0}
+      >
+        <Flex className='navbar-inner'
+          alignItems={'center'}
+          px={4} py={4} gap="10px"
+          justifyContent={'space-between'}
+          flex={1} w={'100%'}
+          >
+          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={'80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
+            <RLink to={'/'}>
+              <Image
+               loading='eager'
+               src={'/assets/images/motaa-logo-3.png'}
+               width={'100%'}
+               className='navbar-brand'
+              />
+            </RLink>
+          </Box>
+
+          <Fragment>
+            {!isLaptop && 
+              <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
+                <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
+                  <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
+                  <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
+                  <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
+                  <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
+                </Flex>
+              </Flex>
+            }
+
+            {!isMobile && <SearchBar flex={1} />}
+
+            <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'nowrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+              {isMobile && 
+                <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
+              }
+
+              {!isMobile && 
+                <Button
+                 as={RLink}
+                 to="/wallet"
+                 borderRadius={'30px'}
+                 leftIcon={
+                  <Icon
+                   fontSize={'25px'}
+                   as={Image}
+                   src='/assets/icons/WalletIcon.svg'
+                  />
+                 }
+                 variant="outline"
+                 bgColor="#d9ebf5"
+                 fontWeight="600"
+                 colorScheme="blue"
+                 color="primary"
+                >{"Wallet"}</Button>
+              }
+
+              <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
+              <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+              <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
+              <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
+              
+              {isLaptop &&
+                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+                </Button>
+              }
+            </Flex>
+            
+          </Fragment>
+          
+          <Sidebar onClose={hideNav} show={navIsOpen} />
+        </Flex>
+
+        {isMobile && searchIsOpen &&
+          <Fragment>
+            <Box px={2} py={2}  w={'100%'} bg="#fff">
+              <SearchBar />
+            </Box>
+          </Fragment>
+        }
+
+      </Box>
+    )
+}
+
+
+export const DealerNavbar = ({ props }) => {
+    const [navIsOpen, setNavState] = useState(false);
+    const [searchIsOpen, setSearchState] = useState(false);
+    const {authUser, onLogout} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const isLoggedIn = Boolean(authUser);
+
+    window.onscroll = (ev) => {
+      if(window.scrollY > 1000){
+        document.getElementById('navbar').classList.add('scrolled');
+      }else{
+        document.getElementById('navbar').classList.remove('scrolled');
+      }
+    }
+
+    function toggleSearch(){
+      setSearchState(!searchIsOpen);
+    }
+
+    function hideNav(){
+        setNavState(false)
+    }
+
+    function showNav(){
+        setNavState(true)
+    }
+
+    return(
+      <Box
+       position={'sticky'}
+       top={'0px'}
+       bg={!authUser ? 'primary' : 'white'}
+       as={motion.div}
+       color={!authUser ? "white": "black"}
+       flex={1} w={'100%'}
+       animate={{ opacity: 1, }}
+       initial={{ opacity: 0.6, }}
+       transition={'.5s linear'}
+       className='navbar'
+       id='navbar'
+       zIndex="20"
+       mb={0}
+      >
+        <Flex className='navbar-inner'
+          alignItems={'center'}
+          px={4}
+          py={4}
+          justifyContent={'space-between'}
+          flex={1} w={'100%'}
+          >
+          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
+            <RLink to={'/'}><Image loading='eager'
+                src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
+                width={'100%'} className='navbar-brand' /></RLink>
+          </Box>
+
+          { authUser ? (
+            <Fragment>
+              {!isMobile && 
+                <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
+                  <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
+                    <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
+                  </Flex>
+
+                  <SearchBar flex={1} />
+                </Flex>
+              }
+
+              <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+                {isMobile && 
+                  <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
+                }
+
+                {!isMobile && isLoggedIn &&
+                  <Button
+                   as={RLink}
+                   to="/wallet"
+                   borderRadius={'30px'}
+                   leftIcon={
+                    <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
+                   }
+                   variant="outline"
+                   bgColor="#d9ebf5"
+                   fontWeight="600"
+                   colorScheme="blue"
+                   color="primary"
+                  >Wallet</Button>
+                }
+
+                <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
+                <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+
+                {authUser?.user_type === "customer" &&
+                  <>
+                    <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
+                    <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
+                  </>
+                }
+              </Flex>
+              
+              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+              </Button>
+            </Fragment>
+          ):(
+            <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
+              {!isMobile && 
+                <Fragment>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#welcome"}> Home </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#what-we-offer"}> About </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#find-mechanics"}> Features </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#partner-with-us"}> For Businesses </Text>
+                </Fragment>
+              }
+
+              {!isLoggedIn &&
+                <Fragment>
+                  <RLink to={"/signup/"}>
+                    <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
+                  </RLink>
+                  
+                  <RLink to={"/login"}>
+                    <Button borderWidth={2} colorScheme="blue"  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
+                  </RLink>
+                </Fragment>
+              }
+
+              {isMobile &&
+                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+                </Button>
+              }
+            </Flex>
+          )}
+
+          <Sidebar onClose={hideNav} show={navIsOpen} />
+        </Flex>
+
+        {isMobile && searchIsOpen &&
+          <Fragment>
+            <Box px={2} py={2}  w={'100%'} bg="#fff">
+              <SearchBar />
+            </Box>
+          </Fragment>
+        }
+
+      </Box>
+    )
+}
+
+
+export const MechanicNavbar = ({ props }) => {
+    const [navIsOpen, setNavState] = useState(false);
+    const [searchIsOpen, setSearchState] = useState(false);
+    const {authUser, onLogout} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const isLoggedIn = Boolean(authUser);
+
+    window.onscroll = (ev) => {
+      if(window.scrollY > 1000){
+        document.getElementById('navbar').classList.add('scrolled');
+      }else{
+        document.getElementById('navbar').classList.remove('scrolled');
+      }
+    }
+
+    function toggleSearch(){
+      setSearchState(!searchIsOpen);
+    }
+
+    function hideNav(){
+        setNavState(false)
+    }
+
+    function showNav(){
+        setNavState(true)
+    }
+
+    return(
+      <Box
+       position={'sticky'}
+       top={'0px'}
+       bg={!authUser ? 'primary' : 'white'}
+       as={motion.div}
+       color={!authUser ? "white": "black"}
+       flex={1} w={'100%'}
+       animate={{ opacity: 1, }}
+       initial={{ opacity: 0.6, }}
+       transition={'.5s linear'}
+       className='navbar'
+       id='navbar'
+       zIndex="20"
+       mb={0}
+      >
+        <Flex className='navbar-inner'
+          alignItems={'center'}
+          px={4}
+          py={4}
+          justifyContent={'space-between'}
+          flex={1} w={'100%'}
+          >
+          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
+            <RLink to={'/'}><Image loading='eager'
+                src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
+                width={'100%'} className='navbar-brand' /></RLink>
+          </Box>
+
+          { authUser ? (
+            <Fragment>
+              {!isMobile && 
+                <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
+                  <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
+                    <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
+                    <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
+                  </Flex>
+
+                  <SearchBar flex={1} />
+                </Flex>
+              }
+
+              <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+                {isMobile && 
+                  <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
+                }
+
+                {!isMobile && isLoggedIn &&
+                  <Button
+                   as={RLink}
+                   to="/wallet"
+                   borderRadius={'30px'}
+                   leftIcon={
+                    <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
+                   }
+                   variant="outline"
+                   bgColor="#d9ebf5"
+                   fontWeight="600"
+                   colorScheme="blue"
+                   color="primary"
+                  >Wallet</Button>
+                }
+
+                <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
+                <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+
+                {authUser?.user_type === "customer" &&
+                  <>
+                    <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
+                    <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
+                  </>
+                }
+              </Flex>
+              
+              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+              </Button>
+            </Fragment>
+          ):(
+            <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
+              {!isMobile && 
+                <Fragment>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#welcome"}> Home </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#what-we-offer"}> About </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#find-mechanics"}> Features </Text>
+                  <Text as={NavLink} fontWeight={'600'} to={"/home/#partner-with-us"}> For Businesses </Text>
+                </Fragment>
+              }
+
+              {!isLoggedIn &&
+                <Fragment>
+                  <RLink to={"/signup/"}>
+                    <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
+                  </RLink>
+                  
+                  <RLink to={"/login"}>
+                    <Button borderWidth={2} colorScheme="blue"  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
+                  </RLink>
+                </Fragment>
+              }
+
+              {isMobile &&
+                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+                </Button>
+              }
+            </Flex>
+          )}
+
+          <Sidebar onClose={hideNav} show={navIsOpen} />
+        </Flex>
+
+        {isMobile && searchIsOpen &&
+          <Fragment>
+            <Box px={2} py={2}  w={'100%'} bg="#fff">
+              <SearchBar />
+            </Box>
+          </Fragment>
+        }
+
+      </Box>
+    )
+}
+
+
+export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setSidebarState, onClose }) => {
+  const links = [
+    { icon: Home3, label: 'Dashboard', active: true, path: '/dashboard' },
+    { icon: Coin, label: 'Transactions', path: '/transactions'},
+    { icon: Shop, label: 'Inventory', path: '/inventory', children: [
+        { icon: GiHomeGarage, label: 'Car Lot', active: true, path: '/listings' },
+      ]
+    },
+    { icon: LuLineChart, label: 'Analytics', path: '/analytics', children: [
+      {icon: Chart, label: 'Sales', path: '/sales'}
+    ]},
+    
+    { icon: Chart, label: 'Ads Center', path: '/ads'},
+    { icon: HelpCircle, label: 'Support', path: '/support'},
+    { icon: Settings, label: 'Settings', path: '/settings'},
+  ]
+
+
+  return(
+    <Box
+      w={sidebarOpen ? "280px" : "70px"}
+      overflow={'hidden'}
+      position={"fixed"}
+      left="0"
+      h={"100vh"}
+      bgColor="#fff"
+      zIndex="20"
+      borderRightWidth={1}
+      p={sidebarOpen ? 6 : 2}
+    >
+      <VStack align="stretch" spacing={6}>
+        <HStack spacing={3}>
+          <Avatar size="sm" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
+
+          {sidebarOpen &&
+            <>
+              <Box flex={1}>
+                <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
+                <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
+              </Box>
+              <Menu zIndex={2} display="block">
+                <MenuButton
+                  as={IconButton}
+                  icon={<Share2 size={18} />}
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Share"
+                />
+
+                <MenuList py={0} zIndex={'200 !important'}>
+                  <MenuItem>Copy Link</MenuItem>
+                  <MenuItem>Facebook</MenuItem>
+                  <MenuItem>Instagram</MenuItem>
+                  <MenuItem>X (Twitter)</MenuItem>
+                </MenuList>
+              </Menu>
+            </>
+          }
+        </HStack>
+
+        <VStack align="stretch" spacing={2}>
+          {links.map((item, index) => (
+            <RLink key={index} to={item.path} >
+            <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+              <Button
+                key={index}
+                w={'100%'}
+                leftIcon={<item.icon size={20} />}
+                rightIcon={item?.children && !!sidebarOpen && <FaChevronDown />}
+                variant={item.active ? 'solid' : 'ghost'}
+                colorScheme={item.active ? 'blue' : 'gray'}
+                justifyContent="start"
+              >
+                {sidebarOpen && item.label}
+              </Button>
+            </Tooltip>
+            </RLink>
+          ))}
+
+          {/* Main Content */}
+          <Button
+           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
+           onClick={() => setSidebarState(!sidebarOpen)}
+           justifyContent="start"
+           colorScheme="gray"
+           variant="solid"
+           bottom="0px"
+           zIndex="10"
+          > {sidebarOpen && 'Close'} </Button>
+        </VStack>
+      </VStack>
+    </Box>
+  )
+}
+
+
+export const Sidebar = ({ show, onClose, }) => {
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const {authUser, logout} = useContext(GlobalStore);
+    const isLoggedIn = !!authUser;
+    return (
+      <Drawer className="sidebar" position="fixed" zIndex="20" isOpen={show} onClose={onClose} placement='right'>
+        <DrawerContent>
+            <DrawerHeader>
+                <DrawerCloseButton />
+            </DrawerHeader>
+
+            <DrawerBody>
+              {
+                isLoggedIn ? (
+                  // isMobile &&
+                  <Stack>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/dashboard"}>Dashboard</Text>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/home"}>Home</Text>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
+                  </Stack>
+                ) : (
+                <Stack>
+                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#welcome"} >Home</Text>
+                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#what-we-offer"} >About</Text>
+                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#find-mechanics"} >Features</Text>
+                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#partner-with-us"} >For Businesses</Text>
+                </Stack>
+                )
+              }
+            </DrawerBody>
+
+            <DrawerFooter as={Stack}>
+                {isLoggedIn && 
+                  <Button display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
+                }
+                <Button display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
+            </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )
 }
 
 
@@ -303,205 +921,6 @@ export const Footer = ({ props }) => {
       </Container>
     </Box>
   )
-}
-
-
-export const Navbar = ({ props }) => {
-    const [navIsOpen, setNavState] = useState(false);
-    const [searchIsOpen, setSearchState] = useState(false);
-    const {authUser, onLogout} = useContext(GlobalStore);
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const isLoggedIn = Boolean(authUser);
-
-    window.onscroll = (ev) => {
-      if(window.scrollY > 1000){
-        document.getElementById('navbar').classList.add('scrolled');
-      }else{
-        document.getElementById('navbar').classList.remove('scrolled');
-      }
-    }
-
-    function toggleSearch(){
-      setSearchState(!searchIsOpen);
-    }
-
-    function hideNav(){
-        setNavState(false)
-    }
-
-    function showNav(){
-        setNavState(true)
-    }
-
-    return(
-      <Box
-       position={'sticky'}
-       top={'0px'}
-       bg={!authUser ? 'primary' : 'white'}
-       as={motion.div}
-       color={!authUser ? "white": "black"}
-       flex={1} w={'100%'}
-       animate={{ opacity: 1, }}
-       initial={{ opacity: 0.6, }}
-       transition={'.5s linear'}
-       className='navbar'
-       id='navbar'
-       zIndex="20"
-       mb={0}
-      >
-        <Flex className='navbar-inner'
-          alignItems={'center'}
-          px={4}
-          py={4}
-          justifyContent={'space-between'}
-          flex={1} w={'100%'}
-          >
-          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}><Image loading='eager'
-                src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
-                width={'100%'} className='navbar-brand' /></RLink>
-          </Box>
-
-          { authUser ? (
-            <Fragment>
-              {!isMobile && 
-                <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-                  <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
-                    <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
-                  </Flex>
-
-                  <SearchBar flex={1} />
-                </Flex>
-              }
-
-              <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-                {isMobile && 
-                  <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-                }
-
-                {!isMobile && isLoggedIn &&
-                  <Button
-                   as={RLink}
-                   to="/wallet"
-                   borderRadius={'30px'}
-                   leftIcon={
-                    <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-                   }
-                   variant="unstyled"
-                   bgColor="#d9ebf5"
-                   fontWeight="600"
-                   colorScheme="blue"
-                   color="primary"
-                  >Wallet</Button>
-                }
-
-                <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
-                <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
-
-                {authUser?.user_type === "customer" &&
-                  <>
-                    <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-                    <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
-                  </>
-                }
-              </Flex>
-              
-              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-              </Button>
-            </Fragment>
-          ):(
-            <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
-              {!isMobile && 
-                <Fragment>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#welcome"}> Home </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#what-we-offer"}> About </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#find-mechanics"}> Features </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#partner-with-us"}> For Businesses </Text>
-                </Fragment>
-              }
-
-              {!isLoggedIn &&
-                <Fragment>
-                  <RLink to={"/signup/"}>
-                    <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
-                  </RLink>
-                  
-                  <RLink to={"/login"}>
-                    <Button borderWidth={2} colorScheme="blue"  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
-                  </RLink>
-                </Fragment>
-              }
-
-              {isMobile &&
-                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-                </Button>
-              }
-            </Flex>
-          )}
-
-          <Sidebar onClose={hideNav} show={navIsOpen} />
-        </Flex>
-
-        {isMobile && searchIsOpen &&
-          <Fragment>
-            <Box px={2} py={2}  w={'100%'} bg="#fff">
-              <SearchBar />
-            </Box>
-          </Fragment>
-        }
-
-      </Box>
-    )
-}
-
-
-export const Sidebar = ({ show, onClose, }) => {
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const {authUser, logout} = useContext(GlobalStore);
-    const isLoggedIn = !!authUser;
-    return (
-      <Drawer className="sidebar" position="fixed" zIndex="20" isOpen={show} onClose={onClose} placement='right'>
-        <DrawerContent>
-            <DrawerHeader>
-                <DrawerCloseButton />
-            </DrawerHeader>
-
-            <DrawerBody>
-              {
-                isLoggedIn ? (
-                  // isMobile &&
-                  <Stack>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/dashboard"}>Dashboard</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/home"}>Home</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
-                  </Stack>
-                ) : (
-                <Stack>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#welcome"} >Home</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#what-we-offer"} >About</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#find-mechanics"} >Features</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#partner-with-us"} >For Businesses</Text>
-                </Stack>
-                )
-              }
-            </DrawerBody>
-
-            <DrawerFooter as={Stack}>
-                {isLoggedIn && 
-                  <Button display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
-                }
-                <Button display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
-            </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    )
 }
 
 

@@ -6,6 +6,8 @@ import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@cha
 import Layout from './pages/Layout';
 import { Navbar } from './components/nav';
 import { ErrorPage } from './components/error';
+
+// pages
 import HomePage from './pages/marketplace/HomePage';
 import LandingPage from './pages/LandingPage';
 import RentListing from './pages/marketplace/rent/RentListing';
@@ -22,10 +24,15 @@ import ChatRoom from './pages/marketplace/chat/ChatRoom';
 import CartPage from './pages/marketplace/CartPage';
 import WalletPage from './pages/marketplace/WalletPage';
 import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
-import DealerProfile from './pages/marketplace/DealerProfile';
 import NotificationsPage from './pages/marketplace/Notifications';
-import DealershipLayout from './pages/dashboard/dealer';
+
+// Dealership Dashboard
+
+import DealerProfile from './pages/marketplace/DealerProfile';
+import DealerDashboardLayout from './pages/dashboard/dealer/Layout';
 import DealerDashboard from './pages/dashboard/dealer/Dashboard';
+import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
+import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
 // import WalletPage from './pages/marketplace/WalletPage';
 // import WalletPage from './pages/marketplace/WalletPage';
 
@@ -61,8 +68,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-    baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
+    // baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -160,6 +167,7 @@ function App() {
     setCookie,
     getCookie,
     onAuthenticated,
+    isAuthenticated,
     commaInt,
     redirect,
     logout,
@@ -182,11 +190,16 @@ function App() {
           <GlobalStore.Provider value={context}>
             <Layout hideFooter={true}>
               <Routes>
-                <Route ErrorBoundary={ErrorPage} element={<DealershipLayout />}>
+                <Route ErrorBoundary={ErrorPage} element={<DealerDashboardLayout />}>
                   <Route ErrorBoundary={ErrorPage} path='/dashboard' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='/inventory' element={<><Outlet /></>}>
+                    <Route ErrorBoundary={ErrorPage} path='add' element={<CreateListingAdmin />} />
+                    <Route ErrorBoundary={ErrorPage} path='discounts' element={<DealerDashboard />} />
+                    <Route ErrorBoundary={ErrorPage} path='' element={<ListingsAdmin />} />
+                    {/*<Outlet />*/}
+                  </Route>
+
                   <Route ErrorBoundary={ErrorPage} path='/orders' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/listings' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/discounts' element={<DealerDashboard />} />
                   <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
                   <Route ErrorBoundary={ErrorPage} path='/analytics' element={<DealerDashboard />} />
                   <Route ErrorBoundary={ErrorPage} path='/settings' element={<DealerDashboard />} />

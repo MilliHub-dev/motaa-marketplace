@@ -153,7 +153,7 @@ export default function MainPage() {
             <Image src="/assets/images/motaa-car-mid.png" alt="BMW Promotional" />
 
             <Box>
-              <Heading size={{base: "3xl", md: "4xl"}} mb={4}>
+              <Heading size={{base: "2xl", sm: "3xl", md: "4xl"}} mb={4}>
                 NEED A CAR?
               </Heading>
 

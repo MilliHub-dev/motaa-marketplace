@@ -30,7 +30,7 @@ import {
 import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../App";
 import { jsonifyObject, objectifyJSON } from "../../utils";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, NavLink } from "react-router-dom";
 // import { SearchIcon, StarIcon, ZapIcon } from '@chakra-ui/icons';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
 import { motion } from "framer-motion";
@@ -91,15 +91,15 @@ export const CartPage = ({ props }) => {
 
                 <Tabs>
                     <TabList border="none" className="hidden-scroll" overflowX="scroll">
-                        <Tab gap={4} mx={2} className="subtitle" fontWeight="">
+                        <Tab gap={4} className="subtitle" fontWeight="">
                             Cars 
                             <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.cars?.length}</Badge>
                         </Tab>
-                        <Tab gap={4} mx={2} className="subtitle" fontWeight="">
+                        <Tab gap={4} className="subtitle" fontWeight="">
                             Rentals
                             <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.rentals?.length}</Badge>
                         </Tab>
-                        <Tab gap={4} mx={2} className="subtitle" fontWeight="">
+                        <Tab gap={4} className="subtitle" fontWeight="">
                             Mechanics
                             <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.services?.length}</Badge>
                         </Tab>
@@ -107,25 +107,31 @@ export const CartPage = ({ props }) => {
 
                     <TabPanels>
                         <TabPanel>
-                            <List px="3" py="3" spacing={10}>
+                            <List py="3" spacing={10}>
                                 {
                                     cart?.cars?.map((car, idx) => 
                                         <ListItem my={5}>
-                                            <Flex gap={4}>
-                                                <Box w={'120px'} h={'60px'} rounded={'lg'}>
-                                                    <Image lazy w={'100%'}  rounded={'lg'} src={car?.listing?.vehicle?.images[0]?.url} />
-                                                </Box>
+                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between">
+                                                <Flex gap={4}>
+                                                    <Box w={'120px'} h={'60px'} rounded={'lg'}>
+                                                        <Image
+                                                         lodaing="lazy"
+                                                         w={'100%'}
+                                                         rounded={'lg'}
+                                                         src={car?.listing?.vehicle?.images[0]?.url}
+                                                        />
+                                                    </Box>
 
-                                                <Box flex={1}>
-                                                    <Heading size="sm"  my={1}> {car?.listing?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                    <Text my={1}> ₦{commaInt(car?.listing?.price)} </Text>
-                                                    <Text my={1}> {car?.status} </Text>
-                                                </Box>
-
+                                                    <Box flex={1}>
+                                                        <Heading size="sm"  my={1}> {car?.listing?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
+                                                        <Text my={1}> ₦{commaInt(car?.listing?.price)} </Text>
+                                                        <Text my={1}> {car?.status} </Text>
+                                                    </Box>
+                                                </Flex>
                                                 
                                                 <Flex gap={2}>
                                                     <Button px={4} colorScheme="red"> Remove </Button>
-                                                    <Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button>
+                                                    <NavLink to={`/checkout/?listingId=${car?.listing?.uuid}`}><Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button></NavLink>
                                                 </Flex>
 
                                             </Flex>
@@ -147,7 +153,7 @@ export const CartPage = ({ props }) => {
 
                                                 <Box flex={1}>
                                                     <Heading size="sm"  my={1}> {rental?.listing?.vehicle?.name} <Tag> {rental?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                    <Text my={1}> ₦{commaInt(rental?.listing?.price)}/{rental?.listing?.cycle} </Text>
+                                                    <Text my={1} className="bold"> ₦{commaInt(rental?.listing?.price)}/{rental?.listing?.cycle} </Text>
                                                     <Text my={1}> {rental?.status} </Text>
                                                 </Box>
 

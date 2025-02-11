@@ -23,6 +23,7 @@ import {
   IconButton,
   Menu,
   MenuButton,
+  SimpleGrid,
   MenuList,
   MenuItem,
   Badge,
@@ -165,7 +166,7 @@ function WalletPage() {
             <Text size="xs" className="small">Welcome back, {authUser?.first_name}👋</Text>
           </Box>
 
-          <Flex gap={5} my={8} flexWrap="wrap">
+          <SimpleGrid gap={5} my={8} columns={{base: 1, md: 2}}>
             {/* Wallet Balance */}
             <Box
               flex="1"
@@ -198,13 +199,18 @@ function WalletPage() {
 
             {/* Referral Card */}
             <Box
-              w={{ base: "100%", md: "400px" }}
+              w={{ base: "100%" }}
               px={6}
               py={2}
+              minH={'200px'}
               pt="40px"
-              bg="blue.600"
+              bg="primary"
               color="white"
               borderRadius="15px"
+              backgroundImage={`url('/assets/images/wallet-invite-background.png')`}
+              backgroundRepeat={'no-repeat'}
+              backgroundSize="contain"
+              backgroundPosition="bottom"
             >
               <AvatarGroup size="sm" max={5} mb={2}>
                 <Avatar name="User 1" />
@@ -218,7 +224,7 @@ function WalletPage() {
                 Invite your friends to Motaa and get up to 30% cashback on payments with wallet.
               </Text>
             </Box>
-          </Flex>
+          </SimpleGrid>
 
           {/* Transactions */}
           <Box borderWidth={1} borderRadius="lg" overflow="hidden">
