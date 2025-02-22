@@ -8,7 +8,6 @@
 
 @font-face {
   font-family: 'Satoshi';
-  src: url('/public/assets/fonts/Satoshi-Black.ttf');
   src: url('/public/assets/fonts/Satoshi-Regular.ttf');
 }
 
@@ -62,7 +61,7 @@ body {
 }
 
 body * {
-  font-family: 'Satoshi';
+  font-family: 'Satoshi' !important;
   line-height: 1.5;
   z-index: unset;
 }

@@ -246,6 +246,7 @@ const BuyListing = ({ }) => {
                                             {
                                                 component({
                                                      onChange: (value) => console.log(value),
+                                                     // onChange: ({filter, value}) => applyFilter({filter, value}),
                                                      onClose: onClose
                                                 })
                                             }
@@ -313,9 +314,10 @@ function BannerCarousel({ images }) {
         {images[currentImage]?.caption &&
             <Heading
              color="#fff"
+             placeSelf="anchor-center"
+             maxW="75%"
              position="absolute"
-             left={{base: "15%", md: '20%'}}
-             top={{base: "15%", md: '60px'}}
+             size="lg"
              textShadow="-5px 5px 20px black"
             > {images[currentImage].caption} </Heading>
         }

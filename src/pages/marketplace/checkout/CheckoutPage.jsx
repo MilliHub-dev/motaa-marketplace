@@ -49,13 +49,7 @@ import { RxCaretLeft, RxCaretRight, RxTimer } from 'react-icons/rx';
 import { RiGasStationLine } from 'react-icons/ri';
 import { TbManualGearbox } from 'react-icons/tb';
 import { BsFillPatchCheckFill } from 'react-icons/bs';
-// import {
-//   CitySelect,
-//   StateSelect,
-//   CountrySelect,
-//   GetCountries,
-//   GetState,
-// } from "react-country-state-city";
+import { Country, State, City }  from 'country-state-city';
 
 
 
@@ -169,24 +163,12 @@ function CheckoutPage({ props }) {
 
   function changeValue(val){
     let data = checkoutPayload;
-
     setCheckoutPayload({...data, ...val})
   }
 
   function init(){
     getData();
-    // GetCountries()
-    // .then((result) => setCountryList(result));
-
-    /* Country
-    {
-      id: '',
-      iso2: '', // e.g NG US AF ZA CH
-      phone_code: '', // e.g 1 234 233 93
-      name: '',
-      emoji: '',
-    }
-    */
+    console.log(Country.getAllCountries())
   }
 
   async function getData(){
@@ -242,8 +224,21 @@ function CheckoutPage({ props }) {
                 <FormControl>
                   <FormLabel>Phone Number</FormLabel>
                   <InputGroup>
-                    <InputLeftAddon children="+234" px={4} py={5} />
-                    <Input onInput={(e) => changeValue({ phone_number: e.target.value})} defaultValue={checkoutPayload?.phone_number} px={4} py={5} />
+                    <InputLeftAddon>
+                      <Select px={2} py={5} onInput={(e) => changeValue({ country: e.target.value})}>
+                        {countryList.map((place) => 
+                          <option
+                           onClick={(e) => setStateList(State.getStatesOfCountry(place['isoCode']))}
+                           value={place['name']}
+                          > +{place['phonecode']} {place['flag']}</option>
+                        )}
+                      </Select>
+                    </InputLeftAddon>
+
+                    <Input
+                     onInput={(e) => changeValue({ phone_number: e.target.value})}
+                     defaultValue={checkoutPayload?.phone_number} px={4} py={5}
+                    />
                   </InputGroup>
                 </FormControl>
 
@@ -256,19 +251,24 @@ function CheckoutPage({ props }) {
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>State of Residency</FormLabel>
-                  <Select onInput={(e) => changeValue({ state: e.target.value})} defaultValue="FCT ABUJA">
-                    <option>FCT ABUJA</option>
-                    <option>LAGOS</option>
-                    <option>KANO</option>
+                  <Select>
+                    {stateList.map((place) => 
+                      <option
+                       onClick={(e) => setCityList(
+                        City.getCitiesOfState(place['countryCode'], place['isoCode'])
+                        )}
+                       value={place['name']}
+                      > {place['name']} </option>
+                    )}
                   </Select>
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>LGA</FormLabel>
-                  <Select onInput={(e) => changeValue({ lga: e.target.value})} defaultValue="AMAC">
-                    <option>AMAC</option>
-                    <option>BWARI</option>
-                    <option>GWAGWALADA</option>
+                  <FormLabel>City</FormLabel>
+                  <Select onInput={(e) => changeValue({ city: e.target.value})} defaultValue="AMAC">
+                    {cityList.map((place) => 
+                      <option value={place['name']}> {place['name']} </option>
+                    )}
                   </Select>
                 </FormControl>
               </SimpleGrid>
@@ -448,7 +448,7 @@ const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) =
   const handleFlutterPayment = useFlutterwave(config);
 
   function onPaymentComplete(response){
-
+    console.log("payment complete", response)
   }
 
   function onModalClose(){

@@ -6,6 +6,8 @@ import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@cha
 import Layout from './pages/Layout';
 import { Navbar } from './components/nav';
 import { ErrorPage } from './components/error';
+import {APIProvider} from '@vis.gl/react-google-maps';
+
 
 // pages
 import HomePage from './pages/marketplace/HomePage';
@@ -68,8 +70,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-     baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
-    //baseURL: 'http://localhost:8000/api/v1',
+   baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
+    // baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -82,7 +84,7 @@ function App() {
   }
 
   function logout(){
-    localStorage.removeItem('motaa-auth-user');
+    onLogout();
     redirect('/');
   }
 
@@ -126,13 +128,13 @@ function App() {
   }
   
   function init(){
-    // show loading screen for 3.5 seconds
-    setTimeout(() => setLoading(false), 3500);
-
     // try to authenticate the user else redirect to login screen
     getAuthUser();
-    
-    // try to refresh the auth token if expired
+
+    // show loading screen for 3.5 seconds
+    setTimeout(() => setLoading(false), 1500);
+
+    // TODO: try to refresh the auth token if expired - for jwt
   }
 
   
@@ -147,7 +149,7 @@ function App() {
   function onLogout(){
     setAuthState(false);
     setAuthUser(null);
-    localStorage.setItem('motaa-auth-user', null);
+    localStorage.removeItem('motaa-auth-user', null);
   }
 
   function commaInt(number) {
@@ -185,6 +187,10 @@ function App() {
 
   if (authUser && authUser.user_type === 'dealer'){
     return(
+      <APIProvider
+       apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+       onLoad={() => console.log('Maps API has loaded.')}
+      >
       <ChakraProvider theme={BrandColors}>
         <Router>
           <GlobalStore.Provider value={context}>
@@ -213,11 +219,16 @@ function App() {
           </GlobalStore.Provider>
         </Router>
       </ChakraProvider>
+      </APIProvider>
     )
   }
 
   if (authUser && authUser.user_type === 'mechanic'){
     return(
+      <APIProvider
+       apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+       onLoad={() => console.log('Maps API has loaded.')}
+      >
       <ChakraProvider theme={BrandColors}>
         <Router>
           <GlobalStore.Provider value={context}>
@@ -230,10 +241,15 @@ function App() {
           </GlobalStore.Provider>
         </Router>
       </ChakraProvider>
+      </APIProvider>
     )
   }
   
   return (
+    <APIProvider
+     apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+     onLoad={() => console.log('Maps API has loaded.')}
+    >
     <ChakraProvider theme={BrandColors}>
       <Router>
       <GlobalStore.Provider value={context}>
@@ -275,6 +291,7 @@ function App() {
       </GlobalStore.Provider>
       </Router>
     </ChakraProvider>
+    </APIProvider>
   );
 }
 
