@@ -344,7 +344,7 @@ export const CustomerNavbar = ({ props }) => {
               <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
               <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
               <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-              <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
+              {/* <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink> */}
               
               {isLaptop &&
                 <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>

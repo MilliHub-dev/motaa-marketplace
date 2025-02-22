@@ -125,7 +125,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
                     </Flex>
 
                     <Flex justifyContent={'flex-start'} alignItems={'center'} gap={2} my={2}>
-                        <Text as={Flex} gap={1} alignItems={'center'} className=""> <RxTimer /> ₦{commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
+                        <Text as={Flex} gap={1} alignItems={'center'} className=""> <RxTimer /> {commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
                         <Text as={Flex} gap={1} alignItems={'center'} className=""> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
                         <Text as={Flex} gap={1} alignItems={'center'} className=""> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
                     </Flex>
