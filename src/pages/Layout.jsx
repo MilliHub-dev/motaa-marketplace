@@ -46,7 +46,7 @@ export const Layout = ({ children, hideFooter, ...props }) => {
                     <UnauthenticatedNavbar />
                 ):(getUserNav(authUser?.user_type))
             }
-            <Box minH={'50vh'}>{children}</Box>
+            <Box minH={'50vh'}><Outlet /></Box>
             {!shouldHideFooter && <Footer />}
         </Stack>
     )

@@ -70,8 +70,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-   baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
+   // baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -252,43 +252,45 @@ function App() {
     >
     <ChakraProvider theme={BrandColors}>
       <Router>
-      <GlobalStore.Provider value={context}>
-        <Layout>
+        <GlobalStore.Provider value={context}>
           <Routes>
-            <Route ErrorBoundary={ErrorPage} path='/rent' element={<RentListing />} />
-            <Route ErrorBoundary={ErrorPage} path='/rent/:listingId' element={<RentDetail />} />
+            <Route ErrorBoundary={ErrorPage} element={<Layout />}>
+              <Route ErrorBoundary={ErrorPage} path='/rent' element={<RentListing />} />
+              <Route ErrorBoundary={ErrorPage} path='/rent/:listingId' element={<RentDetail />} />
 
-            <Route ErrorBoundary={ErrorPage} path='/buy' element={<BuyListing />} />
-            <Route ErrorBoundary={ErrorPage} path='/buy/:listingId' element={<BuyDetail />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/mechanics' element={<MechanicListPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/dealers/:dealerId' element={<DealerProfile />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/cart' element={<CartPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/checkout/pay' element={<CheckoutPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/checkout/docs' element={<CheckoutPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/checkout/inspection' element={<CheckoutPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/checkout/' element={<CheckoutPage />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/search/cars/' element={<CarSearchPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/search/mechanics/' element={<MechanicSearchPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
-            <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/login' element={<LoginView />} />
-            <Route ErrorBoundary={ErrorPage} path='/signup' element={<SignupView />} />
-            <Route ErrorBoundary={ErrorPage} path='/signup/business' element={<SignupView type={'business'} />} />
-            
-            <Route ErrorBoundary={ErrorPage} path='/home' element={<HomePage />} />
-            <Route ErrorBoundary={ErrorPage} path='/*' element={<LandingPage />} />
-            {/*<Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/home'} />} />*/}
+              <Route ErrorBoundary={ErrorPage} path='/buy' element={<BuyListing />} />
+              <Route ErrorBoundary={ErrorPage} path='/buy/:listingId' element={<BuyDetail />} />
+              
+              <Route ErrorBoundary={ErrorPage} path='/mechanics' element={<MechanicListPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/dealers/:dealerId' element={<DealerProfile />} />
+              
+              
+              <Route ErrorBoundary={ErrorPage} path='/cart' element={<CartPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/checkout/pay' element={<CheckoutPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/checkout/docs' element={<CheckoutPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/checkout/inspection' element={<CheckoutPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/checkout/' element={<CheckoutPage />} />
+              
+              <Route ErrorBoundary={ErrorPage} path='/search/cars/' element={<CarSearchPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/search/mechanics/' element={<MechanicSearchPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+              
+              <Route ErrorBoundary={ErrorPage} path='/login' element={<LoginView />} />
+              <Route ErrorBoundary={ErrorPage} path='/signup' element={<SignupView />} />
+              <Route ErrorBoundary={ErrorPage} path='/signup/business' element={<SignupView type={'business'} />} />
+              
+              <Route ErrorBoundary={ErrorPage} path='/home' element={<HomePage />} />
+              <Route ErrorBoundary={ErrorPage} path='/*' element={<LandingPage />} />
+            </Route>
+
+            <Route ErrorBoundary={ErrorPage} element={<Layout hideFooter={true} />}>
+              <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
+              <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
+            </Route>
           </Routes>
           <ToastProvider />
-        </Layout>
-      </GlobalStore.Provider>
+        </GlobalStore.Provider>
       </Router>
     </ChakraProvider>
     </APIProvider>

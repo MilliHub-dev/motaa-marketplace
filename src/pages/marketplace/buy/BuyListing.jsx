@@ -16,6 +16,12 @@ import { ListingItemCard } from "../../../components"
 import { Paginator } from "../../../components/nav"
 import { objectifyJSON } from "../../../utils"
 import { ListingSkeleton } from "../../../components/loaders"
+import {
+CarBrandFilter,
+PriceFilter,
+LocationFilter,
+TransmissionFilter,
+} from "../../../components/filters"
 
 const BuyListing = ({ }) => {
     const [listings, setListings] = useState([]);
@@ -86,6 +92,17 @@ const BuyListing = ({ }) => {
                 body: data?.message || "Something went wrong"
             })
         }
+    }
+    
+    /**
+     * @param filter: filter object
+     * e.g { brand: 'bmw'}
+     * e.g { min_price: 120000, max_price: 5000000}
+     * 
+     * */
+    function applyFilter(filter){
+        // add filter to filterList
+        // convert filterList to url param
 
     }
 
@@ -103,86 +120,10 @@ const BuyListing = ({ }) => {
     }, [listings, carType])
 
     const filters = [
-        {
-            name: 'Make and Model',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Select Make </Text>
-
-                    {
-                        [
-                            'BMW', 'Audi', 'Toyota', 'Mercedis', 'Nissan', 'Mazda', 'Honda',
-                            'Peugeot', 'Opel', 'Volkswagen', 'Innoson', 'Ford',
-                        ]
-                        .map((make) => <MenuItem key={make} as={Checkbox}> {make} </MenuItem>
-                    )}
-                </Box>
-            )
-        },
-        {
-            name: 'Price',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Set min and max amount </Text>
-                    <Box px={2} py={2} display={'block'}>
-                        <Text> Min Amount </Text>
-                        <Input type="number" min="1" step="0.01" />
-                    </Box>
-                    <Box px={2} py={2} display={'block'}>
-                        <Text> Max Amount </Text>
-                        <Input type="number" min="1" step="0.01" />
-                    </Box>
-                    <Box px={2} display={'block'}>
-                        <Button onClick={onClose} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
-                    </Box>
-                </Box>
-            )
-        },
-        {
-            name: 'Mileage',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Set min and max mileage </Text>
-                    {/*<MenuItem as={Input} min="0" type="range" min="1" step="0.01" />*/}
-                </Box>
-            )
-        },
-        {
-            name: 'Location',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Select Locations </Text>
-                    {
-                        ['Abuja', 'Kaduna', 'Kano']
-                        .map((state) => <MenuItem key={state} as={Checkbox}> {state} </MenuItem>
-                    )}
-                </Box>
-            )
-        },
-        {
-            name: 'Transmission',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Select Transmission </Text>
-                    {
-                        ['Auto', 'Manual', 'Assisted Manual']
-                        .map((trans) => <MenuItem key={trans} as={Checkbox}> {trans} </MenuItem>
-                    )}
-                </Box>
-            )
-        },
-        {
-            name: 'Vehicle Type',
-            component: ({ onChange, onClose }) => (
-                <Box>
-                    <Text p={3} size="md"> Choose a vehicle type </Text>
-                    {
-                        ['Sedan', 'SUV', 'Sub-urban', 'Convertible']
-                        .map((type) => <MenuItem key={type} as={Checkbox}> {type} </MenuItem>
-                    )}
-                </Box>
-            )
-        },
+        <CarBrandFilter onChange={applyFilter} />,
+        <PriceFilter onChange={applyFilter} />,
+        <LocationFilter onChange={applyFilter} />,
+        <TransmissionFilter onChange={applyFilter} />,
     ]
 
     if (loading){
@@ -230,31 +171,7 @@ const BuyListing = ({ }) => {
                      leftIcon={<RiFilterLine />}
                     > Filters </Button>
                     {
-                        filters.map(({name, component}, idx) =>
-                            <Menu closeOnSelect={false}>
-                                {({ isOpen, onClose, }) => (
-                                    <Fragment>
-                                        <MenuButton
-                                         minW={'max-content'}
-                                         size={'md'} borderRadius={'10px'}
-                                         isActive={isOpen}
-                                         as={Button}
-                                         bgColor="gray.100"
-                                         rightIcon={<ChevronDownIcon />}
-                                        > {name} </MenuButton>
-                                        <MenuList maxH="300px" overflowY="auto">
-                                            {
-                                                component({
-                                                     onChange: (value) => console.log(value),
-                                                     // onChange: ({filter, value}) => applyFilter({filter, value}),
-                                                     onClose: onClose
-                                                })
-                                            }
-                                        </MenuList>
-                                    </Fragment>
-                                )}
-                            </Menu>
-                        )
+                        filters.map((filter, idx) => (filter))
                     }
                 </Flex>
 
