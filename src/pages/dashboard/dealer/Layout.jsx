@@ -94,8 +94,8 @@ function DealerDashboardLayout({children, ...props}) {
 
         <Box
          flex={{ md: 1 }}
-         w={!isMobile ? '100%' : (sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)')}
-         ml={!isMobile ? '0px' : (sidebarOpen ? "280px" : '70px')}
+         w={isMobile ? '100%' : (sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)')}
+         ml={isMobile ? '0px' : (sidebarOpen ? "280px" : '70px')}
         >
           <Container pb={10} maxW="container.xl">
             <Outlet />
