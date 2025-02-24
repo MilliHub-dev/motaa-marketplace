@@ -115,7 +115,7 @@ const BuyDetail = ({ }) => {
                         <List w={'100%'}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Mileage: </span>
-                                <span> {listing?.vehicle?.mileage} miles </span>
+                                <span> {listing?.vehicle?.mileage || "0"} miles </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
