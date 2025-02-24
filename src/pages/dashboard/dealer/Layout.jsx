@@ -42,7 +42,7 @@ export const DealershipContext = createContext({
 
 function DealerDashboardLayout({children, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
-  const [sidebarOpen, setSidebarState] = useState(true);
+  const [sidebarOpen, setSidebarState] = useState(false);
   const [loading, setLoadingState] = useState(true);
   const [dealership, setDealership] = useState({});
   const [isMobile] = useMediaQuery('(max-width: 768px)');
