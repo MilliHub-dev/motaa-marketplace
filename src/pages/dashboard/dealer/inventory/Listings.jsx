@@ -28,7 +28,10 @@ import {
   MenuList,
   MenuItem,
   Badge,
+  Image,
 } from '@chakra-ui/react';
+import { EditIcon, DeleteIcon } from "@chakra-ui/icons";
+import { FaEye } from "react-icons/fa";
 
 
 function ListingsAdmin({children, ...props}) {
@@ -105,12 +108,63 @@ function ListingsAdmin({children, ...props}) {
 
           <Button size="lg" fontSize="sm" w="full" bg="gray.200" color="primary" colorScheme="gray"> Manage Listings </Button>
         </VStack>
-
-
       </SimpleGrid>
+
+      <ListingTable listings={listings} />
     </Box>
   )
 }
+
+
+
+function ListingTable({ listings }) {
+  return (
+    <Box py={5}>
+      <Table variant="simple">
+        <Thead>
+          <Tr>
+            <Th>Car Listing</Th>
+            <Th>Status</Th>
+            <Th>Views</Th>
+            <Th>CTR</Th>
+            <Th>Actions</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {listings?.map((listing, index) => (
+            <Tr key={index}>
+              <Td>
+                <Flex align="center">
+                  <Image src={listing?.vehicle?.images[0]?.url} boxSize="50px" mr={3} borderRadius="md" />
+                  <Box>
+                    <Text fontWeight="bold">{listing?.title}</Text>
+                    <Text fontSize="sm">{listing?.price}</Text>
+                    <Text fontSize="xs" color="gray.500">{listing?.vehicle?.dealership?.location}</Text>
+                  </Box>
+                </Flex>
+              </Td>
+              <Td>
+                <Text color={listing?.approved ? "green.500" : "gray.500"}>
+                  {listing?.approved ? 'Active' : 'Draft'}
+                </Text>
+              </Td>
+              <Td>{listing?.impressions}</Td>
+              <Td>{listing?.ctr || 0}</Td>
+              <Td>
+                <Flex gap={2}>
+                  <Button size="sm" colorScheme="green">Boost</Button>
+                  <IconButton aria-label="Edit" icon={<EditIcon />} size="sm" />
+                  <IconButton aria-label="Delete" icon={<DeleteIcon />} size="sm" colorScheme="red" />
+                </Flex>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </Box>
+  );
+}
+
 
 export default ListingsAdmin;
 

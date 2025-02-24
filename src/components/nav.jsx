@@ -714,8 +714,9 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
               variant={item.active ? 'solid' : 'ghost'}
               colorScheme={item.active ? 'blue' : 'gray'}
               justifyContent="space-between"
+               alignItems="center"
             >
-              <Flex flex={1}>
+              <Flex flex={1} gap={3} alignItems="center">
                 <item.icon size={20} />
                 <Text> {sidebarOpen && item.label} </Text>
               </Flex>
