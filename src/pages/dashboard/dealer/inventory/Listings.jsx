@@ -14,6 +14,7 @@ import {
   Avatar,
   AvatarGroup,
   Progress,
+  TableContainer,
   Table,
   Thead,
   Tbody,
@@ -119,8 +120,8 @@ function ListingsAdmin({children, ...props}) {
 
 function ListingTable({ listings }) {
   return (
-    <Box py={5}>
-      <Table variant="simple">
+    <TableContainer my={5} w={'100%'}>
+      <Table variant="simple" overflowX={'scroll'} className="hidden-scroll">
         <Thead>
           <Tr>
             <Th>Car Listing</Th>
@@ -161,7 +162,7 @@ function ListingTable({ listings }) {
           ))}
         </Tbody>
       </Table>
-    </Box>
+    </TableContainer>
   );
 }
 
