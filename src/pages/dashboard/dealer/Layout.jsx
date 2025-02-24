@@ -28,6 +28,7 @@ import {
   MenuItem,
   Badge,
   Stack,
+  useMediaQuery,
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
@@ -44,6 +45,7 @@ function DealerDashboardLayout({children, ...props}) {
   const [sidebarOpen, setSidebarState] = useState(true);
   const [loading, setLoadingState] = useState(true);
   const [dealership, setDealership] = useState({});
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   async function init(){
     // get the dealership
@@ -92,8 +94,8 @@ function DealerDashboardLayout({children, ...props}) {
 
         <Box
          flex={1}
-         w={sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)'}
-         ml={sidebarOpen ? "280px" : '70px'}
+         w={!isMobile && (sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)')}
+         ml={!isMobile && (sidebarOpen ? "280px" : '70px')}
         >
           <Container pb={10} maxW="container.xl">
             <Outlet />

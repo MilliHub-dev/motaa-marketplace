@@ -615,7 +615,7 @@ export default function AddListing() {
           </Box>
 
           <StepIndicator currentStep={currentStep} />
-          <form style={{width:"100%"}} encType="multipart/form-data" ref={formRef} id="details-form" onSubmit={e => e.preventDefault()} method='post'>
+          <form style={{width:"100%", placeItems: 'center', placeContent: 'center'}} encType="multipart/form-data" ref={formRef} id="details-form" onSubmit={e => e.preventDefault()} method='post'>
           {currentStep === 0 && (
             <VStack spacing={8} w="full" maxW="600px">
               <DocumentUpload

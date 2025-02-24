@@ -744,14 +744,14 @@ export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setS
 
   if (isMobile){
     return(
-      <Drawer isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
+      <Drawer placement={'left'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerCloseButton />
           </DrawerHeader>
           
           <DrawerBody>
-            <NavLinks />
+            <NavLinks sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
           </DrawerBody>
         </DrawerContent>
       </Drawer>
@@ -771,7 +771,7 @@ export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setS
       borderRightWidth={1}
       p={sidebarOpen ? 6 : 2}
     >
-      <NavLinks />
+      <NavLinks sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
     </Box>
   )
 }
