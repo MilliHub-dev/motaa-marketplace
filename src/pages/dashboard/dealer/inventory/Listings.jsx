@@ -33,22 +33,26 @@ import {
 
 function ListingsAdmin({children, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
-  const [sidebarOpen, setSidebarState] = useState(true);
   const [loading, setLoadingState] = useState(false);
-  const [dealership, setDealership] = useState({});
+  const [listings, setListings] = useState([]);
+  const [activeListings, setActiveListings] = useState([]);
+  const [draftListings, setDraftListings] = useState([]);
 
   async function init(){
     // get the dealership
     try{
-      // const res = await axios.get(`/accounts/dealership/${authUser?.dealerId}`);
-      // const data = objectifyJSON(res.data);
+      const res = await axios.get(`/admin/dealership/listings/`);
+      const data = objectifyJSON(res.data);
 
-      // if (res?.status === 200){
-      //   setDealership(data.data);
-      //   console.log("Dealership:", data.data)
-      // }
+      if (res?.status === 200){
+        const items = data.data;
+        console.log("Listings:", items)
+        setListings(items);
+        setActiveListings(items.filter(item => item.approved === true));
+        setDraftListings(items.filter(item => item.approved === false));
+      }
 
-      // setTimeout(() => setLoadingState(false), 2000);
+      setTimeout(() => setLoadingState(false), 2000);
 
     }catch(error){
       console.log("error getting dealership:", error)
@@ -73,7 +77,7 @@ function ListingsAdmin({children, ...props}) {
           <Card borderWidth="2px" w="100%" borderColor="gray.200" borderRadius="10px" shadow="none">
             <CardBody>
               <Text color="gray.500" fontWeight="thin"> Total Listings </Text>
-              <Heading> 20 </Heading>
+              <Heading> {listings?.length} </Heading>
             </CardBody>
           </Card>
 
@@ -84,7 +88,7 @@ function ListingsAdmin({children, ...props}) {
           <Card borderWidth="2px" w="100%" borderColor="gray.200" borderRadius="10px" shadow="none">
             <CardBody>
               <Text color="gray.500" fontWeight="thin"> Active Listings </Text>
-              <Heading> 20 </Heading>
+              <Heading> {activeListings?.length} </Heading>
             </CardBody>
           </Card>
 
@@ -95,7 +99,7 @@ function ListingsAdmin({children, ...props}) {
           <Card borderWidth="2px" w="100%" borderColor="gray.200" borderRadius="10px" shadow="none">
             <CardBody>
               <Text color="gray.500" fontWeight="thin"> Drafts </Text>
-              <Heading> 20 </Heading>
+              <Heading> {draftListings?.length} </Heading>
             </CardBody>
           </Card>
 

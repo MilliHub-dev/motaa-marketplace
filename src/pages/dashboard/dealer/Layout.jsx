@@ -1,8 +1,8 @@
-import {useState, useEffect, useContext} from 'react';
-import {Link, Routes, Route, Outlet} from 'react-router-dom';
+import {useState, useEffect, useContext, createContext,} from 'react';
+import {Link, Routes, Route, Outlet, useLocation} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {DealerDashboardSideBar} from '../../../components/nav';
+import {DealerDashboardSideBar, DealerNavbar, UnauthenticatedNavbar} from '../../../components/nav';
 import {
   Box,
   Container,
@@ -27,11 +27,17 @@ import {
   MenuList,
   MenuItem,
   Badge,
+  Stack,
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
 import Dashboard from './Dashboard';
+
+
+export const DealershipContext = createContext({
+  dealership: null,
+})
 
 function DealerDashboardLayout({children, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
@@ -42,7 +48,7 @@ function DealerDashboardLayout({children, ...props}) {
   async function init(){
     // get the dealership
     try{
-      const res = await axios.get(`/accounts/dealership/${authUser?.dealerId}`);
+      const res = await axios.get(`/admin/dealership/`);
       const data = objectifyJSON(res.data);
 
       if (res?.status === 200){
@@ -66,22 +72,36 @@ function DealerDashboardLayout({children, ...props}) {
     return null
   }
 
-  return (
-    <Flex minH="100vh" position="relative">
-      <DealerDashboardSideBar
-       authUser={authUser}
-       dealership={dealership}
-       sidebarOpen={sidebarOpen}
-       onClose={() => setSidebarState(false)}
-       setSidebarState={setSidebarState}
-      />
+  const context = {
+    dealership,
+  }
 
-      <Box flex={1} w={sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)'} ml={sidebarOpen ? "280px" : '70px'}>
-        <Container pb={10} maxW="container.xl">
-          <Outlet />
-        </Container>
-      </Box>
-    </Flex>
+  return (
+    <DealershipContext.Provider value={context}>
+    <Stack>
+      <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
+
+      <Flex minH="100vh" position="relative">
+        <DealerDashboardSideBar
+         authUser={authUser}
+         dealership={dealership}
+         sidebarOpen={sidebarOpen}
+         onClose={() => setSidebarState(false)}
+         setSidebarState={setSidebarState}
+        />
+
+        <Box
+         flex={1}
+         w={sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)'}
+         ml={sidebarOpen ? "280px" : '70px'}
+        >
+          <Container pb={10} maxW="container.xl">
+            <Outlet />
+          </Container>
+        </Box>
+      </Flex>
+    </Stack>
+    </DealershipContext.Provider>
   )
 }
 

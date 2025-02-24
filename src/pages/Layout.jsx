@@ -41,10 +41,7 @@ export const Layout = ({ children, hideFooter, ...props }) => {
     return(
         <Stack bgColor="#fff" gap={0} spacing={0}>
             {
-                !isAuthenticated? (
-                    // not logged in navbar
-                    <UnauthenticatedNavbar />
-                ):(getUserNav(authUser?.user_type))
+                !isAuthenticated ? (<UnauthenticatedNavbar />):(<CustomerNavbar />)
             }
             <Box minH={'50vh'}><Outlet /></Box>
             {!shouldHideFooter && <Footer />}

@@ -10,6 +10,7 @@ import {
   Select,
   Image,
   IconButton,
+  ButtonGroup,
   Progress,
   Textarea,
   FormControl,
@@ -24,9 +25,12 @@ import {
   UnorderedList,
   ListItem,
 } from "@chakra-ui/react";
+import {CloseIcon} from "@chakra-ui/icons";
 import {BackButton} from '../../../../components/nav';
+import {GlobalStore} from '../../../../App';
+import {objectifyJSON} from '../../../../utils';
 import { ArrowLeft, DeleteIcon, Upload, AlertTriangle, Zap, Clock, Settings, MessageCircle, Bell } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect, useContext, useRef } from "react";
 
 // Step Indicator Component
 function StepIndicator({ currentStep }) {
@@ -37,7 +41,20 @@ function StepIndicator({ currentStep }) {
       <HStack justify="space-between" mb={2}>
         {steps.map((step, index) => (
           <VStack key={index} spacing={2}>
-            <Box w={3} h={3} borderRadius="full" bg={index <= currentStep ? "blue.500" : "gray.200"} />
+            <Box
+             w={'20px'} h={'20px'}
+             borderRadius="full"
+             placeItems="center"
+             placeContent="center"
+             borderColor={index <= currentStep ? "primary" : "gray.200"}
+             borderWidth={'2px'}
+            >
+              <Box
+               w={3} h={3}
+               borderRadius="full"
+               bg={index <= currentStep ? "primary" : "gray.200"}
+              />
+            </Box>
             <Text
               fontSize="sm"
               color={index <= currentStep ? "black" : "gray.500"}
@@ -58,8 +75,12 @@ function StepIndicator({ currentStep }) {
 function DocumentUpload({ title, description, onUpload }) {
   const [uploads, setUploads] = useState([]);
 
-  function removeItem(idx) {
-    setUploads((prevUploads) => prevUploads.filter((_, i) => i !== idx));
+  function removeItem(item) {
+    let all = uploads;
+    let idx = all.indexOf(item)
+    all.splice(idx, 1)
+    setUploads([...all]);
+    onUpload([...all]);
   }
 
   function handleDragOver(e) {
@@ -68,26 +89,37 @@ function DocumentUpload({ title, description, onUpload }) {
 
   function handleFileDrop(e) {
     e.preventDefault();
-    uploadFile(e.dataTransfer.files[0]);
+    if (uploads.length < 12){
+      uploadFile(e.dataTransfer.files[0]);
+    }
   }
 
   async function uploadFile(file) {
     let previewUrl = URL.createObjectURL(file);
     const data = { file, previewUrl };
-    setUploads((prevUploads) => [...prevUploads, data]);
+    let allUploads = [...uploads, data];
+    setUploads([...allUploads]);
+    onUpload([...allUploads]);
   }
 
   async function handleUpload(e) {
     e.preventDefault();
-    let files = Array.from(e.target.files);
-    
-    const fileData = files.map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file)
-    }));
+    if (uploads.length < 12){
+      let files = Array.from(e.target.files).slice(0, (12 - uploads.length));
+      const fileData = files.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file)
+      }));
 
-    setUploads((prevUploads) => [...prevUploads, ...fileData]);
+      let allUploads = [...uploads, ...fileData];
+      setUploads([...allUploads]);
+      onUpload([...allUploads]);
+    }
   }
+
+  useEffect(() => {
+
+  }, [uploads])
 
   return (
     <VStack spacing={2} align="start" w="full" mb={8}>
@@ -131,11 +163,12 @@ function DocumentUpload({ title, description, onUpload }) {
           </Box>
         ))}
 
-        <SimpleGrid gap={4} minChildWidth={'100px'} columns={{  sm: 2, md: 3, lg: 4, xl: 4 }} placeItems="center">
-          {uploads?.filter((upload) => upload.file.type?.split('/')[0] === 'image').map((image) => (
-            <Box key={image.file.name || image.previewUrl} rounded={"lg"} w={'100%'} maxW="200px">
-              <Image h="100px" w={'100%'} mb={2} src={image?.previewUrl} borderRadius="10px" />
-              <IconButton onClick={() => removeItem(image)} color="red" variant="outline" w="full" icon={<DeleteIcon />} />
+        <SimpleGrid gap={4} minChildWidth={'200px'} columns={{  sm: 2, md: 3, lg: 4, xl: 4 }} placeItems="center">
+          {uploads?.filter((upload) => upload.file.type?.split('/')[0] === 'image').map((image, idx) => (
+            <Box key={image.file.name || image.previewUrl} rounded={"lg"} w={'100%'} maxW="200px" position="relative">
+              <Image h="120px" w={'100%'} mb={2} src={image?.previewUrl} borderRadius="10px" />
+              <Badge bg="gray.200" color="primary" size="md" py="5px" px="12px" placeItems="center" position="absolute" top="5px" right="5px" borderRadius="full">{`${idx+1}`}</Badge>
+              <IconButton onClick={() => removeItem(image)} colorScheme="red" position="absolute" bottom="15px" right="5px" borderRadius="full" size="sm" icon={<CloseIcon />} />
             </Box>
           ))}
         </SimpleGrid>
@@ -149,11 +182,49 @@ function DocumentUpload({ title, description, onUpload }) {
 function CarDetailsForm({ formData, setFormData }) {
   return (
     <VStack spacing={6} align="stretch" w="full" maxW="600px">
-      <SimpleGrid columns={2} spacing={6}>
-        <FormControl>
+      <FormControl isRequired mx={'auto'}>
+        <FormLabel>Lisiting Type</FormLabel>
+        <ButtonGroup size='md' isAttached variant='outline' mt={3}>
+          <Button onClick={() => setFormData({...formData, listing_type: 'sale'})} 
+           bgColor={formData?.listing_type === 'sale' ? 'primary' : 'transparent'}
+           color={formData?.listing_type === 'sale' ? 'white' : 'primary'}
+           borderTopWidth={2} borderBottomWidth={2}
+           borderLeftWidth={2}
+           colorScheme={'blue'}
+           borderColor="cornflowerblue"
+           borderRadius="30px" px={'35px'}
+          >Direct Sale</Button>
+
+          <Button onClick={() => setFormData({...formData, listing_type: 'rental'})}
+           bgColor={formData?.listing_type === 'rental' ? 'primary' : 'transparent'}
+           color={formData?.listing_type === 'rental' ? 'white' : 'primary'}
+           borderTopWidth={2} borderBottomWidth={2}
+           borderRightWidth={2}
+           colorScheme={'blue'}
+           borderColor="cornflowerblue"
+           borderRadius="30px" px={'35px'}
+          >Rental</Button>
+        </ButtonGroup>
+      </FormControl>
+
+      <FormControl isRequired>
+        <FormLabel>Listing Title</FormLabel>
+        <Input
+          placeholder="eg Ford Focus Mini Edition"
+          isRequired={true}
+          name="title"
+          value={formData.title}
+          onInput={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
+      </FormControl>
+
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
           <FormLabel>Car Brand</FormLabel>
           <Select
             placeholder="Select brand"
+            isRequired={true}
+            name="brand"
             value={formData.brand}
             onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
           >
@@ -162,38 +233,49 @@ function CarDetailsForm({ formData, setFormData }) {
             <option>Mercedes-Benz</option>
           </Select>
         </FormControl>
-        <FormControl>
+        <FormControl isRequired>
           <FormLabel>Model</FormLabel>
-          <Select
-            placeholder="Select model"
+          <Input
+            placeholder="Car model"
+            isRequired={true}
             value={formData.model}
-            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-          >
-            <option>Model 1</option>
-            <option>Model 2</option>
-          </Select>
+            onInput={(e) => setFormData({ ...formData, model: e.target.value })}
+          />
         </FormControl>
       </SimpleGrid>
 
-      <SimpleGrid columns={2} spacing={6}>
-        <FormControl>
+      <FormControl isRequired>
+        <FormLabel>VIN/Chassis Number</FormLabel>
+        <Input
+          placeholder="Enter Number..."
+          value={formData.vin}
+          onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
+        />
+      </FormControl>
+
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
           <FormLabel>Year of Manufacture</FormLabel>
           <Select
             placeholder="Select year"
+            isRequired={true}
+            name="year"
             value={formData.year}
             onChange={(e) => setFormData({ ...formData, year: e.target.value })}
           >
             {Array.from({ length: 30 }, (_, i) => (
-              <option key={i} value={2024 - i}>
-                {2024 - i}
+              <option key={i} value={new Date().getFullYear() - i}>
+                {new Date().getFullYear() - i}
               </option>
             ))}
           </Select>
         </FormControl>
-        <FormControl>
+        <FormControl isRequired>
           <FormLabel>Trim</FormLabel>
           <Select
             placeholder="Select trim"
+            isRequired={true}
+            name="trim"
             value={formData.trim}
             onChange={(e) => setFormData({ ...formData, trim: e.target.value })}
           >
@@ -204,48 +286,88 @@ function CarDetailsForm({ formData, setFormData }) {
         </FormControl>
       </SimpleGrid>
 
-      <SimpleGrid columns={2} spacing={6}>
-        <FormControl>
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
           <FormLabel>Price</FormLabel>
           <InputGroup>
             <Input
               type="number"
+              isRequired={true}
               placeholder="Enter price"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             />
           </InputGroup>
         </FormControl>
-        <FormControl>
-          <FormLabel>Usage</FormLabel>
+        <FormControl isRequired>
+          <FormLabel>Condition</FormLabel>
           <Select
-            placeholder="Select usage"
+            placeholder="Choose condition"
+            name="condition"
+            isRequired={true}
             value={formData.usage}
-            onChange={(e) => setFormData({ ...formData, usage: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
           >
-            <option>New</option>
-            <option>Used</option>
+            <option value="new">New</option>
+            <option value="local-used">Used (Local)</option>
+            <option value="uk-used">Used (UK)</option>
+            <option value="us-used">Used (US)</option>
           </Select>
         </FormControl>
       </SimpleGrid>
 
-      <SimpleGrid columns={2} spacing={6}>
-        <FormControl>
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
+          <FormLabel>Vehicle Type</FormLabel>
+          <Select
+            placeholder="Select Vehicle Type"
+            value={formData.body}
+            name="vehicle_type"
+            onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
+          >
+            <option value="sedan">Sedan</option>
+            <option value="suv">SUV</option>
+            <option value="coupe">Coupe</option>
+            <option value="convertible">Convertible</option>
+            <option value="truck">Truck</option>
+          </Select>
+        </FormControl>
+        <FormControl isRequired>
+          <FormLabel>Fuel System</FormLabel>
+          <Select
+            placeholder="Select fuel type"
+            value={formData.fuel}
+            name="fuel_system"
+            onChange={(e) => setFormData({ ...formData, fuel_system: e.target.value })}
+          >
+            <option value="petrol">Petrol</option>
+            <option value="diesel">Diesel</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="electric">Electric</option>
+          </Select>
+        </FormControl>
+      </SimpleGrid>
+
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
           <FormLabel>Transmission</FormLabel>
           <Select
+            name="transmission"
+            isRequired={true}
             placeholder="Select transmission"
             value={formData.transmission}
             onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
           >
-            <option>Automatic</option>
-            <option>Manual</option>
+            <option value="auto">Automatic</option>
+            <option value="manual">Manual</option>
           </Select>
         </FormControl>
-        <FormControl>
+        <FormControl isRequired>
           <FormLabel>Registration</FormLabel>
           <Select
             placeholder="Select registration"
             value={formData.registration}
+            name="registration"
             onChange={(e) => setFormData({ ...formData, registration: e.target.value })}
           >
             <option>Registered</option>
@@ -254,47 +376,70 @@ function CarDetailsForm({ formData, setFormData }) {
         </FormControl>
       </SimpleGrid>
 
-      <FormControl>
-        <FormLabel>VIN/Chassis Number</FormLabel>
-        <Input
-          placeholder="Enter Number..."
-          value={formData.vin}
-          onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
-        />
-      </FormControl>
-
-      <SimpleGrid columns={2} spacing={6}>
-        <FormControl>
-          <FormLabel>Body</FormLabel>
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
+          <FormLabel>Mileage</FormLabel>
+          <Input
+            name="mileage"
+            isRequired={true}
+            type="number"
+            min={0}
+            placeholder="0 miles"
+            value={formData.mileage}
+            onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
+          />
+        </FormControl>
+        <FormControl isRequired>
+          <FormLabel>Drive train</FormLabel>
           <Select
-            placeholder="Select body type"
-            value={formData.body}
-            onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+            placeholder="Choose an option"
+            value={formData.drivetrain}
+            name="drivetrain"
+            onChange={(e) => setFormData({ ...formData, drivetrain: e.target.value })}
           >
-            <option>Sedan</option>
-            <option>SUV</option>
-            <option>Coupe</option>
+            <option value="4WD">4WD (4 Wheel drive)</option>
+            <option value="AWD">AWD (All Wheel drive)</option>
+            <option value="FWD">FWD (Front Wheel drive)</option>
           </Select>
         </FormControl>
-        <FormControl>
-          <FormLabel>Fuel</FormLabel>
+      </SimpleGrid>
+
+      <SimpleGrid columns={{base: 1, md: 2}} spacing={6}>
+        <FormControl isRequired>
+          <FormLabel>Doors</FormLabel>
           <Select
-            placeholder="Select fuel type"
-            value={formData.fuel}
-            onChange={(e) => setFormData({ ...formData, fuel: e.target.value })}
+            placeholder="Select Door number"
+            value={formData.doors}
+            name="doors"
+            onChange={(e) => setFormData({ ...formData, doors: e.target.value })}
           >
-            <option>Petrol</option>
-            <option>Diesel</option>
-            <option>Electric</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+          </Select>
+        </FormControl>
+        <FormControl isRequired>
+          <FormLabel>Seats</FormLabel>
+          <Select
+            placeholder="Select seats number"
+            value={formData.seats}
+            name="seats"
+            onChange={(e) => setFormData({ ...formData, seats: e.target.value })}
+          >
+            <option>2</option>
+            <option>4</option>
+            <option>5</option>
+            <option>7</option>
           </Select>
         </FormControl>
       </SimpleGrid>
 
       <FormControl>
-        <FormLabel>Seller Notes</FormLabel>
+        <FormLabel>Seller Notes <small>(optional)</small></FormLabel>
         <Textarea
           placeholder="Enter a description or any information that might be relevant to the customer..."
           value={formData.notes}
+          name="notes"
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           maxLength={400}
         />
@@ -313,7 +458,7 @@ function ReviewCard({ formData }) {
     <VStack spacing={6} align="stretch" maxW="600px" mx="auto">
       <Box borderWidth={1} borderRadius="lg" overflow="hidden">
         <Image
-          src={formData.images?.[0] || "/placeholder.svg"}
+          src={formData?.images[0]?.previewUrl || "/placeholder.svg"}
           alt="Car preview"
           w="full"
           h="300px"
@@ -325,10 +470,10 @@ function ReviewCard({ formData }) {
               <Text fontSize="2xl" fontWeight="bold">
                 {formData.year} {formData.brand} {formData.model}
               </Text>
-              <Badge colorScheme="gray">FOREIGN USED</Badge>
+              <Badge colorScheme="gray">{formData?.usage}</Badge>
             </VStack>
             <VStack align="end" spacing={1}>
-              <Text fontSize="2xl" fontWeight="bold" color="blue.600">
+              <Text fontSize="lg" fontWeight="bold" color="blue.600">
                 ₦{Number(formData.price).toLocaleString()}
               </Text>
               <Text color="green.500" fontSize="sm">
@@ -381,12 +526,36 @@ function ReviewCard({ formData }) {
 
 
 export default function AddListing() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [formData, setFormData] = useState({})
-  const toast = useToast()
+  const [currentStep, setCurrentStep] = useState(0);
+  const {axios, notify, authUser, redirect} = useContext(GlobalStore); 
+  const [formData, setFormData] = useState({});
+  const [form, setForm] = useState(null);
+  const toast = useToast();
+  const formRef = useRef();
+  window.formRef = formRef;
 
   const handleContinue = () => {
     if (currentStep < 3) {
+      try{
+        if (currentStep === 1){
+          const inputs = formRef.current.querySelectorAll('[required]');
+          for (let input of inputs){
+            if (!input.value.trim()){
+               notify({
+                title: "Not so fast!",
+                body: "Hey! You gotta fill all the required fields with, they're marked with a red *",
+                level: "danger",
+                duration: 5000,
+                isClosable: false,
+              });
+
+               return
+            }
+          }
+        }
+      }catch(error){
+        console.log("Oops:", error)
+      }
       setCurrentStep(currentStep + 1)
     }
   }
@@ -397,20 +566,47 @@ export default function AddListing() {
     }
   }
 
-  const handlePublish = () => {
-    toast({
-      title: "Listing submitted for review",
-      description: "We'll notify you once the review is complete.",
-      status: "success",
-      duration: 5000,
-      isClosable: true,
+  const handlePublish = async () => {
+    const payload = new FormData(formRef.current);
+    let keys = Object.keys(formData);
+
+    for(var i=0; i < keys.length; i++){
+      let key = keys[i];
+      let val = formData[key];
+      if(key === 'images'){
+        for(var j=0; j < val.length; j++){
+          payload.append('image', val[j].file, val[j].file.name);
+        }
+      }else{
+        payload.append(key, val);
+      }
+    }
+
+    const res = await axios.post('/admin/dealership/listings/create/', payload, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
+    const data = objectifyJSON(data);
+    if (res.status === 200){
+      console.log("Created listing", data)
+      toast({
+        title: "Listing submitted for review",
+        description: "We'll notify you once the review is complete.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      redirect('/inventory');
+    }
   }
 
   return (
     <Box>
-      <Container maxW="7xl" pb={16}>
-        <BackButton />
+      <Container maxW="9xl" pb={16}>
+        <BackButton
+          // onClick={}
+        />
 
         <VStack spacing={8}>
           <Box textAlign="center">
@@ -419,22 +615,18 @@ export default function AddListing() {
           </Box>
 
           <StepIndicator currentStep={currentStep} />
-
+          <form style={{width:"100%"}} encType="multipart/form-data" ref={formRef} id="details-form" onSubmit={e => e.preventDefault()} method='post'>
           {currentStep === 0 && (
             <VStack spacing={8} w="full" maxW="600px">
               <DocumentUpload
-                title="Upload Car License"
-                onUpload={(e) => {
-                  // Handle file upload
+                title="Upload up to 12 images of your car"
+                description="See image upload guidelines"
+                onUpload={(files) => {
+                  console.log("Uploads:", files)
+                  setFormData({ ...formData, images: [...files] });
                 }}
               />
-              <DocumentUpload
-                title="Upload Custom Duty"
-                onUpload={(e) => {
-                  // Handle file upload
-                }}
-              />
-              <Button colorScheme="blue" size="lg" w="full" onClick={handleContinue}>
+              <Button disabled={formData?.images?.length > 0 ? false : true} colorScheme="blue" size="lg" w="full" onClick={handleContinue}>
                 Continue
               </Button>
             </VStack>
@@ -442,10 +634,12 @@ export default function AddListing() {
 
           {currentStep === 1 && (
             <VStack spacing={8} w="full">
+            
               <CarDetailsForm formData={formData} setFormData={setFormData} />
-              <Button colorScheme="blue" size="lg" w="full" maxW="600px" onClick={handleContinue}>
+              <Button colorScheme="blue" form="details-form" type="submit" size="lg" w="full" maxW="600px" onClick={handleContinue}>
                 Continue
               </Button>
+            
             </VStack>
           )}
 
@@ -465,6 +659,7 @@ export default function AddListing() {
               </HStack>
             </VStack>
           )}
+          </form>
         </VStack>
       </Container>
     </Box>

@@ -8,12 +8,18 @@ import {
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
 import { GlobalStore } from "../../../App"
-import { RiClockwiseLine, RiGasStationLine, } from "react-icons/ri"
+import { RiClockwiseLine, RiGasStationLine, RiFilterLine } from "react-icons/ri"
 import { RxTimer } from "react-icons/rx"
 import { TbManualGearbox } from "react-icons/tb"
 import { ListingItemCard } from "../../../components"
 import { objectifyJSON } from "../../../utils"
 import { ListingSkeleton } from "../../../components/loaders"
+import {
+CarBrandFilter,
+PriceFilter,
+LocationFilter,
+TransmissionFilter,
+} from "../../../components/filters";
 
 export const RentListing = ({ props }) => {
     const [listings, setListings] = useState([])
@@ -21,6 +27,17 @@ export const RentListing = ({ props }) => {
     const [loading, setLoading] = useState(true)
     const [isMobile] = useMediaQuery('(max-width: 768px)')
     const {axios, notify, commaInt, authUser, apiUrl} = useContext(GlobalStore)
+    /**
+     * @param filter: filter object
+     * e.g { brand: 'bmw'}
+     * e.g { min_price: 120000, max_price: 5000000}
+     * 
+     * */
+    function applyFilter(filter){
+        // add filter to filterList
+        // convert filterList to url param
+
+    }
 
     async function getData(){
         try {
@@ -52,21 +69,16 @@ export const RentListing = ({ props }) => {
         console.log("Init Rentals Page")
     }, [])
 
-
-    const filters = [
-        {name: 'Make and Model'},
-        {name: 'Price'},
-        {name: 'Mileage'},
-        {name: 'Location'},
-        {name: 'Transmission'},
-        {name: 'Vehicle Type'},
-        {name: 'Condition'},
-        {name: 'Fuel System'},
-    ]
-
     if (loading){
         return <ListingSkeleton />
     }
+
+    const filters = [
+        <CarBrandFilter onChange={applyFilter} />,
+        <PriceFilter onChange={applyFilter} />,
+        <LocationFilter onChange={applyFilter} />,
+        <TransmissionFilter onChange={applyFilter} />,
+    ]
 
     return(
         <Fragment>
@@ -91,21 +103,16 @@ export const RentListing = ({ props }) => {
                     </Flex>
                 </Box>
 
-                <Flex my={2} flexWrap={'nowrap'} className="hidden-scroll" gap={4} py={4} overflowX={'auto'}>
+                <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
+                    <Button
+                     minW={'max-content'}
+                     size={'md'} borderRadius={'10px'}
+                     as={Box}
+                     bgColor="gray.100"
+                     leftIcon={<RiFilterLine />}
+                    > Filters </Button>
                     {
-                        filters.map((filter, idx) =>
-                            <Menu>
-                                {({ isOpen }) => (
-                                    <Fragment>
-                                    <MenuButton minW={'max-content'} size={'sm'} isActive={isOpen} as={Button} rightIcon={<ChevronDownIcon />}> {filter.name} </MenuButton>
-                                    <MenuList py={0} className="small">
-                                        <MenuItem>{filter.name}</MenuItem>
-                                        <MenuItem onClick={() => alert('Kagebunshin')}>Create a Copy</MenuItem>
-                                    </MenuList>
-                                    </Fragment>
-                                )}
-                            </Menu>
-                        )
+                        filters.map((filter, idx) => (filter))
                     }
                 </Flex>
 

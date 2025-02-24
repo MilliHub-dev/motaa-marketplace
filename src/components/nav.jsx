@@ -244,7 +244,7 @@ export const UnauthenticatedNavbar = ({ props }) => {
 export const CustomerNavbar = ({ props }) => {
     const [navIsOpen, setNavState] = useState(false);
     const [searchIsOpen, setSearchState] = useState(false);
-    const {authUser, onLogout} = useContext(GlobalStore);
+    const {authUser, onLogout, logout} = useContext(GlobalStore);
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const [isLaptop] = useMediaQuery('(max-width: 1028px)');
     const isLoggedIn = Boolean(authUser);
@@ -344,7 +344,26 @@ export const CustomerNavbar = ({ props }) => {
               <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
               <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
               <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-              {/* <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink> */}
+              {!isLaptop && 
+                <Menu to={`/dashboard`}>
+                {({ isOpen, onClose }) =>
+                <Fragment>
+                  <MenuButton onClose={onClose} isOpen={isOpen}>
+                    <Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon>
+                  </MenuButton>
+                  <MenuList px={2}>
+                    <Box my={3} placeItems="center">
+                      <Avatar name={`${authUser?.first_name} ${authUser?.last_name}`} />
+                      <Text>{authUser?.first_name} {authUser?.last_name}</Text>
+                    </Box>
+
+                    <Button my={1} as={MenuItem} display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
+                    <Button my={1} as={MenuItem} display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
+                  </MenuList>
+                </Fragment>
+                }
+                </Menu>
+              }
               
               {isLaptop &&
                 <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
@@ -371,157 +390,116 @@ export const CustomerNavbar = ({ props }) => {
 }
 
 
-export const DealerNavbar = ({ props }) => {
-    const [navIsOpen, setNavState] = useState(false);
-    const [searchIsOpen, setSearchState] = useState(false);
-    const {authUser, onLogout} = useContext(GlobalStore);
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const isLoggedIn = Boolean(authUser);
+export const DealerNavbar = ({ props, sidebarOpen. setSidebarState }) => {
+  const [navIsOpen, setNavState] = useState(false);
+  const [searchIsOpen, setSearchState] = useState(false);
+  const {authUser, onLogout} = useContext(GlobalStore);
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
+  const isLoggedIn = Boolean(authUser);
 
-    window.onscroll = (ev) => {
-      if(window.scrollY > 1000){
-        document.getElementById('navbar').classList.add('scrolled');
-      }else{
-        document.getElementById('navbar').classList.remove('scrolled');
-      }
+  window.onscroll = (ev) => {
+    if(window.scrollY > 1000){
+      document.getElementById('navbar').classList.add('scrolled');
+    }else{
+      document.getElementById('navbar').classList.remove('scrolled');
     }
+  }
 
-    function toggleSearch(){
-      setSearchState(!searchIsOpen);
-    }
+  function toggleSearch(){
+    setSearchState(!searchIsOpen);
+  }
 
-    function hideNav(){
-        setNavState(false)
-    }
+  function hideNav(){
+      setSidebarState(false)
+  }
 
-    function showNav(){
-        setNavState(true)
-    }
+  function showNav(){
+      setSidebarState(true)
+  }
 
-    return(
-      <Box
-       position={'sticky'}
-       top={'0px'}
-       bg={!authUser ? 'primary' : 'white'}
-       as={motion.div}
-       color={!authUser ? "white": "black"}
-       flex={1} w={'100%'}
-       animate={{ opacity: 1, }}
-       initial={{ opacity: 0.6, }}
-       transition={'.5s linear'}
-       className='navbar'
-       id='navbar'
-       zIndex="20"
-       mb={0}
-      >
-        <Flex className='navbar-inner'
-          alignItems={'center'}
-          px={4}
-          py={4}
-          justifyContent={'space-between'}
-          flex={1} w={'100%'}
-          >
+  return(
+    <Box
+     position={'sticky'}
+     top={'0px'}
+     bg={!authUser ? 'primary' : 'white'}
+     as={motion.div}
+     color={!authUser ? "white": "black"}
+     flex={1} w={'100%'}
+     animate={{ opacity: 1, }}
+     initial={{ opacity: 0.6, }}
+     transition={'.5s linear'}
+     className='navbar'
+     id='navbar'
+     zIndex="20"
+     mb={0}
+    >
+      <Flex className='navbar-inner'
+        alignItems={'center'}
+        px={4}
+        py={4}
+        justifyContent={'space-between'}
+        flex={1} w={'100%'}
+        >
+        <Flex justifyContent="space-betweeen" alignItems="center">
+          <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+            <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+          </Button>
+
           <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
             <RLink to={'/'}><Image loading='eager'
                 src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
                 width={'100%'} className='navbar-brand' /></RLink>
           </Box>
-
-          { authUser ? (
-            <Fragment>
-              {!isMobile && 
-                <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-                  <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
-                    <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
-                    <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
-                  </Flex>
-
-                  <SearchBar flex={1} />
-                </Flex>
-              }
-
-              <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-                {isMobile && 
-                  <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-                }
-
-                {!isMobile && isLoggedIn &&
-                  <Button
-                   as={RLink}
-                   to="/wallet"
-                   borderRadius={'30px'}
-                   leftIcon={
-                    <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-                   }
-                   variant="outline"
-                   bgColor="#d9ebf5"
-                   fontWeight="600"
-                   colorScheme="blue"
-                   color="primary"
-                  >Wallet</Button>
-                }
-
-                <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
-                <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
-
-                {authUser?.user_type === "customer" &&
-                  <>
-                    <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-                    <RLink to={`/dashboard`}><Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon></RLink>
-                  </>
-                }
-              </Flex>
-              
-              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-              </Button>
-            </Fragment>
-          ):(
-            <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
-              {!isMobile && 
-                <Fragment>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#welcome"}> Home </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#what-we-offer"}> About </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#find-mechanics"}> Features </Text>
-                  <Text as={NavLink} fontWeight={'600'} to={"/home/#partner-with-us"}> For Businesses </Text>
-                </Fragment>
-              }
-
-              {!isLoggedIn &&
-                <Fragment>
-                  <RLink to={"/signup/"}>
-                    <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
-                  </RLink>
-                  
-                  <RLink to={"/login"}>
-                    <Button borderWidth={2} colorScheme="blue"  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
-                  </RLink>
-                </Fragment>
-              }
-
-              {isMobile &&
-                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-                </Button>
-              }
-            </Flex>
-          )}
-
-          <Sidebar onClose={hideNav} show={navIsOpen} />
         </Flex>
 
-        {isMobile && searchIsOpen &&
-          <Fragment>
-            <Box px={2} py={2}  w={'100%'} bg="#fff">
-              <SearchBar />
-            </Box>
-          </Fragment>
-        }
 
-      </Box>
-    )
+        <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+          {isMobile ? 
+            <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
+            : <SearchBar flex={1} />
+          }
+          {isMobile ? (
+              <Button
+               onClick={toggleSearch}
+               as={RLink}
+               to="/wallet"
+               variant="outline"
+               borderColor="primary"
+              >
+                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
+              </Button> 
+            ):(
+              <Button
+               as={RLink}
+               to="/wallet"
+               borderRadius={'30px'}
+               leftIcon={
+                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
+               }
+               variant="outline"
+               bgColor="#d9ebf5"
+               fontWeight="600"
+               colorScheme="blue"
+               color="primary"
+              >Wallet</Button>
+            )
+          }
+
+          
+          <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
+          <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+        </Flex>          
+      </Flex>
+
+      {isMobile && searchIsOpen &&
+        <Fragment>
+          <Box px={2} py={2}  w={'100%'} bg="#fff">
+            <SearchBar />
+          </Box>
+        </Fragment>
+      }
+    </Box>
+  )
 }
 
 
@@ -679,7 +657,7 @@ export const MechanicNavbar = ({ props }) => {
 }
 
 
-export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setSidebarState, onClose }) => {
+const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   const links = [
     { icon: Home3, label: 'Dashboard', active: true, path: '/dashboard' },
     { icon: Coin, label: 'Transactions', path: '/transactions'},
@@ -695,6 +673,90 @@ export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setS
     { icon: HelpCircle, label: 'Support', path: '/support'},
     { icon: Settings, label: 'Settings', path: '/settings'},
   ]
+  return(
+    <VStack align="stretch" spacing={6}>
+      <HStack spacing={3}>
+        <Avatar size="sm" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
+
+        {sidebarOpen &&
+          <>
+            <Box flex={1}>
+              <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
+              <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
+            </Box>
+            <Menu zIndex={2} display="block">
+              <MenuButton
+                as={IconButton}
+                icon={<Share2 size={18} />}
+                variant="ghost"
+                size="sm"
+                aria-label="Share"
+              />
+
+              <MenuList py={0} zIndex={'200 !important'}>
+                <MenuItem>Copy Link</MenuItem>
+                <MenuItem>Facebook</MenuItem>
+                <MenuItem>Instagram</MenuItem>
+                <MenuItem>X (Twitter)</MenuItem>
+              </MenuList>
+            </Menu>
+          </>
+        }
+      </HStack>
+
+      <VStack align="stretch" spacing={2}>
+        {links.map((item, index) => (
+          <RLink key={index} to={item.path} >
+          <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+            <Button
+              key={index}
+              w={'100%'}
+              leftIcon={<item.icon size={20} />}
+              rightIcon={item?.children && !!sidebarOpen && <FaChevronDown style={{float: 'right'}} />}
+              variant={item.active ? 'solid' : 'ghost'}
+              colorScheme={item.active ? 'blue' : 'gray'}
+              justifyContent="start"
+            >
+              {sidebarOpen && item.label}
+            </Button>
+          </Tooltip>
+          </RLink>
+        ))}
+
+        {/* Main Content */}
+        <Button
+         leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
+         onClick={() => setSidebarState(!sidebarOpen)}
+         justifyContent="start"
+         colorScheme="gray.500"
+         variant="solid"
+         bottom="0px"
+         zIndex="10"
+        > {sidebarOpen && 'Close'} </Button>
+      </VStack>
+    </VStack>
+  )
+}
+
+export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setSidebarState, onClose }) => {
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
+
+
+  if (isMobile){
+    return(
+      <Drawer isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerCloseButton />
+          </DrawerHeader>
+          
+          <DrawerBody>
+            <NavLinks />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
 
   return(
@@ -709,67 +771,7 @@ export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setS
       borderRightWidth={1}
       p={sidebarOpen ? 6 : 2}
     >
-      <VStack align="stretch" spacing={6}>
-        <HStack spacing={3}>
-          <Avatar size="sm" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
-
-          {sidebarOpen &&
-            <>
-              <Box flex={1}>
-                <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
-                <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
-              </Box>
-              <Menu zIndex={2} display="block">
-                <MenuButton
-                  as={IconButton}
-                  icon={<Share2 size={18} />}
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Share"
-                />
-
-                <MenuList py={0} zIndex={'200 !important'}>
-                  <MenuItem>Copy Link</MenuItem>
-                  <MenuItem>Facebook</MenuItem>
-                  <MenuItem>Instagram</MenuItem>
-                  <MenuItem>X (Twitter)</MenuItem>
-                </MenuList>
-              </Menu>
-            </>
-          }
-        </HStack>
-
-        <VStack align="stretch" spacing={2}>
-          {links.map((item, index) => (
-            <RLink key={index} to={item.path} >
-            <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-              <Button
-                key={index}
-                w={'100%'}
-                leftIcon={<item.icon size={20} />}
-                rightIcon={item?.children && !!sidebarOpen && <FaChevronDown />}
-                variant={item.active ? 'solid' : 'ghost'}
-                colorScheme={item.active ? 'blue' : 'gray'}
-                justifyContent="start"
-              >
-                {sidebarOpen && item.label}
-              </Button>
-            </Tooltip>
-            </RLink>
-          ))}
-
-          {/* Main Content */}
-          <Button
-           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
-           onClick={() => setSidebarState(!sidebarOpen)}
-           justifyContent="start"
-           colorScheme="gray"
-           variant="solid"
-           bottom="0px"
-           zIndex="10"
-          > {sidebarOpen && 'Close'} </Button>
-        </VStack>
-      </VStack>
+      <NavLinks />
     </Box>
   )
 }

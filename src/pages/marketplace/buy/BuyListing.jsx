@@ -21,7 +21,7 @@ CarBrandFilter,
 PriceFilter,
 LocationFilter,
 TransmissionFilter,
-} from "../../../components/filters"
+} from "../../../components/filters";
 
 const BuyListing = ({ }) => {
     const [listings, setListings] = useState([]);

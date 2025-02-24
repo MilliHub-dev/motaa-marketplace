@@ -84,8 +84,8 @@ function App() {
   }
 
   function logout(){
-    onLogout();
     redirect('/');
+    onLogout();
   }
 
   function notify({ title, body, icon, color = 'green', duration = 2500 }){
@@ -194,28 +194,25 @@ function App() {
       <ChakraProvider theme={BrandColors}>
         <Router>
           <GlobalStore.Provider value={context}>
-            <Layout hideFooter={true}>
-              <Routes>
-                <Route ErrorBoundary={ErrorPage} element={<DealerDashboardLayout />}>
-                  <Route ErrorBoundary={ErrorPage} path='/dashboard' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/inventory' element={<><Outlet /></>}>
-                    <Route ErrorBoundary={ErrorPage} path='add' element={<CreateListingAdmin />} />
-                    <Route ErrorBoundary={ErrorPage} path='discounts' element={<DealerDashboard />} />
-                    <Route ErrorBoundary={ErrorPage} path='' element={<ListingsAdmin />} />
-                    {/*<Outlet />*/}
-                  </Route>
-
-                  <Route ErrorBoundary={ErrorPage} path='/orders' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
-                  <Route ErrorBoundary={ErrorPage} path='/analytics' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/settings' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/support' element={<DealerDashboard />} />
-                  <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+            <Routes>
+              <Route ErrorBoundary={ErrorPage} element={<DealerDashboardLayout />}>
+                <Route ErrorBoundary={ErrorPage} path='/dashboard' element={<DealerDashboard />} />
+                <Route ErrorBoundary={ErrorPage} path='/inventory' element={<><Outlet /></>}>
+                  <Route ErrorBoundary={ErrorPage} path='add' element={<CreateListingAdmin />} />
+                  <Route ErrorBoundary={ErrorPage} path='discounts' element={<DealerDashboard />} />
+                  <Route ErrorBoundary={ErrorPage} path='' element={<ListingsAdmin />} />
                 </Route>
-                <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
-                <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/dashboard'} />} />
-              </Routes>
-            </Layout>
+
+                <Route ErrorBoundary={ErrorPage} path='/orders' element={<DealerDashboard />} />
+                <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
+                <Route ErrorBoundary={ErrorPage} path='/analytics' element={<DealerDashboard />} />
+                <Route ErrorBoundary={ErrorPage} path='/settings' element={<DealerDashboard />} />
+                <Route ErrorBoundary={ErrorPage} path='/support' element={<DealerDashboard />} />
+                <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+              </Route>
+              <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
+              <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/dashboard'} />} />
+            </Routes>
           </GlobalStore.Provider>
         </Router>
       </ChakraProvider>

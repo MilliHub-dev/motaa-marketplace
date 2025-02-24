@@ -55,9 +55,9 @@ import { Country, State, City }  from 'country-state-city';
 
 const PaymentOptions = [
   { icon: Wallet, label: 'Pay with Wallet', value: 'wallet' },
-  { icon: CreditCard, label: 'Pay Online', value: 'card' },
-  { icon: BanknoteIcon, label: 'Pay After Inspection', value: 'inspection' },
-  { icon: Warehouse, label: 'Reserve Vehicle', disabled: true, value: 'reserve' },
+  { icon: CreditCard, label: 'Pay Online', value: 'online-payment' },
+  { icon: BanknoteIcon, label: 'Pay After Inspection', value: 'pay-after-inspection' },
+  { icon: Warehouse, label: 'Reserve Vehicle', disabled: true, value: 'reserve-vehicle' },
   { icon: PiggyBank, label: 'Car Financing', disabled: true, value: 'finance-aid' },
 ]
 
@@ -142,7 +142,7 @@ function CheckoutPage({ props }) {
     lga: '', // also used as lga
     address: '',
     zip_code: '',
-    payment_option: 'card',
+    payment_option: 'online-payment',
     amount: 0.0,
   });
 
@@ -150,8 +150,8 @@ function CheckoutPage({ props }) {
     name: 'payment-option',
     onChange: val => {
       let payload = checkoutPayload;
-      checkoutPayload.payment_option = val;
-      setCheckoutPayload({...checkoutPayload})
+      payload.payment_option = val;
+      setCheckoutPayload({...payload})
     },
   });
 
@@ -168,7 +168,7 @@ function CheckoutPage({ props }) {
 
   function init(){
     getData();
-    console.log(Country.getAllCountries())
+    setCountryList(Country.getAllCountries())
   }
 
   async function getData(){
@@ -223,9 +223,9 @@ function CheckoutPage({ props }) {
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>Phone Number</FormLabel>
-                  <InputGroup>
-                    <InputLeftAddon>
-                      <Select px={2} py={5} onInput={(e) => changeValue({ country: e.target.value})}>
+                  <InputGroup px={0}>
+                    <InputLeftAddon px={0}>
+                      <Select px={2} py={5} maxW={"max-content"} onInput={(e) => changeValue({ country: e.target.value})}>
                         {countryList.map((place) => 
                           <option
                            onClick={(e) => setStateList(State.getStatesOfCountry(place['isoCode']))}
@@ -331,8 +331,16 @@ function CheckoutPage({ props }) {
               <Divider my={3} />
 
               <Text fontSize="sm" color="gray.600">
-                This is text field is meant to explain whatever payment option is chosen above,
-                prototype would be available if needed 👍
+                {
+                  checkoutPayload.payment_option === 'wallet' ?
+                  "The amount for this order will be charged from your wallet balance. \
+                  If your balance is not sufficient to cover the charge, you will not be able to complete your order." :
+                  checkoutPayload.payment_option === 'online-payment' ? 
+                  "You will be redirected to a Flutterwave payment page where you can pay with your card or bank transfer." :
+                  checkoutPayload.payment_option === 'pay-after-inspection' ?
+                  "You will be redirected to a Flutterwave payment page to pay a small inspection fee."
+                  : "Select a payment option"
+                }
               </Text>
 
 
