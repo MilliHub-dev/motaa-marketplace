@@ -390,7 +390,7 @@ export const CustomerNavbar = ({ props }) => {
 }
 
 
-export const DealerNavbar = ({ props, sidebarOpen. setSidebarState }) => {
+export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
   const [navIsOpen, setNavState] = useState(false);
   const [searchIsOpen, setSearchState] = useState(false);
   const {authUser, onLogout} = useContext(GlobalStore);
