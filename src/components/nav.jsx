@@ -460,7 +460,6 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
           }
           {isMobile ? (
               <Button
-               onClick={toggleSearch}
                as={RLink}
                to="/wallet"
                variant="outline"
@@ -659,7 +658,7 @@ export const MechanicNavbar = ({ props }) => {
 
 const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   const links = [
-    { icon: Home3, label: 'Dashboard', active: true, path: '/dashboard' },
+    { icon: Home3, label: 'Dashboard', path: '/dashboard' },
     { icon: Coin, label: 'Transactions', path: '/transactions'},
     { icon: Shop, label: 'Inventory', path: '/inventory', children: [
         { icon: GiHomeGarage, label: 'Car Lot', active: true, path: '/listings' },
@@ -706,19 +705,22 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
 
       <VStack align="stretch" spacing={2}>
         {links.map((item, index) => (
-          <RLink key={index} to={item.path} >
+          <RLink key={index} to={item.path}>
           <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-            <Button
+            <Flex
               key={index}
+              as={Button}
               w={'100%'}
-              leftIcon={<item.icon size={20} />}
-              rightIcon={item?.children && !!sidebarOpen && <FaChevronDown style={{float: 'right'}} />}
               variant={item.active ? 'solid' : 'ghost'}
               colorScheme={item.active ? 'blue' : 'gray'}
-              justifyContent="start"
+              justifyContent="space-between"
             >
-              {sidebarOpen && item.label}
-            </Button>
+              <Flex flex={1}>
+                <item.icon size={20} />
+                <Text> {sidebarOpen && item.label} </Text>
+              </Flex>
+              {item?.children && !!sidebarOpen && <FaChevronDown />}
+            </Flex>
           </Tooltip>
           </RLink>
         ))}
@@ -738,8 +740,9 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   )
 }
 
-export const DealerDashboardSideBar = ({ authUser, dealership, sidebarOpen, setSidebarState, onClose }) => {
+export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose }) => {
   const [isMobile] = useMediaQuery('(max-width: 768px)');
+  const {authUser} = useContext(GlobalStore);
 
 
   if (isMobile){

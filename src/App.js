@@ -202,16 +202,18 @@ function App() {
                   <Route ErrorBoundary={ErrorPage} path='discounts' element={<DealerDashboard />} />
                   <Route ErrorBoundary={ErrorPage} path='' element={<ListingsAdmin />} />
                 </Route>
-
                 <Route ErrorBoundary={ErrorPage} path='/orders' element={<DealerDashboard />} />
-                <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
                 <Route ErrorBoundary={ErrorPage} path='/analytics' element={<DealerDashboard />} />
                 <Route ErrorBoundary={ErrorPage} path='/settings' element={<DealerDashboard />} />
                 <Route ErrorBoundary={ErrorPage} path='/support' element={<DealerDashboard />} />
                 <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
+                <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/dashboard'} />} />
               </Route>
-              <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
-              <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to={'/dashboard'} />} />
+
+              <Route ErrorBoundary={ErrorPage} element={<DealerDashboardLayout hideSidebar={true} />}>
+                <Route ErrorBoundary={ErrorPage} path='/chat' element={<ChatRoom />} />
+                <Route ErrorBoundary={ErrorPage} path='/wallet' element={<WalletPage />} />
+              </Route>
             </Routes>
           </GlobalStore.Provider>
         </Router>

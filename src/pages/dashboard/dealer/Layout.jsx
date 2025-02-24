@@ -1,4 +1,4 @@
-import {useState, useEffect, useContext, createContext,} from 'react';
+import {useState, useEffect, useContext, createContext, Fragment,} from 'react';
 import {Link, Routes, Route, Outlet, useLocation} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
@@ -40,7 +40,7 @@ export const DealershipContext = createContext({
   dealership: null,
 })
 
-function DealerDashboardLayout({children, ...props}) {
+function DealerDashboardLayout({children, hideSidebar, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
   const [loading, setLoadingState] = useState(true);
@@ -84,23 +84,30 @@ function DealerDashboardLayout({children, ...props}) {
       <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
 
       <Flex minH="100vh" position="relative">
-        <DealerDashboardSideBar
-         authUser={authUser}
-         dealership={dealership}
-         sidebarOpen={sidebarOpen}
-         onClose={() => setSidebarState(false)}
-         setSidebarState={setSidebarState}
-        />
-
-        <Box
-         flex={{ md: 1 }}
-         w={isMobile ? '100%' : (sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)')}
-         ml={isMobile ? '0px' : (sidebarOpen ? "280px" : '70px')}
-        >
+        {hideSidebar ? 
           <Container pb={10} maxW="container.xl">
             <Outlet />
           </Container>
-        </Box>
+        :
+          <Fragment>
+            <DealerDashboardSideBar
+             dealership={dealership}
+             sidebarOpen={sidebarOpen}
+             onClose={() => setSidebarState(false)}
+             setSidebarState={setSidebarState}
+            />
+
+            <Box
+             flex={{ md: 1 }}
+             w={isMobile ? '100%' : (sidebarOpen ? "calc(100% - 280px)" : 'calc(100% - 70px)')}
+             ml={isMobile ? '0px' : (sidebarOpen ? "280px" : '70px')}
+            >
+              <Container pb={10} maxW="container.xl">
+                <Outlet />
+              </Container>
+            </Box>
+          </Fragment>
+        }
       </Flex>
     </Stack>
     </DealershipContext.Provider>
