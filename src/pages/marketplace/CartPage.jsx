@@ -89,20 +89,36 @@ export const CartPage = ({ props }) => {
                 <Heading className="subtitle" size={'lg'} mb={5}>Your Cart</Heading>
 
                 <Tabs>
-                    <TabList border="none" className="hidden-scroll" overflowX="scroll">
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Cars 
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.cars?.length}</Badge>
-                        </Tab>
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Rentals
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.rentals?.length}</Badge>
-                        </Tab>
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Mechanics
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.services?.length}</Badge>
-                        </Tab>
+                <TabList
+                    border="none"
+                    className="hidden-scroll"
+                    overflowX="auto"
+                    overflowY="hidden"
+                    whiteSpace="nowrap"
+                    display="flex"
+                    alignItems="center"
+                    minHeight="fit-content"
+                >
+                    <Tab className="subtitle">
+                        Cars 
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.cars?.length}
+                        </Badge>
+                    </Tab>
+                    <Tab className="subtitle">
+                        Rentals
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.rentals?.length}
+                        </Badge>
+                    </Tab>
+                    <Tab className="subtitle">
+                        Mechanics
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.services?.length}
+                        </Badge>
+                    </Tab>
                     </TabList>
+
 
                     <TabPanels>
                         <TabPanel>
