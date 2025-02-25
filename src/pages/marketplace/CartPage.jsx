@@ -110,31 +110,38 @@ export const CartPage = ({ props }) => {
                                 {
                                     cart?.cars?.map((car, idx) => 
                                         <ListItem my={5}>
-                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between">
-                                                <Flex gap={4}>
-                                                    <Box w={'120px'} h={'60px'} rounded={'lg'}>
-                                                        <Image
-                                                         lodaing="lazy"
-                                                         w={'100%'}
-                                                         rounded={'lg'}
-                                                         src={car?.vehicle?.images[0]?.url}
-                                                        />
-                                                    </Box>
+                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between" alignItems="center">
+                                                <Flex gap={4} flex="1">
+                                                <Box w="120px" h="60px" rounded="lg" overflow="hidden">
+                                                    <Image
+                                                    loading="lazy"
+                                                    w="100%"
+                                                    h="100%"
+                                                    objectFit="cover"
+                                                    rounded="lg"
+                                                    src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
+                                                    alt={car?.vehicle?.name || "Vehicle Image"}
+                                                    />
+                                                </Box>
 
-                                                    <Box flex={1}>
-                                                        <Heading size="sm"  my={1}> {car?.vehicle?.name} <Tag> {car?.vehicle?.condition} </Tag> </Heading>
-                                                        <Text my={1}> ₦{commaInt(car?.price)} </Text>
-                                                        {/* <Text my={1}> {car?.status} </Text> */}
-                                                    </Box>
-                                                </Flex>
-                                                
-                                                <Flex gap={2}>
-                                                    <Button px={4} colorScheme="red"> Remove </Button>
-                                                    <NavLink to={`/checkout/?listingId=${car?.uuid}`}><Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button></NavLink>
+                                                <Box flex="1">
+                                                    <Heading size="sm" my={1} display="flex" alignItems="center" gap={2}>
+                                                    {car?.vehicle?.name} 
+                                                    {car?.vehicle?.condition && <Tag>{car.vehicle.condition}</Tag>}
+                                                    </Heading>
+                                                    <Text my={1}>₦{commaInt(car?.price)}</Text>
+                                                </Box>
                                                 </Flex>
 
+                                                <Flex gap={2} alignItems="center">
+                                                <Button px={4} colorScheme="red">Remove</Button>
+                                                <NavLink to={`/checkout/?listingId=${car?.uuid}`}>
+                                                    <Button px={4} bgColor="primary" colorScheme="blue">Pay Now</Button>
+                                                </NavLink>
+                                                </Flex>
                                             </Flex>
-                                        </ListItem>
+                                            </ListItem>
+
                                     )
                                 }
                             </List>
