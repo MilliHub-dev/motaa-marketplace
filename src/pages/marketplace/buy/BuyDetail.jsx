@@ -92,8 +92,10 @@ const BuyDetail = ({ }) => {
                     </Flex>
 
                     <Box mt={3}>
-                        <Badge> Price: </Badge>
-                        <Heading size={'lg'}><span className="subtitle">₦{commaInt(listing?.price)}</span></Heading>
+                        <Flex alignItems="center" gap={3}>
+                            <Badge> Price: </Badge>
+                            <Heading size={'lg'}><span className="">₦{commaInt(listing?.price)}</span></Heading>
+                        </Flex>
 
                         <Tag as={Flex} alignItems="center" gap={1.25}>
                             <Icon> <HiMiniReceiptPercent size={25} /> </Icon>
