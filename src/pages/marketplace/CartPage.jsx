@@ -58,8 +58,7 @@ export const CartPage = ({ props }) => {
         const data = objectifyJSON(res.data);
 
         if (res.status === 200){
-            console.log("Cart Data:", data.data)
-            // setCartItems(data?.data)
+            console.log("Cart Data:", data.data);
             let cars, rentals, services;
 
             cars = data?.data?.cars;
@@ -118,20 +117,20 @@ export const CartPage = ({ props }) => {
                                                          lodaing="lazy"
                                                          w={'100%'}
                                                          rounded={'lg'}
-                                                         src={car?.listing?.vehicle?.images[0]?.url}
+                                                         src={car?.vehicle?.images[0]?.url}
                                                         />
                                                     </Box>
 
                                                     <Box flex={1}>
-                                                        <Heading size="sm"  my={1}> {car?.listing?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                        <Text my={1}> ₦{commaInt(car?.listing?.price)} </Text>
-                                                        <Text my={1}> {car?.status} </Text>
+                                                        <Heading size="sm"  my={1}> {car?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
+                                                        <Text my={1}> ₦{commaInt(car?.price)} </Text>
+                                                        {/* <Text my={1}> {car?.status} </Text> */}
                                                     </Box>
                                                 </Flex>
                                                 
                                                 <Flex gap={2}>
                                                     <Button px={4} colorScheme="red"> Remove </Button>
-                                                    <NavLink to={`/checkout/?listingId=${car?.listing?.uuid}`}><Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button></NavLink>
+                                                    <NavLink to={`/checkout/?listingId=${car?.uuid}`}><Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button></NavLink>
                                                 </Flex>
 
                                             </Flex>
