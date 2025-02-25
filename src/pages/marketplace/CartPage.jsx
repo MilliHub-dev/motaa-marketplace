@@ -122,7 +122,7 @@ export const CartPage = ({ props }) => {
                                                     </Box>
 
                                                     <Box flex={1}>
-                                                        <Heading size="sm"  my={1}> {car?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
+                                                        <Heading size="sm"  my={1}> {car?.vehicle?.name} <Tag> {car?.vehicle?.condition} </Tag> </Heading>
                                                         <Text my={1}> ₦{commaInt(car?.price)} </Text>
                                                         {/* <Text my={1}> {car?.status} </Text> */}
                                                     </Box>
@@ -147,19 +147,21 @@ export const CartPage = ({ props }) => {
                                         <ListItem my={5}>
                                             <Flex gap={4}>
                                                 <Box w={'150px'} h={'75px'} rounded={'lg'}>
-                                                    <Image lazy w={'100%'}  rounded={'lg'} src={rental?.listing?.vehicle?.images[0]?.url} />
+                                                    <Image lazy w={'100%'}  rounded={'lg'} src={rental?.vehicle?.images[0]?.url} />
                                                 </Box>
 
                                                 <Box flex={1}>
-                                                    <Heading size="sm"  my={1}> {rental?.listing?.vehicle?.name} <Tag> {rental?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                    <Text my={1} className="bold"> ₦{commaInt(rental?.listing?.price)}/{rental?.listing?.cycle} </Text>
-                                                    <Text my={1}> {rental?.status} </Text>
+                                                    <Heading size="sm"  my={1}> {rental?.vehicle?.name} <Tag> {rental?.vehicle?.condition} </Tag> </Heading>
+                                                    <Text my={1} className="bold"> ₦{commaInt(rental?.price)}/{rental?.cycle} </Text>
+                                                    {/* <Text my={1}> {rental?.status} </Text> */}
                                                 </Box>
 
                                                 
                                                 <Flex>
                                                     <Button bgColor="primary" px={4} colorScheme="red"> Remove </Button>
-                                                    <Button bgColor="primary" px={4} colorScheme="blue"> Checkout </Button>
+                                                    <NavLink to={`/checkout/?listingId=${rental?.uuid}`}>
+                                                        <Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button>
+                                                    </NavLink>
                                                 </Flex>
                                             </Flex>
                                         </ListItem>

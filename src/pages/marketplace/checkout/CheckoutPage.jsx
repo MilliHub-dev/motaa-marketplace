@@ -154,8 +154,9 @@ function CheckoutPage({ props }) {
       setCheckoutPayload({...payload})
     },
   });
-
+  
   const groupy = getRootProps();
+  const {onClose, onOpen, isOpen} = useDisclosure();
 
   function redeemCoupon(e){
     e.preventDefault();
@@ -187,7 +188,27 @@ function CheckoutPage({ props }) {
     onOpen()
   }
 
-  const {onClose, onOpen, isOpen} = useDisclosure();
+
+  useEffect(() => {
+    setCountryList(Country.getAllCountries());
+  }, []);
+
+  useEffect(() => {
+    if (checkoutPayload.country) {
+      const selectedCountry = Country.getAllCountries().find(c => c.name === checkoutPayload.country);
+      setStateList(selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : []);
+      setCityList([]);
+    }
+  }, [checkoutPayload.country]);
+
+  useEffect(() => {
+    if (checkoutPayload.state) {
+      const selectedState = stateList.find(s => s.name === checkoutPayload.state);
+      setCityList(selectedState ? City.getCitiesOfState(selectedState.countryCode, selectedState.isoCode) : []);
+    }
+  }, [checkoutPayload.state]);
+
+
   useEffect(() => {
     init();
   }, [])
@@ -223,22 +244,24 @@ function CheckoutPage({ props }) {
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>Phone Number</FormLabel>
-                  <InputGroup px={0}>
+                  <InputGroup>
                     <InputLeftAddon px={0}>
-                      <Select px={2} py={5} maxW={"max-content"} onInput={(e) => changeValue({ country: e.target.value})}>
-                        {countryList.map((place) => 
-                          <option
-                           onClick={(e) => setStateList(State.getStatesOfCountry(place['isoCode']))}
-                           value={place['name']}
-                          > +{place['phonecode']} {place['flag']}</option>
-                        )}
+                      <Select
+                        minW="auto"
+                        flexShrink={1}
+                        onChange={(e) => {
+                          const selectedCountry = countryList.find(c => c.name === e.target.value);
+                          setCheckoutPayload({ ...checkoutPayload, country: e.target.value, state: '', city: '' });
+                          setStateList(selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : []);
+                          setCityList([]);
+                        }}
+                      >
+                        {countryList.map((place) => (
+                          <option key={place.isoCode} value={place.name}>+{place.phonecode} {place.flag}</option>
+                        ))}
                       </Select>
                     </InputLeftAddon>
-
-                    <Input
-                     onInput={(e) => changeValue({ phone_number: e.target.value})}
-                     defaultValue={checkoutPayload?.phone_number} px={4} py={5}
-                    />
+                    <Input flex={1} value={checkoutPayload.phone_number} onChange={(e) => setCheckoutPayload({ ...checkoutPayload, phone_number: e.target.value })} />
                   </InputGroup>
                 </FormControl>
 
@@ -251,24 +274,28 @@ function CheckoutPage({ props }) {
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>State of Residency</FormLabel>
-                  <Select>
-                    {stateList.map((place) => 
-                      <option
-                       onClick={(e) => setCityList(
-                        City.getCitiesOfState(place['countryCode'], place['isoCode'])
-                        )}
-                       value={place['name']}
-                      > {place['name']} </option>
-                    )}
+                  <Select
+                    onChange={(e) => {
+                      const selectedState = stateList.find(s => s.name === e.target.value);
+                      setCheckoutPayload({ ...checkoutPayload, state: e.target.value, city: '' });
+                      setCityList(selectedState ? City.getCitiesOfState(selectedState.countryCode, selectedState.isoCode) : []);
+                    }}
+                  >
+                    {stateList.map((place) => (
+                      <option key={place.isoCode} value={place.name}>{place.name}</option>
+                    ))}
                   </Select>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel>City</FormLabel>
-                  <Select onInput={(e) => changeValue({ city: e.target.value})} defaultValue="AMAC">
-                    {cityList.map((place) => 
-                      <option value={place['name']}> {place['name']} </option>
-                    )}
+                  <Select
+                    value={checkoutPayload.city}
+                    onChange={(e) => setCheckoutPayload({ ...checkoutPayload, city: e.target.value })}
+                  >
+                    {cityList.map((place) => (
+                      <option key={place.name} value={place.name}>{place.name}</option>
+                    ))}
                   </Select>
                 </FormControl>
               </SimpleGrid>
@@ -352,17 +379,17 @@ function CheckoutPage({ props }) {
                     wallet are kept in an escrow account until you are satisfied with the dealer.
                   </Text>
                 </HStack>
-                <Button variant="link" colorScheme="blue" mt={2} textDecoration="underline" size="sm" mt={2}>
+                <Button variant="link" colorScheme="blue" mt={2} textDecoration="underline" size="sm">
                   What is escrow?
                 </Button>
               </Box>
 
               <VStack spacing={4}>
-                <Button onClick={proceedToCheckout} size="xl" colorScheme="blue" bg="primary" size="lg" width="100%">
+                <Button onClick={proceedToCheckout} colorScheme="blue" bg="primary" size="lg" width="100%">
                   PROCEED
                 </Button>
 
-                <Button bgColor="blue.50" size="xl" p="12px" color="primary" variant="ghost" width="100%" as={Link} to="/">
+                <Button bgColor="blue.50" p="12px" color="primary" variant="ghost" width="100%" as={Link} to="/">
                   CANCEL
                 </Button>
               </VStack>
