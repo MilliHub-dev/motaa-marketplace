@@ -218,22 +218,25 @@ function BannerCarousel({ images }) {
   const [currentImage, setCurrentImage] = useState(0)
 
   return (
-    <Box w="100%" position="relative" flex={{base: 'unset', md: 3.8/4, lg: 3.5/4}}>
-      <Image
-        src={images[currentImage].url}
-        alt="Vehicle"
-        w="full"
-        loading="eager"
-        h="180px"
-        objectFit="cover"
-        borderRadius="20px"
-      />
-        {images[currentImage]?.caption &&
+    <Box
+     w="100%"
+     position="relative"
+     flex={{base: 'unset', md: 3.8/4, lg: 3.5/4}}
+     backgroundImage={`url('${images[currentImage].url}')`}
+     backgroundRepeat="no-repeat"
+     backgroundSize="cover"
+     backgroundPositionX="center"
+     backgroundPositionY="top"
+     h="210px"
+     borderRadius="20px"
+     placeItems="center"
+     placeContent="center"
+    >
+      {images[currentImage]?.caption &&
             <Heading
              color="#fff"
              placeSelf="anchor-center"
              maxW="75%"
-             position="absolute"
              size="lg"
              textShadow="-5px 5px 20px black"
             > {images[currentImage].caption} </Heading>

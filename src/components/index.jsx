@@ -131,7 +131,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
                     </Flex>
 
                     <Flex alignItems="center" gap={2}>
-                        <Heading size="sm" className="subtitle"> ₦{commaInt(listing?.price)} </Heading>
+                        <Heading size="lg" className="subtitle"> ₦{commaInt(listing?.price)} </Heading>
                         <Tag as={Flex} alignItems="center" gap={1.25}>
                             <Icon> <HiMiniReceiptPercent size={25} /> </Icon>
                             <Text>+0.5% added fees</Text>

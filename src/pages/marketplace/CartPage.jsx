@@ -62,12 +62,12 @@ export const CartPage = ({ props }) => {
             // setCartItems(data?.data)
             let cars, rentals, services;
 
-            cars = data?.data?.cart_items?.filter((item) => item.item_type === 'car');
-            rentals = data?.data?.cart_items?.filter((item) => item.item_type === 'rental');
-            services = data?.data?.cart_items?.filter((item) => item.item_type === 'service');
+            cars = data?.data?.cars;
+            rentals = data?.data?.rentals;
+            services = data?.data?.services;
 
             setCart({
-                itemsCount: data?.data?.cart_items?.length,
+                itemsCount: (cars?.length + rentals?.length + services?.length),
                 cars,
                 rentals,
                 services
@@ -171,7 +171,7 @@ export const CartPage = ({ props }) => {
 
                         <TabPanel>
                             <List px="3" py="3">
-                                {
+                                {/*
                                     cart?.services?.map((service, idx) => 
                                         <ListItem my={5}>
                                             <Flex gap={4}>
@@ -192,7 +192,7 @@ export const CartPage = ({ props }) => {
                                             </Flex>
                                         </ListItem>
                                     )
-                                }
+                                */}
                             </List>
                         </TabPanel>
                     </TabPanels>

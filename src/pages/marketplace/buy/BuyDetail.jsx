@@ -2,7 +2,7 @@ import {
     Avatar, Badge, Box, Button, Container,
     Divider, Flex, Heading, Icon, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid,
-    useMediaQuery,
+    useMediaQuery, Tag,
 } from "@chakra-ui/react";
 import { Fragment, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
 import {ImageCarousel, LocationBreadcrumb, ListingItemCard} from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { objectifyJSON } from "../../../utils";
+import {HiMiniReceiptPercent} from 'react-icons/hi2';
 import {FaCartPlus} from 'react-icons/fa';
 
 
@@ -92,7 +93,12 @@ const BuyDetail = ({ }) => {
 
                     <Box mt={3}>
                         <Badge> Price: </Badge>
-                        <Heading size={'md'}><span className="subtitle">₦{commaInt(listing?.price)}</span></Heading>
+                        <Heading size={'lg'}><span className="subtitle">₦{commaInt(listing?.price)}</span></Heading>
+
+                        <Tag as={Flex} alignItems="center" gap={1.25}>
+                            <Icon> <HiMiniReceiptPercent size={25} /> </Icon>
+                            <Text>+0.5% added fees</Text>
+                        </Tag>
                     </Box>
 
                     <Divider my={5} />
@@ -167,7 +173,7 @@ const BuyDetail = ({ }) => {
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Vehicle type: </span>
-                                <span> {listing?.vehicle?.vehicle_type || "N/A"} </span>
+                                <span> {listing?.vehicle?.type || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
