@@ -12,7 +12,7 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react'
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react'
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import {Link} from 'react-router-dom'
 import { objectifyJSON } from '../../utils'
 import { GlobalStore } from '../../App'
