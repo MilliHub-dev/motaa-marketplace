@@ -231,9 +231,10 @@ function BannerCarousel({ images }) {
      borderRadius="20px"
      placeItems="center"
      placeContent="center"
-    >
+     >
       {images[currentImage]?.caption &&
             <Heading
+             position="absolute"
              color="#fff"
              placeSelf="anchor-center"
              maxW="75%"
