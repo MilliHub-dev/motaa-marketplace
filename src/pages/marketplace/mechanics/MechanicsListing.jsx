@@ -16,15 +16,6 @@ import {
     Icon,
     VStack,
     HStack,
-    Wrap,
-    WrapItem,
-    Menu,
-    MenuList,
-    MenuItem,
-    MenuButton,
-    MenuItemOption,
-    Grid,
-    GridItem,
     Image,
     Tag,
     ButtonGroup,
@@ -36,12 +27,10 @@ import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
 import { useSearchParams, Link } from "react-router-dom";
-import { SearchIcon, StarIcon, ZapIcon, ChevronDownIcon } from '@chakra-ui/icons';
-import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
-import { motion } from "framer-motion";
+import { SearchIcon, StarIcon,  ChevronDownIcon } from '@chakra-ui/icons';
+import {  RiFilterLine, } from 'react-icons/ri'
 import {BiBuildings} from 'react-icons/bi';
 import {GrLocation} from 'react-icons/gr';
-import {ArrowLeft, ArrowRight} from 'lucide-react';
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { 
   LocationFilter,
