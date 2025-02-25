@@ -100,10 +100,10 @@ export const RentListing = ({ props }) => {
                         gap={3}
                     >
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
-                            Where
-                        </Text>
-                        <Input type="text" border="none" placeholder="City, airport, hotel?" className="small" />
+                            <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                                Where
+                            </Text>
+                            <Input type="text" border="1px solid lavender" placeholder="City, airport, hotel?" className="small" />
                         </VStack>
 
                         <VStack

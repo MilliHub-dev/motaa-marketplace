@@ -181,13 +181,22 @@ function CheckoutPage({ props }) {
     }
     console.log("Got Data:", data);
   }
-
+  
   function proceedToCheckout(e){
     e.preventDefault();
     console.table("Checking out with: ", checkoutPayload);
     onOpen()
   }
-
+  
+  async function onSuccess(){
+    const res = await axios.post(`/listings/checkout/${listingId}/`, JSON.stringify({
+      ...checkoutPayload
+    }));
+    const data = objectifyJSON(res.data);
+    if(res.status === 200){
+      redirect('/');
+    }
+  }
 
   useEffect(() => {
     setCountryList(Country.getAllCountries());
@@ -245,7 +254,7 @@ function CheckoutPage({ props }) {
                 <FormControl>
                   <FormLabel>Phone Number</FormLabel>
                   <InputGroup>
-                    <InputLeftAddon px={0}>
+                    <InputLeftAddon px={0} w="70px">
                       <Select
                         minW="auto"
                         flexShrink={1}
@@ -257,7 +266,7 @@ function CheckoutPage({ props }) {
                         }}
                       >
                         {countryList.map((place) => (
-                          <option key={place.isoCode} value={place.name}>+{place.phonecode} {place.flag}</option>
+                          <option key={place.isoCode} value={place.name}>{place.flag}</option>
                         ))}
                       </Select>
                     </InputLeftAddon>
@@ -442,6 +451,7 @@ function CheckoutPage({ props }) {
          isOpen={isOpen}
          onClose={onClose}
          checkoutPayload={checkoutPayload}
+         onSuccess={onSuccess}
          lisitng={listing}
         />
       </Container>
@@ -451,7 +461,7 @@ function CheckoutPage({ props }) {
 
 
 
-const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) => {
+const PaymentModal = ({ isOpen, onClose, listing, onSuccess,checkoutPayload, ...props }) => {
   const {
     currency, amount, payment_option,
     email, phone_number, first_name, last_name,
@@ -483,7 +493,8 @@ const PaymentModal = ({ isOpen, onClose, listing, checkoutPayload, ...props }) =
   const handleFlutterPayment = useFlutterwave(config);
 
   function onPaymentComplete(response){
-    console.log("payment complete", response)
+    console.log("payment complete", response);
+    onSuccess(response)
   }
 
   function onModalClose(){

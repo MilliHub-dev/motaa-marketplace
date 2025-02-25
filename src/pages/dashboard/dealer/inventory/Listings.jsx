@@ -119,6 +119,8 @@ function ListingsAdmin({children, ...props}) {
 
 
 function ListingTable({ listings }) {
+  const {axios, notify, commaInt} = useContext(GlobalStore);
+  
   return (
     <TableContainer my={5} w={'100%'}>
       <Table variant="simple" overflowX={'scroll'} className="hidden-scroll">
@@ -139,7 +141,7 @@ function ListingTable({ listings }) {
                   <Image src={listing?.vehicle?.images[0]?.url} boxSize="50px" mr={3} borderRadius="md" />
                   <Box>
                     <Text fontWeight="bold">{listing?.title}</Text>
-                    <Text fontSize="sm">{listing?.price}</Text>
+                    <Text fontSize="sm">{commaInt(listing?.price)}</Text>
                     <Text fontSize="xs" color="gray.500">{listing?.vehicle?.dealership?.location}</Text>
                   </Box>
                 </Flex>

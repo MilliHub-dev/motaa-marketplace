@@ -236,8 +236,9 @@ function BannerCarousel({ images }) {
         {images[currentImage]?.caption && (
             <Box
             position="absolute"
-            bottom="18%"  // Adjusted distance from bottom
+            // bottom="18%"  // Adjusted distance from bottom
             left="50%"
+            w={'100%'}
             transform="translateX(-50%)"
             maxW="80%"  // Ensures the caption doesn't stretch too wide
             maxH="50%"  // Prevents overflow for long captions
