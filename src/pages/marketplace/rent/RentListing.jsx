@@ -84,24 +84,62 @@ export const RentListing = ({ props }) => {
         <Fragment>
             <Container maxWidth={'container.xl'} py={4}>
 
-                <Box w={'100%'} mx={'auto'} maxWidth={'900px'} border="2px solid lavender" py={3} px={3} borderRadius="10px">
-                    <Flex flexWrap="wrap" justifyContent="space-between" alignItems="center">
-                        <VStack>
-                            <Text display="block" textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small"> Where </Text>
-                            <Input type="address" border="none" placeHolder="City, airport hotel?" className="small" />
-                        </VStack>
-                        <VStack px={4} borderLeftWidth="1px" borderRightWidth="1px" borderColor="lavender">
-                            <Text display="block" textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small"> From </Text>
-                            <Input as={Button} rightIcon={<ChevronDownIcon />} type="datetime-local" border="none" placeHolder="City, airport hotel?" className="small"> 12th May, 2025 10.00pm</Input>
-                        </VStack>
-                        <VStack>
-                            <Text display="block" textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small"> Until </Text>
-                            <Input as={Button} rightIcon={<ChevronDownIcon />} type="datetime-local" border="none" placeHolder="City, airport hotel?" className="small"> 12th May, 2025 10.00pm</Input>
+                <Box
+                    w="100%"
+                    mx="auto"
+                    maxWidth="900px"
+                    border="2px solid lavender"
+                    py={3}
+                    px={3}
+                    borderRadius="10px"
+                >
+                    <Flex
+                        flexWrap="wrap"
+                        justifyContent={{ base: "center", md: "space-between" }}
+                        alignItems="center"
+                        gap={3}
+                    >
+                        <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
+                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            Where
+                        </Text>
+                        <Input type="text" border="none" placeholder="City, airport, hotel?" className="small" />
                         </VStack>
 
-                        <Button colorScheme="blue" bg="primary">Search</Button>
+                        <VStack
+                        flex={{ base: "1 1 100%", md: "1 1 auto" }}
+                        align="stretch"
+                        px={{ base: 0, md: 4 }}
+                        borderLeft={{ base: "none", md: "1px solid lavender" }}
+                        borderRight={{ base: "none", md: "1px solid lavender" }}
+                        >
+                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            From
+                        </Text>
+                        <Button rightIcon={<ChevronDownIcon />} variant="outline" className="small">
+                            12th May, 2025 10:00pm
+                        </Button>
+                        </VStack>
+
+                        <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
+                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            Until
+                        </Text>
+                        <Button rightIcon={<ChevronDownIcon />} variant="outline" className="small">
+                            12th May, 2025 10:00pm
+                        </Button>
+                        </VStack>
+
+                        <Button
+                        colorScheme="blue"
+                        bg="primary"
+                        w={{ base: "100%", md: "auto" }}
+                        >
+                        Search
+                        </Button>
                     </Flex>
                 </Box>
+
 
                 <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
                     <Button

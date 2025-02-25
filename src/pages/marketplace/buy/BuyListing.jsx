@@ -219,38 +219,36 @@ function BannerCarousel({ images }) {
 
   return (
     <Box
-     w="100%"
-     position="relative"
-     flex={{ base: 'unset', md: 3.8 / 4, lg: 3.5 / 4 }}
-     backgroundImage={`url('${images[currentImage].url}')`}
-     backgroundRepeat="no-repeat"
-     backgroundSize="cover"
-     backgroundPosition="center top"
-     h="210px"
-     borderRadius="20px"
-     display="flex"
-     alignItems="center"
-     justifyContent="center"
-     px={4}  // Ensures some padding on smaller screens
+        w="100%"
+        position="relative"
+        flex={{ base: 'unset', md: 3.8 / 4, lg: 3.5 / 4 }}
+        backgroundImage={`url('${images[currentImage].url}')`}
+        backgroundRepeat="no-repeat"
+        backgroundSize="cover"
+        backgroundPosition="center top"
+        h="210px"
+        borderRadius="20px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        px={2}  // Ensures some padding on smaller screens
     >
         {images[currentImage]?.caption && (
             <Box
             position="absolute"
-            bottom="10%"  // Anchors the text dynamically near the bottom
+            bottom="18%"  // Adjusted distance from bottom
             left="50%"
             transform="translateX(-50%)"
             maxW="80%"  // Ensures the caption doesn't stretch too wide
             maxH="50%"  // Prevents overflow for long captions
+            overflowY="auto"  // Allows scrolling if needed
             textAlign="center"
             p={2}
-            backgroundColor="rgba(0, 0, 0, 0.6)" // Optional: Darken background for readability
-            borderRadius="10px"
             >
             <Heading
                 color="white"
                 size="md"
                 textShadow="-2px 2px 10px black"
-                wordBreak="break-word"
             >
                 {images[currentImage].caption}
             </Heading>
@@ -269,7 +267,8 @@ function BannerCarousel({ images }) {
             />
             ))}
         </HStack>
-    </Box>
+        </Box>
+
   )
 }
 
