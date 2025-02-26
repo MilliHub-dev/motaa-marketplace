@@ -100,7 +100,7 @@ export const RentListing = ({ props }) => {
                         gap={3}
                     >
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                            <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
                                 Where
                             </Text>
                             <Input type="text" border="1px solid lavender" placeholder="City, airport, hotel?" className="small" />
@@ -113,21 +113,21 @@ export const RentListing = ({ props }) => {
                         borderLeft={{ base: "none", md: "1px solid lavender" }}
                         borderRight={{ base: "none", md: "1px solid lavender" }}
                         >
-                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                        <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
                             From
                         </Text>
-                        <Button rightIcon={<ChevronDownIcon />} variant="outline" className="small">
+                        <Input as={Button} rightIcon={<ChevronDownIcon />} variant="outline" className="small" type="datetime-local">
                             12th May, 2025 10:00pm
-                        </Button>
+                        </Input>
                         </VStack>
 
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                        <Text textAlign="left" mb={-2} lineHeight="1" fontWeight="600" className="small">
+                        <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
                             Until
                         </Text>
-                        <Button rightIcon={<ChevronDownIcon />} variant="outline" className="small">
+                        <Input as={Button} rightIcon={<ChevronDownIcon />} variant="outline" className="small" type="datetime-local">
                             12th May, 2025 10:00pm
-                        </Button>
+                        </Input>
                         </VStack>
 
                         <Button

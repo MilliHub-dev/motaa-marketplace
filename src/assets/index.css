@@ -103,6 +103,7 @@ body * {
 .navbar {
   z-index: 2;
   position: relative;
+  box-shadow: 0px -8px 13px black;
 }
 
 .navbar-nav.mobile {

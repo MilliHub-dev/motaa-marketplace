@@ -53,6 +53,24 @@ export const CartPage = ({ props }) => {
         setTimeout(() => setLoading(false), 2500);
     }
 
+    async function removeFromCart( item ){
+        setLoading(true);
+
+        const res = await axios.post(`/accounts/cart/`, jsonifyObject({
+          item: item.uuid,
+          action: 'remove-from-cart',  
+        }));
+
+        const data = objectifyJSON(res.data);
+        if (res.status === 200){
+            notify({
+                title: 'Success',
+                message: `${item?.title} removed from your cart.`
+            });
+            init();
+        }
+    }
+
     async function getData(){
         const res = await axios.get(`/accounts/cart/`);
         const data = objectifyJSON(res.data);
@@ -99,19 +117,19 @@ export const CartPage = ({ props }) => {
                     alignItems="center"
                     minHeight="fit-content"
                 >
-                    <Tab className="subtitle">
+                    <Tab className="subtitle" gap={1} spacing={1}>
                         Cars 
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.cars?.length}
                         </Badge>
                     </Tab>
-                    <Tab className="subtitle">
+                    <Tab className="subtitle" gap={1} spacing={1}>
                         Rentals
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.rentals?.length}
                         </Badge>
                     </Tab>
-                    <Tab className="subtitle">
+                    <Tab className="subtitle" gap={1} spacing={1}>
                         Mechanics
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.services?.length}
@@ -128,35 +146,35 @@ export const CartPage = ({ props }) => {
                                         <ListItem my={5}>
                                             <Flex gap={4} flexWrap="wrap" justifyContent="space-between" alignItems="center">
                                                 <Flex gap={4} flex="1">
-                                                <Box w="120px" h="60px" rounded="lg" overflow="hidden">
-                                                    <Image
-                                                    loading="lazy"
-                                                    w="100%"
-                                                    h="100%"
-                                                    objectFit="cover"
-                                                    rounded="lg"
-                                                    src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
-                                                    alt={car?.vehicle?.name || "Vehicle Image"}
-                                                    />
-                                                </Box>
+                                                    <Box w="110px" h="60px" rounded="lg" overflow="hidden">
+                                                        <Image
+                                                        loading="lazy"
+                                                        w="100%"
+                                                        h="100%"
+                                                        objectFit="cover"
+                                                        rounded="lg"
+                                                        src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
+                                                        alt={car?.vehicle?.name || "Vehicle Image"}
+                                                        />
+                                                    </Box>
 
-                                                <Box flex="1">
-                                                    <Heading size="sm" my={1} display="flex" alignItems="center" gap={2}>
-                                                    {car?.vehicle?.name} 
-                                                    {car?.vehicle?.condition && <Tag>{car.vehicle.condition}</Tag>}
-                                                    </Heading>
-                                                    <Text my={1}>₦{commaInt(car?.price)}</Text>
-                                                </Box>
+                                                    <Box flex="1">
+                                                        {car?.vehicle?.condition && <Tag>{car.vehicle.condition}</Tag>}
+                                                        <Heading size="sm" my={1} display="flex" alignItems="center" gap={2}>
+                                                            {car?.vehicle?.name} 
+                                                        </Heading>
+                                                        <Text my={1}>₦{commaInt(car?.price)}</Text>
+                                                    </Box>
                                                 </Flex>
 
                                                 <Flex gap={2} alignItems="center">
-                                                <Button px={4} colorScheme="red">Remove</Button>
+                                                <Button px={4} colorScheme="red" onClick={() => removeFromCart(car)}>Remove</Button>
                                                 <NavLink to={`/checkout/?listingId=${car?.uuid}`}>
                                                     <Button px={4} bgColor="primary" colorScheme="blue">Pay Now</Button>
                                                 </NavLink>
                                                 </Flex>
                                             </Flex>
-                                            </ListItem>
+                                        </ListItem>
 
                                     )
                                 }

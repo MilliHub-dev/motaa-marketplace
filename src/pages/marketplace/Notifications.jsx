@@ -110,11 +110,11 @@ function NotificationsPage() {
       <Container maxW="container.xl" py={8}>
         <HStack mb={1} alignItems="center">
           <Text fontSize="2xl" fontWeight="bold"> Notifications </Text>
-          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> 14 </Badge>
+          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> {notifications?.length} </Badge>
         </HStack>
 
         <Text color="gray.600" mb={8}>
-          You have 14 unread messages.
+          You have {notifications?.length} unread messages.
         </Text>
 
           <Box mb={8}>
@@ -133,7 +133,7 @@ function NotificationsPage() {
 
             <Container maxW="700px">
               <VStack spacing={4} align="stretch">
-                {notifications.map((notification) => (
+                {notifications?.map((notification) => (
                   <NotificationCard
                     key={notification?.id}
                     type={notification?.level}

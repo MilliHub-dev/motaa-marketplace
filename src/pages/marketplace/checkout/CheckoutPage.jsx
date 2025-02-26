@@ -188,7 +188,7 @@ function CheckoutPage({ props }) {
     onOpen()
   }
   
-  async function onSuccess(){
+  async function onSuccess(response){
     const res = await axios.post(`/listings/checkout/${listingId}/`, JSON.stringify({
       ...checkoutPayload
     }));
