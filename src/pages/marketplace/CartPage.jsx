@@ -67,8 +67,9 @@ export const CartPage = ({ props }) => {
                 title: 'Success',
                 message: `${item?.title} removed from your cart.`
             });
-            init();
+            getData();
         }
+        setTimeout(() => setLoading(false), 1200);
     }
 
     async function getData(){
