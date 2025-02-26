@@ -147,15 +147,15 @@ export const CartPage = ({ props }) => {
                                         <ListItem my={5}>
                                             <Flex gap={4} flexWrap="wrap" justifyContent="space-between" alignItems="center">
                                                 <Flex gap={4} flex="1">
-                                                    <Box w="110px" h="60px" rounded="lg" overflow="hidden">
+                                                    <Box w="110px" h="75px" rounded="lg" overflow="hidden">
                                                         <Image
-                                                        loading="lazy"
-                                                        w="100%"
-                                                        h="100%"
-                                                        objectFit="cover"
-                                                        rounded="lg"
-                                                        src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
-                                                        alt={car?.vehicle?.name || "Vehicle Image"}
+                                                            loading="eager"
+                                                            w="100%"
+                                                            h="100%"
+                                                            objectFit="cover"
+                                                            rounded="lg"
+                                                            src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
+                                                            alt={car?.vehicle?.name || "Vehicle Image"}
                                                         />
                                                     </Box>
 
