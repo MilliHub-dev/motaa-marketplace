@@ -163,33 +163,35 @@ export const HomePage = ({ props }) => {
                  minChildWidth={isMobile ? '150px' : '130px'}
                 >
                     {[
-                      { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car' },
-                      { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car' },
-                      { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car' },
-                      { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic' },
+                      { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car', link: '/signup' },
+                      { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car', link: '/signup/business' },
+                      { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car', link: '/signup' },
+                      { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic', link: '/signup' },
                     ].map((item, idx) => (
                       
-                      <Flex
-                        as={ScrollAnimation}
-                       animateIn={"flipInY"}
-                        key={item.label}
-                        variant="solid"
-                        w="100%"
-                        bg="whiteAlpha.200"
-                        _hover={{ bg: 'whiteAlpha.300' }}
-                        height={isMobile ? "max-content" : "150px"}
-                        py={6}
-                        px={3}
-                        align="center"
-                        alignItems="center"
-                        placeContent="center"
-                        borderWidth={2}
-                        borderRadius="10px"
-                        gap={2} direction={isMobile ? 'row' : 'column'}
-                      >
-                        <Icon as={Image} src={item.icon} fontSize={27} />
-                        <Text fontSize="sm">{item.label}</Text>
-                      </Flex>
+                      <Link to={item.link}>
+                        <Flex
+                          as={ScrollAnimation}
+                        animateIn={"flipInY"}
+                          key={item.label}
+                          variant="solid"
+                          w="100%"
+                          bg="whiteAlpha.200"
+                          _hover={{ bg: 'whiteAlpha.300' }}
+                          height={isMobile ? "max-content" : "150px"}
+                          py={6}
+                          px={3}
+                          align="center"
+                          alignItems="center"
+                          placeContent="center"
+                          borderWidth={2}
+                          borderRadius="10px"
+                          gap={2} direction={isMobile ? 'row' : 'column'}
+                        >
+                          <Icon as={Image} src={item.icon} fontSize={27} />
+                          <Text fontSize="sm">{item.label}</Text>
+                        </Flex>
+                      </Link>
                       
                     ))}
                 </SimpleGrid>

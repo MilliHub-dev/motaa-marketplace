@@ -12,6 +12,10 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react'
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react'
+import { useContext, useState, useEffect } from 'react'
+import {Link} from 'react-router-dom'
+import { objectifyJSON } from '../../utils'
+import { GlobalStore } from '../../App'
 
 function NotificationCard({ type, title, message, action, onClose }) {
   const borderColors = {
@@ -52,21 +56,23 @@ function NotificationCard({ type, title, message, action, onClose }) {
           <Text className="bold" mb={1}> {title} </Text>
           <Text color="gray.600" fontSize="sm"> {message} </Text>
           {action && (
-            <Button
-              size="sm"
-              colorScheme={
-                type === 'info'
-                  ? 'blue'
-                  : type === 'success'
-                  ? 'green'
-                  : type === 'error'
-                  ? 'red'
-                  : 'orange'
-              }
-              mt={3}
-            >
-              {action}
-            </Button>
+            <Link to={action?.link}>
+              <Button
+                size="sm"
+                colorScheme={
+                  type === 'info'
+                    ? 'blue'
+                    : type === 'success'
+                    ? 'green'
+                    : type === 'error'
+                    ? 'red'
+                    : 'orange'
+                }
+                mt={3}
+              >
+                {action?.label}
+              </Button>
+            </Link>
           )}
         </Box>
 
@@ -84,55 +90,31 @@ function NotificationCard({ type, title, message, action, onClose }) {
 }
 
 function NotificationsPage() {
-  const notifications = [
-    {
-      id: 1,
-      type: 'info',
-      title: 'You have 1 message from MANGA AUTOS.',
-      message:
-        'The alert & notifications component is designed to work with the actions buttons.',
-    },
-    {
-      id: 2,
-      type: 'success',
-      title: 'You booked an inspection with MANGA AUTOS!',
-      message:
-        'The alert & notifications component is designed to work with the actions buttons.',
-      action: 'See details',
-    },
-    {
-      id: 3,
-      type: 'success',
-      title: 'You deposited ₦58,005,000 to escrow!',
-      message:
-        'The alert & notifications component is designed to work with the actions buttons.',
-    },
-    {
-      id: 4,
-      type: 'error',
-      title: 'Account verification failed!',
-      message:
-        'The alert & notifications component is designed to work with the actions buttons.',
-    },
-    {
-      id: 5,
-      type: 'warning',
-      title: 'Your premium subscription will end soon.',
-      message:
-        'The alert & notifications component is designed to work with the actions buttons.',
-    },
-  ]
+  const [notifications, setNotifications] = useState([]);
+  const {axios} = useContext(GlobalStore);
+
+  async function init(){
+    const res = await axios.get('/accounts/notifications/');
+    const data = objectifyJSON(res.data);
+    if (res.status === 200){
+      setNotifications(data.data)
+    }
+  }
+
+  useEffect(() => {
+    init()
+  }, [])
 
   return (
     <Box minH="100vh">
       <Container maxW="container.xl" py={8}>
         <HStack mb={1} alignItems="center">
           <Text fontSize="2xl" fontWeight="bold"> Notifications </Text>
-          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> 14 </Badge>
+          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> {notifications?.length} </Badge>
         </HStack>
 
         <Text color="gray.600" mb={8}>
-          You have 14 unread messages.
+          You have {notifications?.length} unread messages.
         </Text>
 
           <Box mb={8}>
@@ -151,14 +133,14 @@ function NotificationsPage() {
 
             <Container maxW="700px">
               <VStack spacing={4} align="stretch">
-                {notifications.map((notification) => (
+                {notifications?.map((notification) => (
                   <NotificationCard
-                    key={notification.id}
-                    type={notification.type}
-                    title={notification.title}
-                    message={notification.message}
-                    action={notification.action}
-                    onClose={() => console.log('Close notification:', notification.id)}
+                    key={notification?.id}
+                    type={notification?.level}
+                    title={notification?.title}
+                    message={notification?.message}
+                    action={{link: notification?.cta_link, label: notification?.cta_text}}
+                    onClose={() => console.log('Close notification:', notification?.id)}
                   />
                 ))}
               </VStack>

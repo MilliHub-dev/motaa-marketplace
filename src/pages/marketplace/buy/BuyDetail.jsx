@@ -2,7 +2,7 @@ import {
     Avatar, Badge, Box, Button, Container,
     Divider, Flex, Heading, Icon, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid,
-    useMediaQuery,
+    useMediaQuery, Tag,
 } from "@chakra-ui/react";
 import { Fragment, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
 import {ImageCarousel, LocationBreadcrumb, ListingItemCard} from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { objectifyJSON } from "../../../utils";
+import {HiMiniReceiptPercent} from 'react-icons/hi2';
 import {FaCartPlus} from 'react-icons/fa';
 
 
@@ -91,8 +92,15 @@ const BuyDetail = ({ }) => {
                     </Flex>
 
                     <Box mt={3}>
-                        <Badge> Price: </Badge>
-                        <Heading size={'md'}><span className="subtitle">₦{commaInt(listing?.price)}</span></Heading>
+                        <Flex alignItems="center" gap={3}>
+                            <Badge> Price: </Badge>
+                            <Heading size={'lg'}><span className="">₦{commaInt(listing?.price)}</span></Heading>
+                        </Flex>
+
+                        <Tag as={Flex} alignItems="center" gap={1.25}>
+                            <Icon> <HiMiniReceiptPercent size={25} /> </Icon>
+                            <Text>+0.5% added fees</Text>
+                        </Tag>
                     </Box>
 
                     <Divider my={5} />
@@ -115,64 +123,64 @@ const BuyDetail = ({ }) => {
                         <List w={'100%'}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Mileage: </span>
-                                <span> {listing?.vehicle.mileage} miles </span>
+                                <span> {listing?.vehicle?.mileage || "0"} miles </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Transmission: </span>
-                                <span> {listing?.vehicle.transmission} </span>
+                                <span> {listing?.vehicle?.transmission} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Usage: </span>
-                                <span> {listing?.vehicle.condition} </span>
+                                <span> {listing?.vehicle?.condition} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Power: </span>
-                                <span> {listing?.vehicle.power || "N/A"} </span>
+                                <span> {listing?.vehicle?.power || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Engine size: </span>
-                                <span> {listing?.vehicle.engine_size || "N/A"} </span>
+                                <span> {listing?.vehicle?.engine_size || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Fuel type: </span>
-                                <span> {listing?.vehicle.fuel_system} </span>
+                                <span> {listing?.vehicle?.fuel_system} </span>
                             </ListItem>
                         </List>
                         
                         <List w={'100%'}>
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Custom Duty: </span>
-                                <span> {listing?.vehicle.custom_duty ? 'Yes' : 'No'} </span>
+                                <span> {listing?.vehicle?.custom_duty ? 'Yes' : 'No'} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Doors: </span>
-                                <span> {listing?.vehicle.doors || "N/A"} </span>
+                                <span> {listing?.vehicle?.doors || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Seats: </span>
-                                <span> {listing?.vehicle.seats || "N/A"} </span>
+                                <span> {listing?.vehicle?.seats || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Drivetrain: </span>
-                                <span> {listing?.vehicle.drivetrain || "N/A"} </span>
+                                <span> {listing?.vehicle?.drivetrain || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Vehicle type: </span>
-                                <span> {listing?.vehicle.vehicle_type || "N/A"} </span>
+                                <span> {listing?.vehicle?.type || "N/A"} </span>
                             </ListItem>
 
                             <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                                 <span> Color: </span>
-                                <span> {listing?.vehicle.color || "N/A"} </span>
+                                <span> {listing?.vehicle?.color || "N/A"} </span>
                             </ListItem>
                         </List>
                     </SimpleGrid>
@@ -184,12 +192,12 @@ const BuyDetail = ({ }) => {
                     <List w={{ base: '100%', md: '50%'}}>
                         <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                             <span> Top Speed: </span>
-                            <span> {listing.vehicle?.top_speed || "N/A"} </span>
+                            <span> {listing?.vehicle?.top_speed || "N/A"} </span>
                         </ListItem>
 
                         <ListItem borderBottom={'1px solid grey'} py={3} fontWeight={'600'} justifyContent="space-between" display="flex">
                             <span> Horse Power: </span>
-                            <span> {listing.vehicle?.horse_power || "N/A"} </span>
+                            <span> {listing?.vehicle?.horse_power || "N/A"} </span>
                         </ListItem>
                     </List>
                 </Box>

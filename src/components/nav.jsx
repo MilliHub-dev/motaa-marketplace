@@ -657,7 +657,8 @@ export const MechanicNavbar = ({ props }) => {
 
 
 const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
-  const links = [
+  const {logout, authUser} = useContext(GlobalStore);
+   const links = [
     { icon: Home3, label: 'Dashboard', path: '/dashboard' },
     { icon: Coin, label: 'Transactions', path: '/transactions'},
     { icon: Shop, label: 'Inventory', path: '/inventory', children: [
@@ -686,17 +687,15 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
             <Menu zIndex={2} display="block">
               <MenuButton
                 as={IconButton}
-                icon={<Share2 size={18} />}
+                icon={<MoreVertical size={18} />}
                 variant="ghost"
                 size="sm"
                 aria-label="Share"
               />
 
-              <MenuList py={0} zIndex={'200 !important'}>
-                <MenuItem>Copy Link</MenuItem>
-                <MenuItem>Facebook</MenuItem>
-                <MenuItem>Instagram</MenuItem>
-                <MenuItem>X (Twitter)</MenuItem>
+              <MenuList py={3} px={3} zIndex={'2 !important'}>
+                <MenuItem> Profile </MenuItem>
+                <MenuItem as={Button} onClick={logout} leftIcon={<RiLogoutBoxRLine />}> Logout </MenuItem>
               </MenuList>
             </Menu>
           </>

@@ -218,46 +218,58 @@ function BannerCarousel({ images }) {
   const [currentImage, setCurrentImage] = useState(0)
 
   return (
-    <Box w="100%" position="relative" flex={{base: 'unset', md: 3.8/4, lg: 3.5/4}}>
-      <Image
-        src={images[currentImage].url}
-        alt="Vehicle"
-        w="full"
-        loading="eager"
-        h="180px"
-        objectFit="cover"
+    <Box
+        w="100%"
+        position="relative"
+        flex={{ base: 'unset', md: 3.8 / 4, lg: 3.5 / 4 }}
+        backgroundImage={`url('${images[currentImage].url}')`}
+        backgroundRepeat="no-repeat"
+        backgroundSize="cover"
+        backgroundPosition="center top"
+        h="210px"
         borderRadius="20px"
-      />
-        {images[currentImage]?.caption &&
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        px={2}  // Ensures some padding on smaller screens
+    >
+        {images[currentImage]?.caption && (
+            <Box
+            position="absolute"
+            // bottom="18%"  // Adjusted distance from bottom
+            left="50%"
+            w={'100%'}
+            transform="translateX(-50%)"
+            maxW="80%"  // Ensures the caption doesn't stretch too wide
+            maxH="50%"  // Prevents overflow for long captions
+            overflowY="auto"  // Allows scrolling if needed
+            textAlign="center"
+            p={2}
+            >
             <Heading
-             color="#fff"
-             placeSelf="anchor-center"
-             maxW="75%"
-             position="absolute"
-             size="lg"
-             textShadow="-5px 5px 20px black"
-            > {images[currentImage].caption} </Heading>
-        }
-      <HStack
-        position="absolute"
-        bottom={4}
-        left="50%"
-        transform="translateX(-50%)"
-        spacing={2}
-      >
-        {images.map((_, index) => (
-          <Box
-            key={index}
-            w={index === currentImage ? 8 : 2}
-            h={2}
-            borderRadius="full"
-            bg={index === currentImage ? "primary" : "whiteAlpha.600"}
-            cursor="pointer"
-            onClick={() => setCurrentImage(index)}
-          />
-        ))}
-      </HStack>
-    </Box>
+                color="white"
+                size="md"
+                textShadow="-2px 2px 10px black"
+            >
+                {images[currentImage].caption}
+            </Heading>
+            </Box>
+        )}
+        <HStack position="absolute" bottom={4} left="50%" transform="translateX(-50%)" spacing={2}>
+            {images.map((_, index) => (
+            <Box
+                key={index}
+                w={index === currentImage ? 8 : 2}
+                h={2}
+                borderRadius="full"
+                bg={index === currentImage ? 'primary' : 'whiteAlpha.600'}
+                cursor="pointer"
+                onClick={() => setCurrentImage(index)}
+            />
+            ))}
+        </HStack>
+        </Box>
+
   )
 }
 

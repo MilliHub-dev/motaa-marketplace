@@ -275,12 +275,19 @@ function App() {
               <Route ErrorBoundary={ErrorPage} path='/search/mechanics/' element={<MechanicSearchPage />} />
               <Route ErrorBoundary={ErrorPage} path='/notifications' element={<NotificationsPage />} />
               
-              <Route ErrorBoundary={ErrorPage} path='/login' element={<LoginView />} />
-              <Route ErrorBoundary={ErrorPage} path='/signup' element={<SignupView />} />
-              <Route ErrorBoundary={ErrorPage} path='/signup/business' element={<SignupView type={'business'} />} />
-              
-              <Route ErrorBoundary={ErrorPage} path='/home' element={<HomePage />} />
-              <Route ErrorBoundary={ErrorPage} path='/*' element={<LandingPage />} />
+              {authUser ? 
+                <>
+                  <Route ErrorBoundary={ErrorPage} path='/home' element={<HomePage />} />
+                  <Route ErrorBoundary={ErrorPage} path='/*' element={<Navigate to='/home' />} />
+                </>
+              :
+                <>
+                <Route ErrorBoundary={ErrorPage} path='/login' element={<LoginView />} />
+                <Route ErrorBoundary={ErrorPage} path='/signup' element={<SignupView />} />
+                <Route ErrorBoundary={ErrorPage} path='/signup/business' element={<SignupView type={'business'} />} />
+                <Route ErrorBoundary={ErrorPage} path='/*' element={<LandingPage />} />
+                </>
+              }
             </Route>
 
             <Route ErrorBoundary={ErrorPage} element={<Layout hideFooter={true} />}>

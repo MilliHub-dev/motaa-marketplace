@@ -53,21 +53,39 @@ export const CartPage = ({ props }) => {
         setTimeout(() => setLoading(false), 2500);
     }
 
+    async function removeFromCart( item ){
+        setLoading(true);
+
+        const res = await axios.post(`/accounts/cart/`, jsonifyObject({
+          item: item.uuid,
+          action: 'remove-from-cart',  
+        }));
+
+        const data = objectifyJSON(res.data);
+        if (res.status === 200){
+            notify({
+                title: 'Success',
+                message: `${item?.title} removed from your cart.`
+            });
+            getData();
+        }
+        setTimeout(() => setLoading(false), 1200);
+    }
+
     async function getData(){
         const res = await axios.get(`/accounts/cart/`);
         const data = objectifyJSON(res.data);
 
         if (res.status === 200){
-            console.log("Cart Data:", data.data)
-            // setCartItems(data?.data)
+            console.log("Cart Data:", data.data);
             let cars, rentals, services;
 
-            cars = data?.data?.cart_items?.filter((item) => item.item_type === 'car');
-            rentals = data?.data?.cart_items?.filter((item) => item.item_type === 'rental');
-            services = data?.data?.cart_items?.filter((item) => item.item_type === 'service');
+            cars = data?.data?.cars;
+            rentals = data?.data?.rentals;
+            services = data?.data?.services;
 
             setCart({
-                itemsCount: data?.data?.cart_items?.length,
+                itemsCount: (cars?.length + rentals?.length + services?.length),
                 cars,
                 rentals,
                 services
@@ -90,20 +108,36 @@ export const CartPage = ({ props }) => {
                 <Heading className="subtitle" size={'lg'} mb={5}>Your Cart</Heading>
 
                 <Tabs>
-                    <TabList border="none" className="hidden-scroll" overflowX="scroll">
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Cars 
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.cars?.length}</Badge>
-                        </Tab>
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Rentals
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.rentals?.length}</Badge>
-                        </Tab>
-                        <Tab gap={4} className="subtitle" fontWeight="">
-                            Mechanics
-                            <Badge borderRadius="30px" className="subtitle" px="2" color="primary">{cart?.services?.length}</Badge>
-                        </Tab>
+                <TabList
+                    border="none"
+                    className="hidden-scroll"
+                    overflowX="auto"
+                    overflowY="hidden"
+                    whiteSpace="nowrap"
+                    display="flex"
+                    alignItems="center"
+                    minHeight="fit-content"
+                >
+                    <Tab className="subtitle" gap={1} spacing={1}>
+                        Cars 
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.cars?.length}
+                        </Badge>
+                    </Tab>
+                    <Tab className="subtitle" gap={1} spacing={1}>
+                        Rentals
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.rentals?.length}
+                        </Badge>
+                    </Tab>
+                    <Tab className="subtitle" gap={1} spacing={1}>
+                        Mechanics
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.services?.length}
+                        </Badge>
+                    </Tab>
                     </TabList>
+
 
                     <TabPanels>
                         <TabPanel>
@@ -111,31 +145,38 @@ export const CartPage = ({ props }) => {
                                 {
                                     cart?.cars?.map((car, idx) => 
                                         <ListItem my={5}>
-                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between">
-                                                <Flex gap={4}>
-                                                    <Box w={'120px'} h={'60px'} rounded={'lg'}>
+                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between" alignItems="center">
+                                                <Flex gap={4} flex="1">
+                                                    <Box w="110px" h="75px" rounded="lg" overflow="hidden">
                                                         <Image
-                                                         lodaing="lazy"
-                                                         w={'100%'}
-                                                         rounded={'lg'}
-                                                         src={car?.listing?.vehicle?.images[0]?.url}
+                                                            loading="eager"
+                                                            w="100%"
+                                                            h="100%"
+                                                            objectFit="cover"
+                                                            rounded="lg"
+                                                            src={car?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
+                                                            alt={car?.vehicle?.name || "Vehicle Image"}
                                                         />
                                                     </Box>
 
-                                                    <Box flex={1}>
-                                                        <Heading size="sm"  my={1}> {car?.listing?.vehicle?.name} <Tag> {car?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                        <Text my={1}> ₦{commaInt(car?.listing?.price)} </Text>
-                                                        <Text my={1}> {car?.status} </Text>
+                                                    <Box flex="1">
+                                                        {car?.vehicle?.condition && <Tag>{car.vehicle.condition}</Tag>}
+                                                        <Heading size="sm" my={1} display="flex" alignItems="center" gap={2}>
+                                                            {car?.vehicle?.name} 
+                                                        </Heading>
+                                                        <Text my={1}>₦{commaInt(car?.price)}</Text>
                                                     </Box>
                                                 </Flex>
-                                                
-                                                <Flex gap={2}>
-                                                    <Button px={4} colorScheme="red"> Remove </Button>
-                                                    <NavLink to={`/checkout/?listingId=${car?.listing?.uuid}`}><Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button></NavLink>
-                                                </Flex>
 
+                                                <Flex gap={2} alignItems="center">
+                                                <Button px={4} colorScheme="red" onClick={() => removeFromCart(car)}>Remove</Button>
+                                                <NavLink to={`/checkout/?listingId=${car?.uuid}`}>
+                                                    <Button px={4} bgColor="primary" colorScheme="blue">Pay Now</Button>
+                                                </NavLink>
+                                                </Flex>
                                             </Flex>
                                         </ListItem>
+
                                     )
                                 }
                             </List>
@@ -148,19 +189,21 @@ export const CartPage = ({ props }) => {
                                         <ListItem my={5}>
                                             <Flex gap={4}>
                                                 <Box w={'150px'} h={'75px'} rounded={'lg'}>
-                                                    <Image lazy w={'100%'}  rounded={'lg'} src={rental?.listing?.vehicle?.images[0]?.url} />
+                                                    <Image lazy w={'100%'}  rounded={'lg'} src={rental?.vehicle?.images[0]?.url} />
                                                 </Box>
 
                                                 <Box flex={1}>
-                                                    <Heading size="sm"  my={1}> {rental?.listing?.vehicle?.name} <Tag> {rental?.listing?.vehicle?.condition} </Tag> </Heading>
-                                                    <Text my={1} className="bold"> ₦{commaInt(rental?.listing?.price)}/{rental?.listing?.cycle} </Text>
-                                                    <Text my={1}> {rental?.status} </Text>
+                                                    <Heading size="sm"  my={1}> {rental?.vehicle?.name} <Tag> {rental?.vehicle?.condition} </Tag> </Heading>
+                                                    <Text my={1} className="bold"> ₦{commaInt(rental?.price)}/{rental?.cycle} </Text>
+                                                    {/* <Text my={1}> {rental?.status} </Text> */}
                                                 </Box>
 
                                                 
                                                 <Flex>
                                                     <Button bgColor="primary" px={4} colorScheme="red"> Remove </Button>
-                                                    <Button bgColor="primary" px={4} colorScheme="blue"> Checkout </Button>
+                                                    <NavLink to={`/checkout/?listingId=${rental?.uuid}`}>
+                                                        <Button bgColor="primary" px={4} colorScheme="blue"> Pay Now </Button>
+                                                    </NavLink>
                                                 </Flex>
                                             </Flex>
                                         </ListItem>
@@ -171,7 +214,7 @@ export const CartPage = ({ props }) => {
 
                         <TabPanel>
                             <List px="3" py="3">
-                                {
+                                {/*
                                     cart?.services?.map((service, idx) => 
                                         <ListItem my={5}>
                                             <Flex gap={4}>
@@ -192,7 +235,7 @@ export const CartPage = ({ props }) => {
                                             </Flex>
                                         </ListItem>
                                     )
-                                }
+                                */}
                             </List>
                         </TabPanel>
                     </TabPanels>

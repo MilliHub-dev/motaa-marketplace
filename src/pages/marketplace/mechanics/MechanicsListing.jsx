@@ -16,15 +16,6 @@ import {
     Icon,
     VStack,
     HStack,
-    Wrap,
-    WrapItem,
-    Menu,
-    MenuList,
-    MenuItem,
-    MenuButton,
-    MenuItemOption,
-    Grid,
-    GridItem,
     Image,
     Tag,
     ButtonGroup,
@@ -36,13 +27,14 @@ import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
 import { useSearchParams, Link } from "react-router-dom";
-import { SearchIcon, StarIcon, ZapIcon, ChevronDownIcon } from '@chakra-ui/icons';
-import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
-import { motion } from "framer-motion";
+import { SearchIcon, StarIcon,  ChevronDownIcon } from '@chakra-ui/icons';
+import {  RiFilterLine, } from 'react-icons/ri'
 import {BiBuildings} from 'react-icons/bi';
 import {GrLocation} from 'react-icons/gr';
-import {ArrowLeft, ArrowRight} from 'lucide-react';
 import { MechanicListSkeleton } from "../../../components/loaders";
+import { 
+  LocationFilter,
+} from "../../../components/filters";
 import { Paginator } from "../../../components/nav";
 
 export const MechanicListPage = ({ props }) => {
@@ -53,7 +45,9 @@ export const MechanicListPage = ({ props }) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
-
+    const filters = [
+      <LocationFilter onChange={console.log} />
+    ]
     
     function init(){
         getData();
@@ -81,8 +75,8 @@ export const MechanicListPage = ({ props }) => {
     <Box minH="100vh">
         <Container maxW="container.xl" py={8}>
             {/* Search and Location */}
-            <Container maxW={"600px"}>
-                <Flex gap={4} mb={6}>
+            <Container maxW={"container.lg"}>
+                <Flex gap={4} mb={6} flexWrap={'wrap'}>
                   <InputGroup size="lg" flex={1}>
                     <InputLeftElement>
                       <SearchIcon className="w-5 h-5 text-gray-400" />
@@ -101,39 +95,18 @@ export const MechanicListPage = ({ props }) => {
             </Container>
 
             {/* Filters */}
-            <HStack spacing={4} mb={8} overflowX="auto" pb={2}>
-              <Select bg="white" placeholder="Service type" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Engine Service</option>
-                <option>HVAC Repair</option>
-                <option>Car Detail</option>
-              </Select>
-              
-              <Select bg="white" placeholder="Price" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Low to High</option>
-                <option>High to Low</option>
-              </Select>
-              
-              <Select bg="white" placeholder="Location" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Nearest</option>
-                <option>Farthest</option>
-              </Select>
-              
-              <Select bg="white" placeholder="Skill Level" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Expert</option>
-                <option>Intermediate</option>
-                <option>Beginner</option>
-              </Select>
-              
-              <Select bg="white" placeholder="Ratings" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Highest</option>
-                <option>Lowest</option>
-              </Select>
-
-              <Select bg="white" placeholder="Tier" w="auto" size="md" borderRadius="10px" borderWidth="2">
-                <option>Premium</option>
-                <option>Standard</option>
-              </Select>
-            </HStack>
+            <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
+              <Button
+                minW={'max-content'}
+                size={'md'} borderRadius={'10px'}
+                as={Box}
+                bgColor="gray.100"
+                leftIcon={<RiFilterLine />}
+              > Filters </Button>
+              {
+                filters.map((filter, idx) => (filter))
+              }
+            </Flex>
 
             {/* Results Count */}
             <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" mb={6}>
