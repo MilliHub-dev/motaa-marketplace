@@ -30,7 +30,7 @@ import {
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
-import { LuLineChart } from "react-icons/lu";
+import { LuChartLine } from "react-icons/lu";
 import { GiHomeGarage } from "react-icons/gi";
 import { AiOutlineTransaction } from "react-icons/ai";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
@@ -43,7 +43,7 @@ function WalletPage() {
     { icon: Wallet, label: 'Deposit' },
     { icon: AiOutlineTransaction, label: 'Transactions' },
     { icon: RiCoinsLine, label: 'Savings' },
-    { icon: LuLineChart, label: 'Analytics' },
+    { icon: LuChartLine, label: 'Analytics' },
     { icon: HelpCircle, label: 'Support' },
     { icon: Settings, label: 'Settings' },
   ]
