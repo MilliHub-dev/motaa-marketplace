@@ -47,11 +47,14 @@ import { RxEnvelopeClosed } from 'react-icons/rx';
 import { AiOutlineMessage } from 'react-icons/ai';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
-import { LuWallet } from 'react-icons/lu';
+import { LuWallet, LuChartLine } from 'react-icons/lu';
 import { NavLink, Link as RLink, useNavigate } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react';
-import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
-import { LuLineChart } from "react-icons/lu";
+import { 
+  LayoutDashboard, Wallet, Clock,
+  PiggyBank, BarChart2, HelpCircle,
+  Settings, Share2, MoreVertical, TrendingUp
+} from 'lucide-react';
 import { GiHomeGarage } from "react-icons/gi";
 import {
   Wallet3, Home3, Chart, Shop,
@@ -671,7 +674,7 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
         { icon: GiHomeGarage, label: 'Discounts', path: 'discounts' },
       ]
     },
-    { icon: LuLineChart, label: 'Analytics', path: '/analytics', children: [
+    { icon: LuChartLine, label: 'Analytics', path: '/analytics', children: [
       {icon: Chart, label: 'Sales', path: '/sales'}
     ]},
     // { icon: Chart, label: 'Ads Center', path: '/ads'},
