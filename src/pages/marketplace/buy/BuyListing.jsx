@@ -267,7 +267,7 @@ function BannerCarousel({ images }) {
             >
             <Heading
                 color="white"
-                size="md"
+                size="lg"
                 textShadow="-2px 2px 10px black"
             >
                 {images[currentImage].caption}
