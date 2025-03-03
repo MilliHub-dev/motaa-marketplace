@@ -11,7 +11,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { LuAlertTriangle } from 'react-icons/lu';
+import { LuTriangleAlert  } from 'react-icons/lu';
 
 export const ErrorPage = () => {
   return (
@@ -19,7 +19,7 @@ export const ErrorPage = () => {
       <Container maxW="650px">
         <Card>
           <CardHeader textAlign="center">
-            <Box as={LuAlertTriangle} w={16} h={16} mx="auto" color="red.500" mb={4} />
+            <Box as={LuTriangleAlert } w={16} h={16} mx="auto" color="red.500" mb={4} />
             <Heading as="h1" size="xl" fontWeight="bold">
               Oops! Something went wrong
             </Heading>
