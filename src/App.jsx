@@ -1,10 +1,9 @@
 import { createContext, Fragment, useEffect, useState } from 'react';
-import {Outlet, redirect, RouterProvider, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {Outlet, redirect, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { Axios, } from 'axios';
 import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@chakra-ui/react';
 import Layout from './pages/Layout';
-import { Navbar } from './components/nav';
 import { ErrorPage } from './components/error';
 import {APIProvider} from '@vis.gl/react-google-maps';
 
@@ -70,8 +69,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const axiosClient =  new Axios({
-   baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
+    // baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -83,9 +82,9 @@ function App() {
     return cookie
   }
 
-  function logout(){
-    redirect('/');
-    onLogout();
+  async function logout(){
+    await redirect('/');
+    return onLogout();
   }
 
   function notify({ title, body, icon, color = 'green', duration = 2500 }){
@@ -188,7 +187,7 @@ function App() {
   if (authUser && authUser.user_type === 'dealer'){
     return(
       <APIProvider
-       apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+       apiKey={"AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0"}
        onLoad={() => console.log('Maps API has loaded.')}
       >
       <ChakraProvider theme={BrandColors}>
@@ -198,6 +197,7 @@ function App() {
               <Route ErrorBoundary={ErrorPage} element={<DealerDashboardLayout />}>
                 <Route ErrorBoundary={ErrorPage} path='/dashboard' element={<DealerDashboard />} />
                 <Route ErrorBoundary={ErrorPage} path='/inventory' element={<><Outlet /></>}>
+                  <Route ErrorBoundary={ErrorPage} path='edit/:listingId' element={<CreateListingAdmin />} />
                   <Route ErrorBoundary={ErrorPage} path='add' element={<CreateListingAdmin />} />
                   <Route ErrorBoundary={ErrorPage} path='discounts' element={<DealerDashboard />} />
                   <Route ErrorBoundary={ErrorPage} path='' element={<ListingsAdmin />} />
@@ -225,7 +225,7 @@ function App() {
   if (authUser && authUser.user_type === 'mechanic'){
     return(
       <APIProvider
-       apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+       apiKey={"AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0"}
        onLoad={() => console.log('Maps API has loaded.')}
       >
       <ChakraProvider theme={BrandColors}>
@@ -246,7 +246,7 @@ function App() {
   
   return (
     <APIProvider
-     apiKey={process.env.REACT_APP_GCP_MAP_API_TOKEN}
+     apiKey={'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0'}
      onLoad={() => console.log('Maps API has loaded.')}
     >
     <ChakraProvider theme={BrandColors}>

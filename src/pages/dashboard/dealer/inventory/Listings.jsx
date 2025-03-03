@@ -111,6 +111,7 @@ function ListingsAdmin({children, ...props}) {
         </VStack>
       </SimpleGrid>
 
+      <Heading my={3} size="sm"> Car Listings </Heading>
       <ListingTable listings={listings} />
     </Box>
   )
@@ -138,7 +139,7 @@ function ListingTable({ listings }) {
             <Tr key={index}>
               <Td>
                 <Flex align="center">
-                  <Image src={listing?.vehicle?.images[0]?.url} boxSize="50px" mr={3} borderRadius="md" />
+                  <Image src={listing?.vehicle?.images[0]?.url} boxSize="70px" w={"100px"} mr={3} borderRadius="md" />
                   <Box>
                     <Text fontWeight="bold">{listing?.title}</Text>
                     <Text fontSize="sm">{commaInt(listing?.price)}</Text>
@@ -156,7 +157,7 @@ function ListingTable({ listings }) {
               <Td>
                 <Flex gap={2}>
                   <Button size="sm" colorScheme="green">Boost</Button>
-                  <IconButton aria-label="Edit" icon={<EditIcon />} size="sm" />
+                  <IconButton as={Link} to={`edit/${listing?.uuid}`} aria-label="Edit" icon={<EditIcon />} size="sm" />
                   <IconButton aria-label="Delete" icon={<DeleteIcon />} size="sm" colorScheme="red" />
                 </Flex>
               </Td>

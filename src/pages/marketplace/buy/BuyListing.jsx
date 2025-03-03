@@ -26,6 +26,7 @@ TransmissionFilter,
 const BuyListing = ({ }) => {
     const [listings, setListings] = useState([]);
     const [matches, setMatches] = useState([]);
+    const [appliedFilters, setAppliedFilters] = useState([]);
     const [data, setData] = useState(null);
     const [carType, setCarType] = useState('new');
     const {axios, notify, commaInt} = useContext(GlobalStore);
@@ -79,8 +80,8 @@ const BuyListing = ({ }) => {
         }
     }
 
-    async function getData(){
-        const res = await axios.get(`/listings/buy/`,);
+    async function getData(url=`/listings/buy/`){
+        const res = await axios.get(url,);
         let _data = objectifyJSON(res.data);
 
         setData(_data.data);
@@ -96,14 +97,26 @@ const BuyListing = ({ }) => {
     
     /**
      * @param filter: filter object
-     * e.g { brand: 'bmw'}
-     * e.g { min_price: 120000, max_price: 5000000}
+     * e.g { filter: 'brands', value : 'bmw', 'audi'}
+     * e.g { filter: 'price', value: 1200000-5000000}
      * 
      * */
-    function applyFilter(filter){
-        // add filter to filterList
-        // convert filterList to url param
+    function applyFilter({filter, value}){
+        let url = window.location.search;
+        const params = new URLSearchParams(url);
+        const _filters = appliedFilters;
+        params.delete(filter);
 
+        if (!_filters.includes(filter) && Boolean(value)){
+            _filters.push(filter);
+            params.append(filter, value);
+        }else if (_filters.includes(filter) && !Boolean(value)){
+            _filters.splice(_filters.indexOf(filter), 1);
+        }
+        setAppliedFilters([ ..._filters ]);
+
+        // convert filterList to url param
+        getData(`/listings/buy/?${params.toLocaleString()}`);
     }
 
     function init(){
@@ -174,6 +187,12 @@ const BuyListing = ({ }) => {
                         filters.map((filter, idx) => (filter))
                     }
                 </Flex>
+
+                {
+                    appliedFilters?.length > 0 && (
+                        <Heading> You've applied {appliedFilters.length} filters </Heading>
+                    )
+                }
 
                 <SimpleGrid
                  minChildWidth="300px"

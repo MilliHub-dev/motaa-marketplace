@@ -499,7 +499,7 @@ function ReviewCard({ formData }) {
 
           <HStack>
             <Text color="gray.600">FCT, AMAC</Text>
-            <Badge colorScheme="purple">CUSTOM DUTY ✓</Badge>
+            <Badge colorScheme="purple"> CUSTOM DUTY ✓</Badge>
           </HStack>
         </Box>
       </Box>
@@ -597,7 +597,8 @@ export default function AddListing() {
         duration: 5000,
         isClosable: true,
       });
-      redirect('/inventory');
+
+      return redirect('/inventory');
     }
   }
 
@@ -647,13 +648,11 @@ export default function AddListing() {
             <VStack spacing={8} w="full">
               <ReviewCard formData={formData} />
               <HStack spacing={4}>
-                <Button colorScheme="blue" size="lg" onClick={handlePublish}>
+                <Button colorScheme="blue" size="md" onClick={handlePublish}>
                   Publish
                 </Button>
-                <Button colorScheme="green" size="lg" leftIcon={<Zap />}>
-                  Boost & Publish
-                </Button>
-                <Button variant="outline" size="lg" onClick={() => setCurrentStep(0)}>
+
+                <Button variant="outline" size="md" onClick={() => setCurrentStep(0)}>
                   Cancel
                 </Button>
               </HStack>

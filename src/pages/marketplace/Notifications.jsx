@@ -14,7 +14,7 @@ import {
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react'
 import { useContext, useState, useEffect } from 'react'
 import {Link} from 'react-router-dom'
-import { objectifyJSON } from '../../utils'
+import { objectifyJSON, jsonifyObject } from '../../utils'
 import { GlobalStore } from '../../App'
 
 function NotificationCard({ type, title, message, action, onClose }) {
@@ -101,6 +101,17 @@ function NotificationsPage() {
     }
   }
 
+
+  async function readNotification(notification_id){
+    const res = await axios.post('/accounts/notifications/', jsonifyObject({notification_id}));
+    const data = objectifyJSON(res.data);
+    if (res.status === 200){
+      setNotifications(data.data)
+    }
+  }
+
+  
+
   useEffect(() => {
     init()
   }, [])
@@ -140,7 +151,7 @@ function NotificationsPage() {
                     title={notification?.title}
                     message={notification?.message}
                     action={{link: notification?.cta_link, label: notification?.cta_text}}
-                    onClose={() => console.log('Close notification:', notification?.id)}
+                    onClose={() => readNotification(notification?.uuid)}
                   />
                 ))}
               </VStack>

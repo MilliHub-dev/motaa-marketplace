@@ -18,7 +18,7 @@ import { useContext, useState } from "react";
 import { GlobalStore } from "../../App";
 import {motion} from 'framer-motion';
 import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
-import { CenteredLayout, TwoFactorPinForm } from "../../components";
+import { CenteredLayout } from "../../components";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase";
 import firebase from 'firebase/compat/app';
@@ -180,10 +180,6 @@ export const LoginView = ({ ...props }) => {
             </Box>
         </CenteredLayout>
     )
-
-    // return(
-    //     <TwoFactorPinForm />
-    // )
 }
 
 

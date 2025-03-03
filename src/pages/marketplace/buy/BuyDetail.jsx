@@ -210,7 +210,7 @@ const BuyDetail = ({ }) => {
 
 
             <Stack>
-                <Heading textAlign="center" size="md"> Recommended Cars for You </Heading>
+                <Heading textAlign="center" size="md" my={3}> Recommended Cars for You </Heading>
 
                 <SimpleGrid
                  minChildWidth="300px"

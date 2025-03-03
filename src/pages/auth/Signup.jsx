@@ -24,7 +24,7 @@ import {
 import { useContext, useRef, useState, createContext, useEffect } from "react";
 import { GlobalStore } from "../../App";
 import {motion} from 'framer-motion';
-import { CenteredLayout, OTPField, TwoFactorPinForm } from "../../components";
+import { CenteredLayout, OTPField } from "../../components";
 import { redirect, useNavigate, useParams, Link as RLink } from "react-router-dom";
 import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
 import { FcSms, FcVoicemail } from "react-icons/fc";
@@ -146,7 +146,6 @@ export const SignupView = ({ type="personal", ...props }) => {
             }
 
         }catch(err){
-            // return false;
             notify({
                 title: 'An error occurred!',
                 body: err.message
@@ -156,21 +155,6 @@ export const SignupView = ({ type="personal", ...props }) => {
 
     async function createAccount(formData){
         onSubmit(formData);
-
-        try{
-            // const res = await axios.post('/accounts/register/', {
-            //     data: {
-            //         ...payload,
-            //     }
-            // })
-
-            // const data = JSON.parse(res.data)
-            // console.log("Got Data:", data)
-            console.log("Got Data:", payload)
-
-        }catch(error){
-
-        }
     }
 
     return(
@@ -350,7 +334,7 @@ const SignupStep = ({ skipEmailConfirmation }) => {
             }else{
                 console.log("Signup Error", data)
                 notify({
-                    title: 'Error!',
+                    title: 'Sign up Error!',
                     color: 'red',
                     body: data.message,
                 })

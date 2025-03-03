@@ -20,10 +20,25 @@ export const CarBrandFilter = ({ onChange, onClose }) => {
         'Peugeot', 'Opel', 'Volkswagen', 'Innoson', 'Ford',
     ]
     const [isOpen, setOpenState] = useState(false);
+    const [value, setValue] = useState([]);
+
+    function addOrRemoveBrand(e){
+        const brand = e.target.value;
+        let _value = value;
+        console.log("Brand:", brand);
+
+        if (_value.includes(brand)){
+            _value.splice(_value.indexOf(brand), 1);
+        }else{
+            _value.push(brand)
+        }
+        setValue([..._value]);
+    }
 
     function onClose(){
         setOpenState(false)
     }
+
     function onOpen(){
         setOpenState(true)
     }
@@ -31,8 +46,9 @@ export const CarBrandFilter = ({ onChange, onClose }) => {
     function applyFilter(){
         onClose();
         onChange({
-
-        })
+            'filter': 'brands',
+            'value': ''.concat(value)
+        });
     }
 
     return(
@@ -49,10 +65,15 @@ export const CarBrandFilter = ({ onChange, onClose }) => {
             <MenuList maxH="300px" overflowY="auto">
                 <Box>
                     <Text p={3} size="md"> Select Make </Text>
-                    {brands.map((make) => <MenuItem key={make} as={Checkbox}> {make} </MenuItem>)}
+                    {brands.map((brand) => <MenuItem key={brand} selected={value.includes(brand)} value={brand} onInput={addOrRemoveBrand} as={Checkbox}> {brand} </MenuItem>)}
                 </Box>
                 <Box px={2} display={'block'} mt={2}>
-                    <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
+                    <Button
+                     onClick={applyFilter}
+                     colorScheme="blue"
+                     bgColor="primary"
+                     w={'100%'}
+                    > Confirm </Button>
                 </Box>
             </MenuList>
         </Menu>
@@ -111,6 +132,8 @@ export const LocationFilter = ({ onChange, onClose }) => {
 
 export const PriceFilter = ({ onChange, onClose }) => {
     const [isOpen, setOpenState] = useState(false);
+    const [minPrice, setMinPrice] = useState(0.00);
+    const [maxPrice, setMaxPrice] = useState(0.00);
 
     function onClose(){
         setOpenState(false)
@@ -122,7 +145,8 @@ export const PriceFilter = ({ onChange, onClose }) => {
     function applyFilter(){
         onClose();
         onChange({
-
+            'filter': 'price',
+            'value': `${minPrice}-${maxPrice}`
         })
     }
 
@@ -142,11 +166,11 @@ export const PriceFilter = ({ onChange, onClose }) => {
                     <Text p={3} size="md"> Set min and max amount </Text>
                     <Box px={2} py={2} display={'block'}>
                         <Text> Min Amount </Text>
-                        <Input type="number" min="1" step="0.01" />
+                        <Input value={minPrice} onInput={e => setMinPrice(e.target.value)} type="number" min="1" step="0.01" />
                     </Box>
                     <Box px={2} py={2} display={'block'}>
                         <Text> Max Amount </Text>
-                        <Input type="number" min="1" step="0.01" />
+                        <Input value={maxPrice} onInput={e => setMaxPrice(e.target.value)} type="number" min="1" step="0.01" />
                     </Box>
                     <Box px={2} display={'block'} mt={2}>
                         <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
@@ -160,6 +184,19 @@ export const PriceFilter = ({ onChange, onClose }) => {
 
 export const TransmissionFilter = ({ onChange, onClose }) => {
     const [isOpen, setOpenState] = useState(false);
+    const [value, setValue] = useState([]);
+
+    function addOrRemoveTrans(e){
+        const trans = e.target.value;
+        let _value = value;
+
+        if (_value.includes(trans)){
+            _value.splice(_value.indexOf(trans), 1);
+        }else{
+            _value.push(trans)
+        }
+        setValue([..._value]);
+    }
 
     function onClose(){
         setOpenState(false)
@@ -171,7 +208,8 @@ export const TransmissionFilter = ({ onChange, onClose }) => {
     function applyFilter(){
         onClose();
         onChange({
-
+            'filter': 'transmission',
+            'value': ''.concat(value)
         })
     }
 
@@ -191,7 +229,7 @@ export const TransmissionFilter = ({ onChange, onClose }) => {
                     <Text p={3} size="md"> Select Transmission </Text>
                         {
                             ['Auto', 'Manual', 'Assisted Manual']
-                            .map((trans) => <MenuItem key={trans} as={Checkbox}> {trans} </MenuItem>
+                            .map((trans) => <MenuItem onInput={addOrRemoveTrans} value={trans} selected={value.includes(trans)} key={trans} as={Checkbox}> {trans} </MenuItem>
                         )}
                     <Box px={2} display={'block'} mt={2}>
                         <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>

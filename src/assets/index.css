@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: 'Satoshi';
-  src: url('/public/assets/fonts/Satoshi-Regular.ttf');
+  src: url('/assets/fonts/Satoshi-Regular.ttf');
 }
 
 .pt-sans-regular {

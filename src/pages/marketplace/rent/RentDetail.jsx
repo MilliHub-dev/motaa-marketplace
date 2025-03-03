@@ -330,7 +330,7 @@ export default function RentalDetails() {
                         <Box key={category}>
                           <SimpleGrid columns={3} justify="space-between">
                             <Text>{category}</Text>
-                            <Progress flex={1} size="sm" value={(100/2 - rating * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
+                            <Progress size="sm" value={(100/2 - rating * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
                             <Text color="gray.500">({rating})</Text>
                           </SimpleGrid>
                         </Box>

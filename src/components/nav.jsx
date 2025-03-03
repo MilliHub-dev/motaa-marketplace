@@ -26,8 +26,12 @@ import {
     Progress,
     DrawerFooter,
     Container,
-    FadeIn,
     Input,
+    Accordion,
+    AccordionItem,
+    AccordionButton,
+    AccordionPanel,
+    AccordionIcon,
 } from '@chakra-ui/react';
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
 import {motion} from 'framer-motion';
@@ -441,9 +445,6 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
         flex={1} w={'100%'}
         >
         <Flex justifyContent="space-betweeen" alignItems="center">
-          <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-            <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-          </Button>
 
           <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
             <RLink to={'/'}><Image loading='eager'
@@ -483,10 +484,14 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
               >Wallet</Button>
             )
           }
-
-          
           <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
           <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+
+          {isMobile &&
+            <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+              <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+            </Button>
+          }
         </Flex>          
       </Flex>
 
@@ -660,16 +665,16 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   const {logout, authUser} = useContext(GlobalStore);
    const links = [
     { icon: Home3, label: 'Dashboard', path: '/dashboard' },
-    { icon: Coin, label: 'Transactions', path: '/transactions'},
-    { icon: Shop, label: 'Inventory', path: '/inventory', children: [
-        { icon: GiHomeGarage, label: 'Car Lot', active: true, path: '/listings' },
+    { icon: Coin, label: 'Orders', path: '/orders'},
+    { icon: Shop, label: 'Inventory', children: [
+        { icon: GiHomeGarage, label: 'Listings', path: '/inventory' },
+        { icon: GiHomeGarage, label: 'Discounts', path: 'discounts' },
       ]
     },
     { icon: LuLineChart, label: 'Analytics', path: '/analytics', children: [
       {icon: Chart, label: 'Sales', path: '/sales'}
     ]},
-    
-    { icon: Chart, label: 'Ads Center', path: '/ads'},
+    // { icon: Chart, label: 'Ads Center', path: '/ads'},
     { icon: HelpCircle, label: 'Support', path: '/support'},
     { icon: Settings, label: 'Settings', path: '/settings'},
   ]
@@ -678,52 +683,96 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
       <HStack spacing={3}>
         <Avatar size="sm" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
 
-        {sidebarOpen &&
-          <>
-            <Box flex={1}>
-              <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
-              <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
-            </Box>
-            <Menu zIndex={2} display="block">
-              <MenuButton
-                as={IconButton}
-                icon={<MoreVertical size={18} />}
-                variant="ghost"
-                size="sm"
-                aria-label="Share"
-              />
+        <Box flex={1}>
+          <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
+          <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
+        </Box>
+        <Menu zIndex={2} display="block">
+          <MenuButton
+            as={IconButton}
+            icon={<MoreVertical size={18} />}
+            variant="ghost"
+            size="sm"
+            aria-label="Share"
+          />
 
-              <MenuList py={3} px={3} zIndex={'2 !important'}>
-                <MenuItem> Profile </MenuItem>
-                <MenuItem as={Button} onClick={logout} leftIcon={<RiLogoutBoxRLine />}> Logout </MenuItem>
-              </MenuList>
-            </Menu>
-          </>
-        }
+          <MenuList py={3} px={3} zIndex={'2 !important'}>
+            <MenuItem> Profile </MenuItem>
+            <MenuItem as={Button} onClick={logout} leftIcon={<RiLogoutBoxRLine />}> Logout </MenuItem>
+          </MenuList>
+        </Menu>
       </HStack>
 
       <VStack align="stretch" spacing={2}>
-        {links.map((item, index) => (
-          <RLink key={index} to={item.path}>
-          <Tooltip isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-            <Flex
-              key={index}
-              as={Button}
-              w={'100%'}
-              variant={item.active ? 'solid' : 'ghost'}
-              colorScheme={item.active ? 'blue' : 'gray'}
-              justifyContent="space-between"
-               alignItems="center"
-            >
-              <Flex flex={1} gap={3} alignItems="center">
-                <item.icon size={20} />
-                <Text> {sidebarOpen && item.label} </Text>
-              </Flex>
-              {item?.children && !!sidebarOpen && <FaChevronDown />}
-            </Flex>
-          </Tooltip>
-          </RLink>
-        ))}
+        {links.map((item, index) =>
+          <Fragment key={index}>
+          {
+            item?.children ? (
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton
+                    key={index}
+                    as={NavLink}
+                    borderRadius="5px"
+                    w={'100%'}
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Flex flex={1} gap={3} alignItems="center">
+                      <item.icon size={20} />
+                      <Text fontWeight="600"> {item.label} </Text>
+                    </Flex>
+                    <FaChevronDown />
+                  </AccordionButton>
+
+                  <AccordionPanel px={0}>
+                    {
+                      item.children.map((child, idx) => 
+                        <Tooltip key={idx} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+                        <Button
+                          as={NavLink}
+                          to={child.path}
+                          w={'100%'}
+                          mt={1.5}
+                          bgColor="transparent"
+                          _activeLink={{ bgColor: 'primary', color: 'white', }}
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <Flex flex={1} gap={3} alignItems="center">
+                            <item.icon size={20} />
+                            <Text> {child.label} </Text>
+                          </Flex>                          
+                        </Button>
+                        </Tooltip>
+                      )
+                    }
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+              ) : (
+                <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+                  <Button
+                    key={index}
+                    as={NavLink}
+                    to={item.path}
+                    w={'100%'}
+                    bgColor="transparent"
+                    _activeLink={{ bgColor: 'primary', color: 'white' }}
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Flex flex={1} gap={3} alignItems="center">
+                      <item.icon size={20} />
+                      <Text> {item.label} </Text>
+                    </Flex>
+                    {item?.children && !!sidebarOpen && <FaChevronDown />}
+                  </Button>
+                </Tooltip>
+              )
+          }
+          </Fragment>
+        )}
 
         {/* Main Content */}
         <Button
@@ -747,7 +796,7 @@ export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarStat
 
   if (isMobile){
     return(
-      <Drawer placement={'left'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
+      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerCloseButton />
@@ -764,7 +813,7 @@ export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarStat
 
   return(
     <Box
-      w={sidebarOpen ? "280px" : "70px"}
+      w={"280px"}
       overflow={'hidden'}
       position={"fixed"}
       left="0"

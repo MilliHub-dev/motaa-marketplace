@@ -44,6 +44,7 @@ export const CartPage = ({ props }) => {
         cars: [],
         rentals: [],
         services: [],
+        orders: [],
     });
     const [loading, setLoading] = useState(true);
     const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
@@ -78,17 +79,19 @@ export const CartPage = ({ props }) => {
 
         if (res.status === 200){
             console.log("Cart Data:", data.data);
-            let cars, rentals, services;
+            let cars, rentals, services, orders;
 
             cars = data?.data?.cars;
             rentals = data?.data?.rentals;
             services = data?.data?.services;
+            orders = data?.data?.orders;
 
             setCart({
                 itemsCount: (cars?.length + rentals?.length + services?.length),
                 cars,
                 rentals,
-                services
+                services,
+                orders,
             })
         }
 
@@ -115,22 +118,29 @@ export const CartPage = ({ props }) => {
                     overflowY="hidden"
                     whiteSpace="nowrap"
                     display="flex"
+                    py={2}
                     alignItems="center"
                     minHeight="fit-content"
                 >
-                    <Tab className="subtitle" gap={1} spacing={1}>
+                    <Tab className="subtitle" borderBottom={'2px solid transparent'} gap={1} spacing={1} _selected={{ borderColor: 'primary'}}>
+                        Orders
+                        <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
+                        {cart?.orders?.length}
+                        </Badge>
+                    </Tab>
+                    <Tab className="subtitle" borderBottom={'2px solid transparent'} gap={1} spacing={1} _selected={{ borderColor: 'primary'}}>
                         Cars 
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.cars?.length}
                         </Badge>
                     </Tab>
-                    <Tab className="subtitle" gap={1} spacing={1}>
+                    <Tab className="subtitle" borderBottom={'2px solid transparent'} gap={1} spacing={1} _selected={{ borderColor: 'primary'}}>
                         Rentals
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.rentals?.length}
                         </Badge>
                     </Tab>
-                    <Tab className="subtitle" gap={1} spacing={1}>
+                    <Tab className="subtitle" borderBottom={'2px solid transparent'} gap={1} spacing={1} _selected={{ borderColor: 'primary'}}>
                         Mechanics
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
                         {cart?.services?.length}
@@ -140,6 +150,55 @@ export const CartPage = ({ props }) => {
 
 
                     <TabPanels>
+                        <TabPanel>
+                            <List py="3" spacing={10}>
+                                {
+                                    cart?.orders?.map((order, idx) => 
+                                        <ListItem my={5}>
+                                            <Flex gap={4} flexWrap="wrap" justifyContent="space-between" alignItems="center">
+                                                <Flex gap={4} flex="1">
+                                                    <Box w="110px" h="75px" rounded="lg" overflow="hidden">
+                                                        <Image
+                                                            loading="eager"
+                                                            w="100%"
+                                                            h="100%"
+                                                            objectFit="cover"
+                                                            rounded="lg"
+                                                            src={order?.order_item?.vehicle?.images?.[0]?.url || "/placeholder.jpg"}
+                                                            alt={order?.order_item?.vehicle?.name || "Vehicle Image"}
+                                                        />
+                                                    </Box>
+
+                                                    <Box flex="1">
+                                                        {order?.order_item?.vehicle?.condition && <Tag>{order?.order_item?.vehicle.condition}</Tag>}
+                                                        <Heading size="sm" my={1} display="flex" alignItems="center" gap={2}>
+                                                            {order?.order_item?.vehicle?.name} 
+                                                        </Heading>
+                                                        <Text my={1}>₦{commaInt(order?.order_item?.price)}</Text>
+                                                    </Box>
+                                                </Flex>
+
+                                                <Flex gap={2} alignItems="center">
+                                                {
+                                                    order?.paid ?
+                                                    (
+                                                        <Button px={4} colorScheme="red" onClick={console.log}>Remove</Button>
+                                                    )
+                                                    :(
+                                                        <NavLink to={`/checkout/?listingId=${order?.uuid}`}>
+                                                            <Button px={4} bgColor="primary" colorScheme="blue">Pay Now</Button>
+                                                        </NavLink>
+                                                    )
+                                                }
+                                                </Flex>
+                                            </Flex>
+                                        </ListItem>
+
+                                    )
+                                }
+                            </List>
+                        </TabPanel>
+
                         <TabPanel>
                             <List py="3" spacing={10}>
                                 {

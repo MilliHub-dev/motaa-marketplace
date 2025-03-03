@@ -168,31 +168,28 @@ export const HomePage = ({ props }) => {
                       { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car', link: '/signup' },
                       { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic', link: '/signup' },
                     ].map((item, idx) => (
-                      
-                      <Link to={item.link}>
-                        <Flex
-                          as={ScrollAnimation}
+                      <Flex
+                        as={Link}
+                        to={item.link}
                         animateIn={"flipInY"}
-                          key={item.label}
-                          variant="solid"
-                          w="100%"
-                          bg="whiteAlpha.200"
-                          _hover={{ bg: 'whiteAlpha.300' }}
-                          height={isMobile ? "max-content" : "150px"}
-                          py={6}
-                          px={3}
-                          align="center"
-                          alignItems="center"
-                          placeContent="center"
-                          borderWidth={2}
-                          borderRadius="10px"
-                          gap={2} direction={isMobile ? 'row' : 'column'}
-                        >
-                          <Icon as={Image} src={item.icon} fontSize={27} />
-                          <Text fontSize="sm">{item.label}</Text>
-                        </Flex>
-                      </Link>
-                      
+                        key={item.label}
+                        variant="solid"
+                        w="100%"
+                        bg="whiteAlpha.200"
+                        _hover={{ bg: 'whiteAlpha.300' }}
+                        height={isMobile ? "max-content" : "150px"}
+                        py={6}
+                        px={3}
+                        align="center"
+                        alignItems="center"
+                        placeContent="center"
+                        borderWidth={2}
+                        borderRadius="10px"
+                        gap={2} direction={isMobile ? 'row' : 'column'}
+                      >
+                        <Icon as={Image} src={item.icon} fontSize={27} />
+                        <Text fontSize="sm">{item.label}</Text>
+                      </Flex>                      
                     ))}
                 </SimpleGrid>
               </Container>
@@ -576,7 +573,7 @@ function Testimonials() {
         </Heading>
         <Flex px={4} py={10} flexWrap="nowrap" justify="space-between" overflowX="scroll" className="hidden-scroll" gap={4}>
           {testimonials.map((testimonial, index) => (
-            <ScrollAnimation animateIn="slideIn" delay={`0.${index}s`}>
+            <ScrollAnimation animateIn="slideIn" delay={Number(`0.${index}s`)}>
               <TestimonialCard key={index} {...testimonial} />
             </ScrollAnimation>
           ))}

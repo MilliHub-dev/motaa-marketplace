@@ -23,7 +23,7 @@ import {
     Checkbox,
     useColorModeValue,
  } from "@chakra-ui/react";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, Fragment } from "react";
 import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
 import { useSearchParams, Link } from "react-router-dom";
@@ -36,9 +36,30 @@ import {
   LocationFilter,
 } from "../../../components/filters";
 import { Paginator } from "../../../components/nav";
+import {Map, Marker, APIProvider } from "@vis.gl/react-google-maps";
+
+
+const MapComponent = ({ location }) => {
+  return (
+    // <APIProvider apiKey={"AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0"}>
+      <Map
+        mapId="fe2d2f3f932f354f" // Optional if using a styled map
+        style={{ width: "100%", height: "100%"}}
+        defaultCenter={location}
+        defaultZoom={10}
+      >
+        <Marker position={location} />
+      </Map>
+    // </APIProvider>
+  );
+};
+
+
+
 
 export const MechanicListPage = ({ props }) => {
     const bgColor = useColorModeValue('white', 'gray.800')
+    const [location, setLocation] = useState({ lat: 10, lng: 8 });
     const borderColor = useColorModeValue('gray.200', 'gray.700')
     const [searchResults, setSearchResults] = useState(null);
     const [matches, setMatches] = useState([]);
@@ -48,6 +69,26 @@ export const MechanicListPage = ({ props }) => {
     const filters = [
       <LocationFilter onChange={console.log} />
     ]
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("Got ya at:", position)
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          setError("Unable to retrieve location.");
+          console.error("Geolocation error:", error);
+        }
+      );
+    } else {
+      window.alert("Please allow access to your location")
+    }
+  }, []);
     
     function init(){
         getData();
@@ -55,12 +96,12 @@ export const MechanicListPage = ({ props }) => {
     }
 
     async function getData(){
-        const res = await axios.get(`/mechanics/`);
-        const _data = objectifyJSON(res.data);
-        console.log("Mechs:", _data)
-        setSearchResults(_data.data);
-        setMatches(_data?.data?.results);
-        setData(_data?.data?.pagination)
+      const res = await axios.get(`/mechanics/`);
+      const _data = objectifyJSON(res.data);
+      console.log("Mechs:", _data)
+      setSearchResults(_data.data);
+      setMatches(_data?.data?.results);
+      setData(_data?.data?.pagination)
     }
 
     useEffect(() => {
@@ -83,6 +124,7 @@ export const MechanicListPage = ({ props }) => {
                     </InputLeftElement>
                     <Input placeholder="Engine Service" bg={bgColor} />
                   </InputGroup>
+
                   <Button
                     size="lg"
                     rightIcon={<ChevronDownIcon />}
@@ -113,8 +155,8 @@ export const MechanicListPage = ({ props }) => {
               {matches?.length} Mechanic{matches?.length > 1 && 's'} are available near you.
             </Text>
 
-            {/* Mechanics List */}
             <Flex gap={6} alignItems="self-start" flexWrap="wrap-reverse">
+              {/* Mechanics List */}
               <VStack spacing={0} flex={1}>
                 {matches?.map((mechanic) => (
                   <Box
@@ -211,7 +253,16 @@ export const MechanicListPage = ({ props }) => {
                 px={4} py={4}
                 top={4}
               >
-                <Box h={'320px'} borderWidth="1px" rounded="15px" ></Box>
+                <Box
+                  h={'320px'}
+                  w="100%"
+                  borderWidth="1px"
+                  borderRadius="15px"
+                  as={MapComponent}
+                  location={location}
+                />
+                 {/* <MapComponent location={location} />
+                </Box>*/}
                 
                 <Flex my={5} gap={2} borderWidth="1px" rounded="lg" px={2} py={4}>
                   <Text> Location: </Text>

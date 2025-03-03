@@ -6,7 +6,7 @@ import {
     MenuList, Switch, Text, VStack, SimpleGrid,
     Input, useMediaQuery,
 } from "@chakra-ui/react"
-import { Fragment, useContext, useEffect, useState } from "react"
+import { Fragment, useContext, useEffect, useState, useRef } from "react"
 import { GlobalStore } from "../../../App"
 import { RiClockwiseLine, RiGasStationLine, RiFilterLine } from "react-icons/ri"
 import { RxTimer } from "react-icons/rx"
@@ -21,28 +21,109 @@ LocationFilter,
 TransmissionFilter,
 } from "../../../components/filters";
 
+
+const DatePicker = ({ onChange }) => {
+    const input = useRef(null);
+    const date = new Date();
+    const [value, setValue] = useState('');
+    const [open, setOpenState] = useState(false);
+    const [label, setLabel] = useState(
+        `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
+    );
+
+    const changeVal = (e) => {
+        setValue(e.target.value);
+        const dateValue = new Date(e.target.value);
+        if (!dateValue) return; // Prevent empty values
+
+        onChange(`${dateValue.toLocaleDateString()} ${dateValue.toLocaleTimeString()}`);
+        setLabel(`${dateValue.toLocaleDateString()} ${dateValue.toLocaleTimeString()}`);
+    };
+
+    const openPicker = () => {
+        if (input.current) {
+            window.datepicker = input.current;
+            if(!open){
+                if (input.current.showPicker) {
+                    input.current.showPicker(); // Works in modern browsers
+                } else {
+                    input.current.click(); // Fallback for older browsers
+                }
+            }else{
+                input.current.blur();
+                // if (input.current.hidePicker) {
+                //     input.current.hidePicker(); // Works in modern browsers
+                // } else {
+                //     input.current.click(); // Fallback for older browsers
+                // }
+            }
+        }
+    };
+
+    return (
+        <Fragment>
+            <Button
+                rightIcon={<ChevronDownIcon />}
+                onClick={openPicker}
+                variant="outline"
+                className="small"
+                position="relative"
+            >
+                {label}
+                <Input
+                    type="datetime-local"
+                    ref={input}
+                    onInput={changeVal}
+                    value={value}
+                    position="absolute"
+                    inset="0"
+                    opacity="0"
+                    cursor="pointer"
+                />
+            </Button>
+        </Fragment>
+    );
+}
+
 export const RentListing = ({ props }) => {
-    const [listings, setListings] = useState([])
-    const [data, setData] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [isMobile] = useMediaQuery('(max-width: 768px)')
-    const {axios, notify, commaInt, authUser, apiUrl} = useContext(GlobalStore)
+    const [listings, setListings] = useState([]);
+    const [rental, setRental] = useState({
+        'where': '',
+        'from': '',
+        'until': ''
+    });
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
+    const {axios, notify, commaInt, authUser, apiUrl} = useContext(GlobalStore);
     /**
      * @param filter: filter object
      * e.g { brand: 'bmw'}
      * e.g { min_price: 120000, max_price: 5000000}
      * 
      * */
-    function applyFilter(filter){
-        // add filter to filterList
-        // convert filterList to url param
+    function applyFilter({filter, value}){
+        let url = window.location.search;
+        const params = new URLSearchParams(url);
+        const _filters = appliedFilters;
+        params.delete(filter);
 
+        if (!_filters.includes(filter) && Boolean(value)){
+            _filters.push(filter);
+            params.append(filter, value);
+        }else if (_filters.includes(filter) && !Boolean(value)){
+            _filters.splice(_filters.indexOf(filter), 1);
+        }
+        setAppliedFilters([ ..._filters ]);
+
+        // convert filterList to url param
+        getData(`/listings/rentals/?${params.toLocaleString()}`);
     }
 
-    async function getData(){
+    async function getData(url=`/listings/rentals/`){
         try {
     
-            const res = await axios.get(`/listings/rentals/`);
+            const res = await axios.get(url);
             const data = objectifyJSON(res.data);
     
             setData(data?.data);
@@ -62,6 +143,11 @@ export const RentListing = ({ props }) => {
     function init(){
         getData();
         setTimeout(() => setLoading(false), 2500)
+    }
+
+    function changeRental(val){
+        console.log("Got Rental:", val);
+        setRental({...rental, ...val})
     }
 
     useEffect(() => {
@@ -96,7 +182,7 @@ export const RentListing = ({ props }) => {
                     <Flex
                         flexWrap="wrap"
                         justifyContent={{ base: "center", md: "space-between" }}
-                        alignItems="center"
+                        alignItems={{base: "center", md: 'end'}}
                         gap={3}
                     >
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
@@ -113,29 +199,25 @@ export const RentListing = ({ props }) => {
                         borderLeft={{ base: "none", md: "1px solid lavender" }}
                         borderRight={{ base: "none", md: "1px solid lavender" }}
                         >
-                        <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
-                            From
-                        </Text>
-                        <Input as={Button} rightIcon={<ChevronDownIcon />} variant="outline" className="small" type="datetime-local">
-                            12th May, 2025 10:00pm
-                        </Input>
+                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
+                                From
+                            </Text>
+                            <DatePicker onChange={(val) => changeRental({ 'from': val })} />
                         </VStack>
 
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                        <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
-                            Until
-                        </Text>
-                        <Input as={Button} rightIcon={<ChevronDownIcon />} variant="outline" className="small" type="datetime-local">
-                            12th May, 2025 10:00pm
-                        </Input>
+                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
+                                Until
+                            </Text>
+                            <DatePicker onChange={(val) => changeRental({ 'until': val })} />
                         </VStack>
 
                         <Button
-                        colorScheme="blue"
-                        bg="primary"
-                        w={{ base: "100%", md: "auto" }}
+                            colorScheme="blue"
+                            bg="primary"
+                            w={{ base: "100%", md: "auto" }}
                         >
-                        Search
+                            Search
                         </Button>
                     </Flex>
                 </Box>
@@ -154,7 +236,7 @@ export const RentListing = ({ props }) => {
                     }
                 </Flex>
 
-                <Heading fontWeight="400" size={'md'} color="primary" className=""> 300+ cars are available in your area </Heading>
+                <Heading fontWeight="400" size={'md'} color="primary" className=""> {listings?.length} cars are available in your area </Heading>
 
                 <SimpleGrid
                  minChildWidth="300px"
