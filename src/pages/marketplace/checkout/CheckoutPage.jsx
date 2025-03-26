@@ -42,7 +42,7 @@ import {
   useMediaQuery,
   useDisclosure,
 } from '@chakra-ui/react'
-import { Clock, Gauge, Zap, MoreVertical, PiggyBank, Wallet, CreditCard, Warehouse, BanknoteIcon } from 'lucide-react'
+import { Clock, Gauge, Zap, MoreVertical, PiggyBank, Wallet, CreditCard, Warehouse, BanknoteIcon } from 'lucide-react';
 import { HiMiniReceiptPercent } from 'react-icons/hi2'
 import { LuMapPin } from 'react-icons/lu'
 import { RxCaretLeft, RxCaretRight, RxTimer } from 'react-icons/rx';
@@ -50,8 +50,7 @@ import { RiGasStationLine } from 'react-icons/ri';
 import { TbManualGearbox } from 'react-icons/tb';
 import { BsFillPatchCheckFill } from 'react-icons/bs';
 import { Country, State, City }  from 'country-state-city';
-
-
+import {FlutterwavePaymentModal, WalletPaymentModal} from '../../../components/wallet';
 
 const PaymentOptions = [
   { icon: Wallet, label: 'Pay with Wallet', value: 'wallet' },
@@ -125,7 +124,7 @@ function CheckoutPage({ props }) {
   const {axios, authUser, commaInt} = useContext(GlobalStore);
   const [isMobile] = useMediaQuery('(max-width: 768px)');
   const [listing, setListing] = useState();
-  const [order, setOrder] = useState();
+  const [order, setOrder] = useState({});
   const [countryList, setCountryList] = useState([]);
   const [stateList, setStateList] = useState([]);
   const [cityList, setCityList] = useState([]);
@@ -169,7 +168,6 @@ function CheckoutPage({ props }) {
 
   function init(){
     getData();
-    setCountryList(Country.getAllCountries())
   }
 
   async function getData(){
@@ -179,13 +177,27 @@ function CheckoutPage({ props }) {
       setListing(data.listing);
       changeValue({amount: parseInt(data.listing.price)})
     }
-    console.log("Got Data:", data);
+    setOrder(data.fees);
   }
   
   function proceedToCheckout(e){
     e.preventDefault();
+    switch(checkoutPayload.payment_option){
+      case 'pay-after-inspection':{
+        onOpen();
+        break;
+      }
+      case 'wallet':{
+        onOpen();
+        break;
+      }
+      default:{
+        onOpen();
+        break;
+      }
+    }
     console.table("Checking out with: ", checkoutPayload);
-    onOpen()
+    // onOpen();
   }
   
   async function onSuccess(response){
@@ -194,7 +206,10 @@ function CheckoutPage({ props }) {
     }));
     const data = objectifyJSON(res.data);
     if(res.status === 200){
-      redirect('/');
+      if (checkoutPayload.payment_option === 'pay-after-inspection'){
+        return redirect(`/checkout/inspection/?listingId=${listingId}`)
+      }
+      return redirect('/');
     }
   }
 
@@ -211,16 +226,14 @@ function CheckoutPage({ props }) {
   }, [checkoutPayload.country]);
 
   useEffect(() => {
-    if (checkoutPayload.state) {
-      const selectedState = stateList.find(s => s.name === checkoutPayload.state);
-      setCityList(selectedState ? City.getCitiesOfState(selectedState.countryCode, selectedState.isoCode) : []);
-    }
-  }, [checkoutPayload.state]);
-
-
-  useEffect(() => {
     init();
-  }, [])
+  }, []);
+
+  let total = 0.0;
+  total += Number(listing?.price)
+  total += Number(order?.motaa_fee)
+  total += Number(order?.tax)
+  total += Number(order?.inspection_fee)
 
 
   return (
@@ -232,10 +245,10 @@ function CheckoutPage({ props }) {
         </Container>
       </Box>
 
-      <Container maxW="90%" pb={10}>
-        <Flex gap={8} flexWrap={{base: 'wrap', md: 'unset'}}>
+      <Container maxW="container.xl" pb={10}>
+        <Flex gap={8} flexWrap={{base: 'wrap', lg: 'unset'}}>
           {/* Form Section */}
-          <Box flex={{base: 1, md: 2.65/4}} pb={10} w={'100%'}>
+          <Box pb={10} w={'100%'}>
             <Text className="bold" fontSize="22px" mb={6}>Confirm your details</Text>
             <VStack spacing={6} align="stretch">
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
@@ -266,7 +279,9 @@ function CheckoutPage({ props }) {
                         }}
                       >
                         {countryList.map((place) => (
-                          <option key={place.isoCode} value={place.name}>{place.flag}</option>
+                          <option key={place.isoCode} value={place.name}>
+                            <Icon as={'svg'} xmlns="http://www.w3.org/2000/svg">{place.flag}</Icon>
+                          </option>
                         ))}
                       </Select>
                     </InputLeftAddon>
@@ -298,14 +313,11 @@ function CheckoutPage({ props }) {
 
                 <FormControl>
                   <FormLabel>City</FormLabel>
-                  <Select
+                  <Input
                     value={checkoutPayload.city}
-                    onChange={(e) => setCheckoutPayload({ ...checkoutPayload, city: e.target.value })}
-                  >
-                    {cityList.map((place) => (
-                      <option key={place.name} value={place.name}>{place.name}</option>
-                    ))}
-                  </Select>
+                    name="city"
+                    onInput={(e) => setCheckoutPayload({ ...checkoutPayload, city: e.target.value })}
+                  />
                 </FormControl>
               </SimpleGrid>
 
@@ -317,11 +329,11 @@ function CheckoutPage({ props }) {
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
                 <FormControl>
                   <FormLabel>Date of Birth</FormLabel>
-                  <Input type="date" defaultValue="1964-12-05" px={4} py={5} />
+                  <Input type="date" defaultValue={new Date().toLocaleDateString()} px={4} py={5} />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Postal Code (optional)</FormLabel>
-                  <Input defaultValue="904012" px={4} py={5} />
+                  <Input name="postal-code" px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
 
@@ -331,10 +343,10 @@ function CheckoutPage({ props }) {
                 <SimpleGrid columns={2} spacing={4} mb={4}>
                   <Text fontWeight="600">Price:</Text>
                   <Text fontWeight="600" textAlign="right">₦{commaInt(listing?.price)}</Text>
-                  <Text fontWeight="600">0.5% VAT & fees</Text>
-                  <Text fontWeight="600" textAlign="right">₦60,000</Text>
+                  <Text fontWeight="600">0.5% fee + Tax </Text>
+                  <Text fontWeight="600" textAlign="right">₦{commaInt(order?.tax + order?.motaa_fee)}</Text>
                   <Text fontWeight="600">Inspection fee:</Text>
-                  <Text fontWeight="600" textAlign="right">₦5,000</Text>
+                  <Text fontWeight="600" textAlign="right">₦{commaInt(order?.inspection_fee)}</Text>
                 </SimpleGrid>
 
                 <form method="POST" onSubmit={redeemCoupon}>
@@ -347,13 +359,13 @@ function CheckoutPage({ props }) {
                 <Divider my={4} />
                 <Flex justify="space-between" fontWeight="bold">
                   <Heading size="md">Total:</Heading>
-                  <Heading size="md">₦{commaInt(listing?.price)}</Heading>
+                  <Heading size="md">₦{commaInt(total)}</Heading>
                 </Flex>
               </Box>
 
               <Box>
                 <Text fontWeight="medium" mb={4}>Choose a payment option</Text>
-                <Flex flexWrap="nowrap" w="100%" overflowX="auto" flexDirection="row" className="hidden-scroll" gap={4}>
+                <Flex flexWrap="nowrap" w="100%" overflowX="auto" py={2} px={2} flexDirection="row" className="hidden-scroll" gap={4}>
                   {PaymentOptions.map((option, index) => {
                     const radio = getRadioProps({ value: option.value, isDisabled: option.disabled });
 
@@ -378,7 +390,6 @@ function CheckoutPage({ props }) {
                   : "Select a payment option"
                 }
               </Text>
-
 
               <Box placeItems="center">
                 <HStack spacing={4} p={4} borderWidth={1} borderColor="primary" bg="blue.50" borderRadius="lg">
@@ -406,7 +417,7 @@ function CheckoutPage({ props }) {
           </Box>
 
           {/* Car Details Section */}
-          <Box flex={{base: 1, md: 1.35/4}}>
+          <Box w="100%" maxW="350px">
             <Box
               borderWidth={1}
               borderRadius="30px"
@@ -447,91 +458,35 @@ function CheckoutPage({ props }) {
           </Box>
         </Flex>
 
-        <PaymentModal
-         isOpen={isOpen}
-         onClose={onClose}
-         checkoutPayload={checkoutPayload}
-         onSuccess={onSuccess}
-         lisitng={listing}
-        />
+        {
+          (listing && (
+            checkoutPayload?.payment_option === 'online-payment' || 
+            checkoutPayload?.payment_option === 'pay-after-inspection' 
+            )
+          ) ? (
+            <FlutterwavePaymentModal
+             isOpen={isOpen}
+             onClose={onClose}
+             onSuccess={onSuccess}
+             payload={checkoutPayload}
+             customizations={{
+                title: listing?.title,
+                logo: listing?.vehicle?.dealer?.logo,
+                description: `Payment for ${listing?.title}`,
+             }}
+            />
+          ): checkoutPayload?.payment_option === 'wallet' ? (
+            <WalletPaymentModal
+              payload={{amount: total, recipient: listing?.vehicle?.dealer}}
+              isOpen={isOpen}
+              onClose={onClose}
+              onSuccess={onSuccess}
+            />
+          ):(null)
+        }
+
       </Container>
     </Box>
-  )
-}
-
-
-
-const PaymentModal = ({ isOpen, onClose, listing, onSuccess,checkoutPayload, ...props }) => {
-  const {
-    currency, amount, payment_option,
-    email, phone_number, first_name, last_name,
-  } = checkoutPayload;
-
-  const config = {
-    // public_key: process.env.REACT_APP_FLW_TEST_PUBLIC_KEY,
-    public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
-    tx_ref: Date.now(),
-    amount: amount > 500000 ? 500000 : amount,
-    currency: currency,
-    payment_options: payment_option,
-    customer: {
-      email: email,
-      phone_number: phone_number,
-      name: `${first_name} ${last_name}`,
-    },
-    customizations: {
-      title: `${listing?.vehicle?.dealer?.business_name}`,
-      description: `Payment for: ${listing?.title}`,
-      logo: listing?.vehicle?.dealer?.logo,
-    },
-    meta: {
-      listing: listing?.uuid,
-      transaction_type: listing?.listing_type,
-    }
-  };
-
-  const handleFlutterPayment = useFlutterwave(config);
-
-  function onPaymentComplete(response){
-    console.log("payment complete", response);
-    onSuccess(response)
-  }
-
-  function onModalClose(){
-    // user cancelled the payment flow
-  }
-
-  function payUp(){
-    try{
-      handleFlutterPayment({
-        callback: (response) => {
-          console.log(response);
-          onPaymentComplete(response);
-          closePaymentModal(); // this will close the modal programmatically
-        },
-        onClose: () => {
-          onModalClose();
-        },
-      });
-    }catch(err){
-      console.log("error paying up:", err)
-    }
-  }
-
-  return(
-      <Modal isCentered isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay px={4} />
-        <ModalContent w={'90%'} maxW={'700px'}>
-          <ModalHeader>
-            <Heading size="md"> Checkout </Heading>
-            <ModalCloseButton />
-          </ModalHeader>
-
-          <ModalBody>
-            <Button w="100%" bg="primary" colorScheme="blue" onClick={payUp}> Pay now </Button>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
   )
 }
 

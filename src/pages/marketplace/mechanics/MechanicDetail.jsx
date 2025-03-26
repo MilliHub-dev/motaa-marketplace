@@ -17,31 +17,74 @@ import {
   Heading,
   IconButton,
   Select,
+  Input,
   useColorModeValue,
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, ChevronRightIcon, MapPinIcon, StarIcon, VerifiedIcon, MessageCircleIcon, MoreHorizontalIcon } from 'lucide-react'
 import {IoRibbonOutline} from 'react-icons/io5';
 import {LocationBreadcrumb} from '../../../components';
+import { ChatPopup } from "../../../components/chat";
+import { MapComponent } from "../../../components/maps";
+import {Autocomplete} from "@react-google-maps/api";
 
 
 export const MechanicDetailPage = ({ }) => {
   const [mechanic, setMechanic] = useState(null);
   const {mechId} =  useParams()
   const [loading, setLoading] = useState(true);
+  const [showPopup, setPopupState] = useState(false);
+  const [autocomplete, setAutocomplete] = useState(null);
+  const [locationName, setLocationName] = useState("Current Location");
+  const [inputValue, setInputValue] = useState("Your Current Location");
+  const [location, setLocation] = useState({lat: 10, lng: 8, name: 'Current Location'});
   const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const bgColor = useColorModeValue('white', 'gray.800')
 
   function init(){
-      getData();
-      setTimeout(() => setLoading(false), 2000)
+    getData();
+    setTimeout(() => setLoading(false), 2000)
   }
 
   async function getData(){
-      const res = await axios.get(`/mechanics/${mechId}`);
-      const data = objectifyJSON(res.data);
-      setMechanic(data?.data);
+    const res = await axios.get(`/mechanics/${mechId}`);
+    const data = objectifyJSON(res.data);
+    setMechanic(data?.data);
   }
+
+  const onLoad = (auto) => setAutocomplete(auto);
+
+  const onPlaceChanged = () => {
+    if (autocomplete) {
+      const place = autocomplete.getPlace();
+      if (place.geometry) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        setLocation({ lat, lng, name: place.name });
+        setInputValue(place.formatted_address || place.name);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // setLocation({
+          //   lat: position.coords.latitude,
+          //   lng: position.coords.longitude,
+          //   name: "Current Location"
+          // });
+        },
+        (error) => {
+          setError("Unable to retrieve location.");
+          console.error("Geolocation error:", error);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by your browser.");
+    }
+  }, []);
 
   useEffect(() => {
       init()
@@ -52,34 +95,6 @@ export const MechanicDetailPage = ({ }) => {
       return null;
   }
   
-  const images = [
-    '/placeholder.svg?height=200&width=300',
-    '/placeholder.svg?height=200&width=300',
-    '/placeholder.svg?height=200&width=300'
-  ]
-
-  const skills = [
-    'Engine Service',
-    'Electrical Repairs',
-    'HVAC Repair',
-    'Oil Maintenance',
-    'CNG Conversion',
-    'Spare Part Sales',
-    'Car Detail',
-    'Tyre Service'
-  ]
-
-  const reviews = [
-    {
-      id: 1,
-      name: 'Musa Adamu',
-      date: '18 October 2023',
-      rating: 5,
-      text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit Ut et massa mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien.'
-    },
-    // Add more reviews as needed
-  ]
-
   return (
     <Box minH="100vh" pb={8}>
       <Container maxW="7xl">
@@ -87,13 +102,13 @@ export const MechanicDetailPage = ({ }) => {
           <LocationBreadcrumb label={mechanic?.business_name || mechanic?.user?.name} />
         </Box>
 
-        <Flex gap={6} direction={{ base: 'column', lg: 'row' }} alignItems="self-start">
+        <Flex gap={6} direction={{ base: 'column', md: 'row' }} alignItems="self-start">
           {/* Main Content */}
           <Box flex={1}>
             {/* Profile Header */}
             <Box bg={bgColor} p={6} rounded="lg" mb={4}>
               <Flex gap={4}>
-                <Avatar size={{base: 'md', lg: "xl"}} name={mechanic?.business_name || mechanic?.user?.name} />
+                <Avatar size={{base: 'xl', lg: "xl"}} name={mechanic?.business_name || mechanic?.user?.name} src={mechanic?.logo} />
                 <Box flex={1}>
                   
                   <Flex justify="space-between" align="start" flexWrap="wrap-reverse">
@@ -106,15 +121,16 @@ export const MechanicDetailPage = ({ }) => {
                       <Flex align="center" gap={2} mt={2} color="gray.600">
                         <MapPinIcon className="w-4 h-4" />
                         <Text>{mechanic?.location}</Text>
-                        <Text color="gray.700">• 300m away</Text>
+                        <Text color="gray.700"> • 300m away</Text>
                       </Flex>
                     </Box>
                     
                     <Flex gap={2}>
-                      <Button variant="outline">
+                      <Button gap={2} variant="outline" onClick={() => setPopupState(true)}>
                         <MessageCircleIcon className="w-4 h-4 mr-2" />
                         Chat
                       </Button>
+
                       <IconButton
                         variant="outline"
                         icon={<MoreHorizontalIcon className="w-4 h-4" />}
@@ -126,9 +142,9 @@ export const MechanicDetailPage = ({ }) => {
                     <Tag colorScheme="blue" gap={1.5} alignItems="center"><IoRibbonOutline size={20} /> Top Rated</Tag>
                     
                     <Flex align="center" gap={1}>
-                      <Text fontWeight="bold">4.8</Text>
+                      <Text fontWeight="bold">{mechanic?.rating}</Text>
                       <StarIcon size={20} color="orange" fill="orange" />
-                      <Text color="gray.500">(102 Reviews)</Text>
+                      <Text color="gray.500">({mechanic?.reviews?.length} Reviews)</Text>
                     </Flex>
 
                   </Flex>
@@ -139,15 +155,7 @@ export const MechanicDetailPage = ({ }) => {
             {/* About Section */}
             <Box bg={bgColor} p={6} rounded="lg" mb={4}>
               <Heading size="md" fontWeight="400" mb={4}>About Me</Heading>
-              <Text color="gray.600">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit Ut et massa mi. Aliquam in hendrerit urna. 
-                Pellentesque sit amet sapien fringilla, mattis ligula consectetur, ultrices mauris. Maecenas vitae 
-                mattis tellus. Nullam quis imperdiet augue. Vestibulum auctor ornare leo, non suscipit magna 
-                interdum eu.
-              </Text>
-              <Button variant="link" colorScheme="blue" mt={2}>
-                See more
-              </Button>
+              <Text color="gray.600">{mechanic?.about}</Text>
             </Box>
 
             {/* Skills Section */}
@@ -163,7 +171,7 @@ export const MechanicDetailPage = ({ }) => {
             </Box>
 
             {/* Photo Gallery */}
-            <Box bg={bgColor} p={6} rounded="lg" mb={4}>
+{/*            <Box bg={bgColor} p={6} rounded="lg" mb={4}>
               <Flex justify="space-between" align="center" mb={4}>
                 <Heading size="md">Photo Gallery</Heading>
                 <Button variant="link" colorScheme="blue">
@@ -205,13 +213,13 @@ export const MechanicDetailPage = ({ }) => {
                   isDisabled={currentImageIndex === images.length - 1}
                 />
               </Box>
-            </Box>
+            </Box>*/}
 
             {/* Ratings & Reviews */}
             <Box bg={bgColor} p={6} rounded="lg">
               <Heading size="md" mb={6}>Ratings & reviews</Heading>
               <Flex align="center" gap={4} mb={6}>
-                <Heading size="xl">4.8</Heading>
+                <Heading size="xl">{mechanic?.rating}</Heading>
                 <Box flex={1}>
                   <Text mb={2}>Service Delivery</Text>
                   <Progress value={94} size="sm" colorScheme="blue" rounded="full" />
@@ -223,7 +231,7 @@ export const MechanicDetailPage = ({ }) => {
               </Flex>
 
               <VStack spacing={6} align="stretch">
-                {reviews.map((review) => (
+                {mechanic?.reviews?.map((review) => (
                   <Box key={review.id}>
                     <Flex gap={3}>
                       <Avatar size="sm" name={review.name} />
@@ -248,39 +256,48 @@ export const MechanicDetailPage = ({ }) => {
                 ))}
               </VStack>
 
-              <Button variant="link" colorScheme="blue" mt={6}>
+              {/*<Button variant="link" colorScheme="blue" mt={6}>
                 See more reviews
-              </Button>
+              </Button>*/}
             </Box>
           </Box>
 
           {/* Sidebar */}
-          <Box w={{ base: 'full', lg: '400px' }}>
+          <Box w={{ base: 'full', md: '40%', lg: '400px' }}>
             <Box position="relative" top={4}>
-              <Box bg={bgColor} p={6} rounded="lg" mb={4}>
+              <Box bg={bgColor} className="map-wrapper">
                 {/* Map placeholder */}
                 <Box
-                  bg="gray.100"
-                  h="200px"
-                  rounded="lg"
+                  style={{height: "320px"}}
                   mb={4}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  Map View
-                </Box>
-                
-                <VStack spacing={4}>
-                  <Select placeholder="Location: No.15 Ibrahim Baba">
-                    <option>Current Location</option>
-                    <option>Other Saved Locations</option>
-                  </Select>
+                  as={MapComponent}
+                  location={location}
+                />
+                            
+                <VStack  w="100%">
+                  <Flex w="100%" my={2} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
+                    <Text>Location:</Text>
+
+                    <Autocomplete
+                      onLoad={onLoad}
+                      style={{width: "100%"}}
+                      onPlaceChanged={onPlaceChanged}
+                      className="w-full"
+                    >
+                      <Input
+                        flex={1}
+                        w="100%"
+                        border="none"
+                        outline="none"
+                        placeholder="Search location..."
+                      />
+                    </Autocomplete>
+                  </Flex>
                   
-                  <Select placeholder="Service: Engine Service">
-                    <option>HVAC Repair</option>
-                    <option>Car Detail</option>
-                    <option>Electrical Repairs</option>
+                  <Select placeholder="Choose Service">
+                    {mechanic?.services?.map((service) =>
+                      <option> {service?.service} </option>
+                    )}
                   </Select>
                   
                   <Button colorScheme="blue" size="lg" w="full">
@@ -292,6 +309,13 @@ export const MechanicDetailPage = ({ }) => {
           </Box>
         </Flex>
       </Container>
+
+      <ChatPopup
+       isOpen={showPopup}
+       onClose={() => setPopupState(false)}
+       recipient_type="mechanic" 
+       recipient_id={mechanic?.uuid}
+      />
     </Box>
   )
 }

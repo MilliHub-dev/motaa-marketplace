@@ -44,7 +44,7 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
   const [loading, setLoadingState] = useState(true);
-  const [dealership, setDealership] = useState({});
+  const [dealership, setDealership] = useState();
   const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   async function init(){
@@ -81,33 +81,29 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
   return (
     <DealershipContext.Provider value={context}>
     <Stack>
-      <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
+      <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
 
       <Flex minH="100vh" position="relative">
-        {hideSidebar ? 
-          <Container pb={10} maxW="container.xl">
-            <Outlet />
-          </Container>
-        :
-          <Fragment>
-            <DealerDashboardSideBar
-             dealership={dealership}
-             sidebarOpen={sidebarOpen}
-             onClose={() => setSidebarState(false)}
-             setSidebarState={setSidebarState}
-            />
+        <Fragment>
+          <DealerDashboardSideBar
+           dealership={dealership}
+           sidebarOpen={sidebarOpen}
+           onClose={() => setSidebarState(false)}
+           setSidebarState={setSidebarState}
+           // display={hideSidebar && 'none'}
+           mode={hideSidebar ? 'drawer' : 'block'}
+          />
 
-            <Box
-             flex={{ md: 1 }}
-             w={isMobile ? '100%' : "calc(100% - 280px)"}
-             ml={isMobile ? '0px' : "280px"}
-            >
-              <Container pb={10} maxW="container.xl">
-                <Outlet />
-              </Container>
-            </Box>
-          </Fragment>
-        }
+          <Box
+           flex={{ md: 1 }}
+           w={isMobile ? '100%' : hideSidebar ? '100%' : "calc(100% - 280px)"}
+           ml={isMobile ? '0px' : hideSidebar ? '0px' : "280px"}
+          >
+            <Container pb={10} maxW="container.xl">
+              <Outlet />
+            </Container>
+          </Box>
+        </Fragment>
       </Flex>
     </Stack>
     </DealershipContext.Provider>

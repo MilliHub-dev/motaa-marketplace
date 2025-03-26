@@ -75,7 +75,7 @@ export const CarSearchPage = ({ props }) => {
 
     return (
         <Box py={4}>
-            <Container maxW="container.lg" py={4}>
+            <Container maxW="container.xl" py={4}>
                 <LocationBreadcrumb label={find} />
 
                 <Heading className="subtitle" size={'md'} mt={3} mb={5}> Showing {searchResults?.pagination?.offset + 1} - {searchResults?.pagination?.limit} of {searchResults?.pagination?.count} results for "{find}" </Heading>

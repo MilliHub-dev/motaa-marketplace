@@ -18,6 +18,7 @@ import {
   Table,
   Thead,
   Tbody,
+  Tag,
   Tr,
   Th,
   Td,
@@ -127,19 +128,18 @@ function ListingTable({ listings }) {
       <Table variant="simple" overflowX={'scroll'} className="hidden-scroll">
         <Thead>
           <Tr>
-            <Th>Car Listing</Th>
+            <Th columns={3}>Car Listing</Th>
             <Th>Status</Th>
             <Th>Views</Th>
-            <Th>CTR</Th>
             <Th>Actions</Th>
           </Tr>
         </Thead>
         <Tbody>
           {listings?.map((listing, index) => (
             <Tr key={index}>
-              <Td>
-                <Flex align="center">
-                  <Image src={listing?.vehicle?.images[0]?.url} boxSize="70px" w={"100px"} mr={3} borderRadius="md" />
+              <Td columns={3}>
+                <Flex align="center" gap={2}>
+                  <Image src={listing?.vehicle?.images[0]?.url} width={'120px'} boxSize="50px" borderRadius="md" />
                   <Box>
                     <Text fontWeight="bold">{listing?.title}</Text>
                     <Text fontSize="sm">{commaInt(listing?.price)}</Text>
@@ -148,12 +148,11 @@ function ListingTable({ listings }) {
                 </Flex>
               </Td>
               <Td>
-                <Text color={listing?.approved ? "green.500" : "gray.500"}>
-                  {listing?.approved ? 'Active' : 'Draft'}
-                </Text>
+                <Tag size="lg" colorScheme={(listing?.approved && listing?.verified) ? "green" : !listing?.verified ? "purple" : "yellow"}>
+                  {(listing?.approved && listing?.verified) ? 'Active' : !listing?.verified ? 'Draft' : 'Requires approval'}
+                </Tag>
               </Td>
-              <Td>{listing?.impressions}</Td>
-              <Td>{listing?.ctr || 0}</Td>
+              <Td>{listing?.viewers?.length}</Td>
               <Td>
                 <Flex gap={2}>
                   <Button size="sm" colorScheme="green">Boost</Button>

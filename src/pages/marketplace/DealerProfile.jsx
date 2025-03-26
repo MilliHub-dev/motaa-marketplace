@@ -9,6 +9,7 @@ import {
   Badge,
   Image,
   SimpleGrid,
+  Heading,
   Flex,
   IconButton,
   Menu,
@@ -21,6 +22,7 @@ import {
 import {useState, useEffect, useContext} from 'react';
 import {useParams, } from 'react-router-dom';
 import {GlobalStore} from '../../App';
+import {BackButton} from '../../components/nav';
 import {objectifyJSON, jsonifyObject} from '../../utils';
 import { 
   MessageCircle, MapPin, Clock, Star,
@@ -45,19 +47,20 @@ function Stats({ number, label }) {
 function ServiceTag({ children }) {
   return (
     <Badge
-      px={3}
-      py={1}
-      bg="gray.100"
+      px={4}
+      py={2}
+      bg="gray.200"
       color="gray.800"
       rounded="full"
-      fontSize="sm"
+      textTransform="capitalize"
+      fontSize="md"
     >
       {children}
     </Badge>
   )
 }
 
-function RatingCard() {
+function RatingCard({ dealer }) {
   return (
     <Box
       borderWidth="1px"
@@ -68,38 +71,39 @@ function RatingCard() {
     >
       <HStack spacing={3} mb={4}>
         <Avatar
-          size="sm"
-          name="MANGA AUTOS"
-          src="/placeholder.svg?height=32&width=32"
+          size="lg"
+          name={dealer?.business_name}
+          src={dealer?.logo}
         />
         <Box>
           <HStack>
-            <Text fontWeight="bold">MANGA AUTOS</Text>
+            <Text fontWeight="bold">{dealer?.business_name}</Text>
             <Badge colorScheme="blue">
               <CheckCircle size={12} />
             </Badge>
           </HStack>
           <Text fontSize="sm" color="gray.600">
-            ABUJA, NIGERIA
+            {dealer?.location}
           </Text>
         </Box>
       </HStack>
 
       <HStack spacing={1} mb={2}>
         <Text fontWeight="bold" fontSize="xl">
-          5.0
+          {dealer?.rating || '0.0'}
         </Text>
         <Star fill="currentColor" color="yellow.400" size={20} />
         <Text color="gray.600" fontSize="sm">
-          (2k reviews)
+          ({dealer?.reviews?.length} reviews)
         </Text>
       </HStack>
 
       <VStack align="stretch" spacing={2}>
-        <HStack color="gray.600" fontSize="sm">
+        {/*<HStack color="gray.600" fontSize="sm">
           <Clock size={16} />
           <Text>Opens 9:00AM - 6:00PM</Text>
-        </HStack>
+        </HStack>*/}
+
         <HStack color="gray.600" fontSize="sm">
           <MessageSquare size={16} />
           <Text>Responds in 15 minutes</Text>
@@ -120,7 +124,8 @@ export default function DealerProfile() {
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
-      setDealer(data);
+      setDealer(data.data);
+      console.table(data.data)
     }
   }
 
@@ -149,9 +154,17 @@ export default function DealerProfile() {
           h="full"
           objectFit="cover"
         />
+
+        <BackButton
+          position={'absolute'}
+          left={'30px'}
+          top={'10%'}
+          variant="solid"
+          color="primary"
+        />
       </Box>
 
-      <Container maxW="container.lg" py={0}>
+      <Container maxW={'1100px'} py={0}>
         <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8} as={Flex} alignItems="self-start">
           {/* Main Content */}
           <Box gridColumn="span 2">
@@ -162,20 +175,20 @@ export default function DealerProfile() {
                 mt={'-20px'}
                 bg="white"
                 borderRadius={'50%'}
-                zIndex={'20'}
+                zIndex={'1'}
                 p={2}
               >
                 <Avatar
-                  size="lg"
-                  name="MANGA AUTOS"
-                  src="/placeholder.svg?height=96&width=96"
+                  size="xl"
+                  name={dealer?.business_name}
+                  src={dealer?.logo}
                 />
               </Box>
 
               <Box flex={1}>
                 <HStack py={2}>
                   <Text fontSize="lg" fontWeight="bold">
-                    MANGA AUTOS
+                    {dealer?.business_name}
                   </Text>
                   <Badge colorScheme="blue">
                     <CheckCircle size={16} />
@@ -211,32 +224,25 @@ export default function DealerProfile() {
 
             {/* Stats */}
             <HStack spacing={8} mb={6}>
-              <Stats number="1,456" label="Listings" />
-              <Stats number="180.2K" label="Followers" />
-              <Stats number="78" label="Following" />
+              <Stats number={dealer?.listings.length} label="Listings" />
+              <Stats number={dealer?.listings.length} label="Deals" />
+              {/*<Stats number="180.2K" label="Followers" />
+              <Stats number="78" label="Following" />*/}
             </HStack>
 
             {/* Bio */}
             <Box mb={6}>
-              <Text fontSize="sm" color="gray.600">
-                We are verified dealers in all types of motor vehicle. RC: 3403974
-                🇳🇬. We deal with brand new, foreign used, and Neatly used cars.
-                We got you covered💯
-              </Text>
+              <Heading size="md" my={2}>Bio </Heading>
+              <Text color="gray.600">{dealer?.about}</Text>
             </Box>
 
             {/* Services */}
             <Box mb={6}>
-              <Text fontWeight="medium" mb={3}>
-                Services
-              </Text>
+              <Heading size="md" my={2}>Services </Heading>
               <Flex gap={2} flexWrap="wrap">
-                <ServiceTag>Car Sale</ServiceTag>
-                <ServiceTag>Car Dealership</ServiceTag>
-                <ServiceTag>Car Finance Agent</ServiceTag>
-                <ServiceTag>Car Leasing</ServiceTag>
-                <ServiceTag>Car Loans</ServiceTag>
-                <ServiceTag>Sell-Your-Car</ServiceTag>
+                {dealer?.services?.map(service => 
+                  <ServiceTag key={service}>{service}</ServiceTag>
+                )}
               </Flex>
             </Box>
 
@@ -245,7 +251,7 @@ export default function DealerProfile() {
 
           {/* Sidebar */}
           <Box position="relative" top={'10px'}>
-            <RatingCard />
+            <RatingCard dealer={dealer} />
           </Box>
         </SimpleGrid>
       </Container>

@@ -179,17 +179,18 @@ export const CartPage = ({ props }) => {
                                                 </Flex>
 
                                                 <Flex gap={2} alignItems="center">
-                                                {
-                                                    order?.paid ?
-                                                    (
-                                                        <Button px={4} colorScheme="red" onClick={console.log}>Remove</Button>
-                                                    )
-                                                    :(
-                                                        <NavLink to={`/checkout/?listingId=${order?.uuid}`}>
-                                                            <Button px={4} bgColor="primary" colorScheme="blue">Pay Now</Button>
-                                                        </NavLink>
-                                                    )
-                                                }
+                                                {order?.order_type === 'sale' && (
+                                                    order?.order_status === 'awaiting-inspection' || order?.order_status === 'inspecting' ?
+                                                    <>
+                                                     <Button px={4} colorScheme="yellow" bg="tertiary" onClick={console.log}>Finish Inspection</Button>
+                                                    </>
+                                                    :
+                                                    <Button px={4} bgColor="primary" colorScheme="blue">Pay Now {order?.status}</Button>
+                                                )}
+
+                                                {order?.order_type === 'rental' && (
+                                                    <Button px={4} colorScheme="red">Cancel Rental</Button>
+                                                )}
                                                 </Flex>
                                             </Flex>
                                         </ListItem>

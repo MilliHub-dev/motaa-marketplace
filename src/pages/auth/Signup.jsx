@@ -504,6 +504,13 @@ const ConfirmationStep = ({ verification }) => {
                     > <span ref={timer}>Click to resend</span> </Button>
                 </Text>
 
+                {/*<dojah-button
+                  widgetId="undefined"
+                  text="Web"
+                  textColor="#FFFFFF"
+                  backgroundColor="#3977de">
+                </dojah-button>*/}
+
                 <Button my={5} onClick={verifyCode} disabled={!otp} type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Verify code </Button>
             </Card>
         </Box>
@@ -517,7 +524,6 @@ const PhoneConfirmationStep = ({ nextStep, payload }) => {
     const [verification, setVerification] = useState('email') // email | sms
 
     async function requestCode(){
-        timer.current.innerHTML = `Request new code in 60s`;
         let time = 60;
 
         const counter = setInterval(() => {
@@ -530,6 +536,7 @@ const PhoneConfirmationStep = ({ nextStep, payload }) => {
                 return clearInterval(counter)
             }
         }, 1000);
+        timer.current.innerHTML = `Request new code in ${time}s`;
 
     }
 

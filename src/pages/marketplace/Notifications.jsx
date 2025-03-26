@@ -55,7 +55,7 @@ function NotificationCard({ type, title, message, action, onClose }) {
         <Box flex={1} borderRight="1px solid lavender">
           <Text className="bold" mb={1}> {title} </Text>
           <Text color="gray.600" fontSize="sm"> {message} </Text>
-          {action && (
+          {action?.link && (
             <Link to={action?.link}>
               <Button
                 size="sm"
@@ -148,7 +148,7 @@ function NotificationsPage() {
                   <NotificationCard
                     key={notification?.id}
                     type={notification?.level}
-                    title={notification?.title}
+                    title={notification?.subject}
                     message={notification?.message}
                     action={{link: notification?.cta_link, label: notification?.cta_text}}
                     onClose={() => readNotification(notification?.uuid)}

@@ -16,6 +16,8 @@ import {
   Stack,
   Tab,
   TabList,
+  TabPanels,
+  TabPanel,
   Tabs,
   Text,
   VStack,
@@ -41,7 +43,7 @@ import {ListingItemCard, ImageCarousel, LocationBreadcrumb} from "../../componen
 import {GlobalStore} from "../../App";
 import {objectifyJSON} from "../../utils";
 import ScrollAnimation from 'react-animate-on-scroll';
-
+import {Link} from 'react-router-dom';
 
 // Feature Card Component
 function FeatureCard({ icon, title, description, ...props }) {
@@ -60,15 +62,26 @@ function FeatureCard({ icon, title, description, ...props }) {
 
 export default function MainPage() {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
-  const [promotedListings, setPromotedListings] = useState([]);
-  const {authUser, axios, notify} = useContext(GlobalStore);
+  const [query, setQuery] = useState("");
+  const [topDeals, setTopDeals] = useState({
+    rentals: [],
+    sales: [],
+    services: [],
+  });
+  const {authUser, redirect, axios, notify} = useContext(GlobalStore);
 
+  function navToPage(path){
+    if (!query.trim()){
+      return redirect(path)
+    }
+  }
 
   async function getData(){
-    const res = await axios.get(`/listings/my-listings/?scope=recents`);
+    const res = await axios.get(`/listings/my-listings/?scope=recents;top-deals`);
     const data = objectifyJSON(res.data);
 
-    setRecentlyViewed(data.data);
+    setRecentlyViewed(data.recents);
+    setTopDeals(data.top_deals);
   }
 
   useEffect(() => {
@@ -106,16 +119,21 @@ export default function MainPage() {
                   <InputLeftElement>
                     <Search size="20px"/>
                   </InputLeftElement>
-                  <Input placeholder="Search for cars, rentals or mechanic services..." borderRadius="30px" bg="gray.200" />
+                  <Input
+                   value={query}
+                   placeholder="Search for cars, rentals or mechanic services..."
+                   borderRadius="30px" bg="gray.200"
+                   onInput={e => setQuery(e.target.value)}
+                  />
                 </InputGroup>
 
-                <Button colorScheme="blue" bg="primary" size="lg">
+                <Button as={!query.trim() && Link} to='/buy' colorScheme="blue" bg="primary" size="lg">
                   Browse cars for sale
                 </Button>
-                <Button colorScheme="blue" bg="primary" size="lg">
+                <Button as={!query.trim() && Link} to='/rent' colorScheme="blue" bg="primary" size="lg">
                   Browse cars for rent
                 </Button>
-                <Button colorScheme="blue" variant="outline" borderColor="primary" borderWidth={2} size="lg">
+                <Button as={!query.trim() && Link} to='/mechanics' colorScheme="blue" variant="outline" borderColor="primary" borderWidth={2} size="lg">
                   Find a Mechanic
                 </Button>
               </VStack>
@@ -131,20 +149,23 @@ export default function MainPage() {
       </Box>
 
       {/* Recently Viewed Section */}
-      <Container maxW="7xl" py={12}>
-        <Heading size="lg" mb={2}>
-          Recently viewed
-        </Heading>
-        <Text as="p" color="gray.600" mb={8}>
-          Catchup where you left!
-        </Text>
+      {
+        recentlyViewed.length > 0 &&
+        <Container maxW="7xl" py={12}>
+          <Heading size="lg" mb={2}>
+            Recently viewed
+          </Heading>
+          <Text as="p" color="gray.600" mb={8}>
+            Catchup where you left!
+          </Text>
 
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
-          {recentlyViewed?.map((listing, index) => (
-            <ListingItemCard key={index} listing={listing} />
-          ))}
-        </SimpleGrid>
-      </Container>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
+            {recentlyViewed?.map((listing, index) => (
+              <ListingItemCard key={index} listing={listing} />
+            ))}
+          </SimpleGrid>
+        </Container>
+      }
 
       {/* Promotional Banner */}
       <Box bg="primary" color="white">
@@ -165,7 +186,7 @@ export default function MainPage() {
                 Explore a range of cars on Motaa, buy from verified car dealerships across the country.
               </Text>
 
-              <Button fontWeight={'600'} bg="tertiary" color="primary" w={{base: '100%', md: '250px'}} size="lg">
+              <Button as={Link} to='/buy/' fontWeight={'600'} bg="tertiary" color="primary" w={{base: '100%', md: '250px'}} size="lg">
                 BUY NOW!
               </Button>
             </Box>
@@ -259,6 +280,32 @@ export default function MainPage() {
              borderRadius="30px" px={'35px'}
             >Mechanic</Tab>
           </TabList>
+
+          <TabPanels>
+            <TabPanel>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
+                {topDeals.sales?.map((listing, index) => (
+                  <ListingItemCard key={index} listing={listing} />
+                ))}
+              </SimpleGrid>
+            </TabPanel>
+
+            <TabPanel>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
+                {topDeals.rentals?.map((listing, index) => (
+                  <ListingItemCard key={index} listing={listing} />
+                ))}
+              </SimpleGrid>
+            </TabPanel>
+            
+            <TabPanel>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
+                {/*{topDeals.services?.map((listing, index) => (
+                  <ListingItemCard key={index} listing={listing} />
+                ))}*/}
+              </SimpleGrid>
+            </TabPanel>
+          </TabPanels>
         </Tabs>
       </Container>
 

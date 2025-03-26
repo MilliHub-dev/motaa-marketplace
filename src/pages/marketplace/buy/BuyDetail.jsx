@@ -2,7 +2,9 @@ import {
     Avatar, Badge, Box, Button, Container,
     Divider, Flex, Heading, Icon, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid,
-    useMediaQuery, Tag,
+    useMediaQuery, Tag, LinkBox,
+    LinkOverlay,
+
 } from "@chakra-ui/react";
 import { Fragment, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -10,6 +12,7 @@ import { GlobalStore } from "../../../App";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
 import {ImageCarousel, LocationBreadcrumb, ListingItemCard} from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
+import { ChatPopup } from "../../../components/chat";
 import { objectifyJSON } from "../../../utils";
 import {HiMiniReceiptPercent} from 'react-icons/hi2';
 import {FaCartPlus} from 'react-icons/fa';
@@ -20,6 +23,7 @@ const BuyDetail = ({ }) => {
     const {listingId} = useParams();
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoadingState] = useState(true);
+    const [showPopup, setPopupState] = useState(false);
     const [listing, setListing] = useState({});
     const {authUser, axios, notify, commaInt} = useContext(GlobalStore);
     const [isMobile] = useMediaQuery('(max-width: 768px)');
@@ -78,18 +82,22 @@ const BuyDetail = ({ }) => {
             </Box>
 
             <Flex my={5} justifyContent={'space-between'} gap={4} flexWrap={'wrap'} alignItems={'flex-start'}>
-                <Stack flex={{base: 'unset', sm: 1, md: 8/12, lg: (8/12)}} w={{base: '100%'}}>
+                <Box flex={{base: 'unset', sm: 1, md: 8/12, lg: (8/12)}} maxW='700px'>
                     <ImageCarousel w={'100%'} height={'350px'} images={listing?.vehicle?.images} />
-                </Stack>
+                </Box>
 
                 <Box flex={{base: 'unset', sm: 1, md: 4/12, lg: (4/12)}} w="100%" border={'2px solid lavender'} borderRadius={'10px'} p={3}>
-                    <Flex gap={2}>
-                        <Avatar name={listing?.vehicle?.dealer?.business_name} src={listing?.vehicle?.dealer?.logo}  />
-                        <Stack>
-                            <Heading size={'sm'}> {listing?.vehicle?.dealer?.business_name} </Heading>
-                            <Text size={'sm'} className="small"> {listing?.vehicle?.dealer?.location} </Text>
-                        </Stack>
-                    </Flex>
+                    <LinkBox>
+                        <LinkOverlay as={Link} to={`/dealership/${listing?.vehicle?.dealer?.uuid}`}>
+                            <Flex gap={2}>
+                                <Avatar name={listing?.vehicle?.dealer?.business_name} src={listing?.vehicle?.dealer?.logo}  />
+                                <Stack>
+                                    <Heading size={'sm'}> {listing?.vehicle?.dealer?.business_name} </Heading>
+                                    <Text size={'sm'} className="small"> {listing?.vehicle?.dealer?.location || 'N/A'} </Text>
+                                </Stack>
+                            </Flex>
+                        </LinkOverlay>
+                    </LinkBox>
 
                     <Box mt={3}>
                         <Flex alignItems="center" gap={3}>
@@ -110,10 +118,16 @@ const BuyDetail = ({ }) => {
                             <Button as={Link} to={`/checkout/?listingId=${listingId}`} bg={'primary'} colorScheme="blue" w={'100%'}> Buy Now </Button>
                             <IconButton variant="outline" colorScheme="blue" icon={<FaCartPlus />} onClick={addToCart} />
                         </Flex>
-                        <Button variant={'outline'} colorScheme="blue" w={'100%'}> Message Seller </Button>
+                        <Button onClick={() => setPopupState(true)} variant={'outline'} colorScheme="blue" w={'100%'}> Message Seller </Button>
                     </Stack>
                 </Box>
             </Flex>
+            <ChatPopup
+             isOpen={showPopup}
+             onClose={() => setPopupState(false)}
+             recipient_type="dealer" 
+             recipient_id={listing?.vehicle?.dealer?.uuid}
+            />
 
             <Stack w={{md: 8/12, lg: (8/12)}} pb="4rem" pt="1.25rem">
                 <Box my={5}>

@@ -34,7 +34,7 @@ import {RxArrowRight} from 'react-icons/rx';
 import faqs from '../data/faqs.json';
 import '../assets/Home.css';
 import ScrollAnimation from 'react-animate-on-scroll';
-import { SearchBar } from '../components';
+import { DashboardSearchBar } from '../components';
 
 const featureList = [
   {
@@ -151,7 +151,7 @@ export const HomePage = ({ props }) => {
                   <Text size="lg"> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
                 </Box>
 
-                <SearchBar onSearch={(query) => console.log(query)} bg="white" color="black" />
+                <DashboardSearchBar onSearch={(query) => console.log(query)} bg="white" color="black" />
 
                 <SimpleGrid
                  placeItems="center"

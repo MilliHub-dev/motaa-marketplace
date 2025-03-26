@@ -103,6 +103,7 @@ function Dashboard({ }) {
 
   useEffect(() => {
     init();
+    
   }, [])
 
   return (
@@ -110,6 +111,14 @@ function Dashboard({ }) {
       <Box py={6} borderBottom="2px solid lavender">
         <Text size="md" className="text" fontWeight="600">Dashboard</Text>
         <Text size="xs" className="small">Welcome back, {authUser?.first_name}👋</Text>
+
+       {/* <Button as="dojah-button"
+          widgetId="67d7e86d69ff1ab7238494d8"
+          // text="Web"
+          // textColor="#FFFFFF"
+          colorScheme="blue"
+          backgroundColor="primary"> Verify your account now!
+        </Button>*/}
       </Box>
 
       <StatsCards />

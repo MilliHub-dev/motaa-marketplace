@@ -4,6 +4,7 @@ import {
     Image, Text,
     useMediaQuery, Icon,
     DrawerContent,
+    Divider,
     DrawerHeader,
     DrawerCloseButton,
     DrawerBody,
@@ -38,8 +39,8 @@ import {motion} from 'framer-motion';
 import {GlobalStore} from '../App';
 import {FcMenu} from 'react-icons/fc';
 import {CheckCircleIcon} from '@chakra-ui/icons'
-import { FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
-import { SearchBar } from '.';
+import { FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { CustomerSearchBar, DashboardSearchBar } from '.';
 import { RiAccountCircleLine, RiBellLine, RiFacebookFill, RiHeadphoneLine, RiInstagramFill, RiLinkedinFill, RiLogoutBoxRLine, RiMenuLine, RiTwitterFill, RiAccountCircleFill } from 'react-icons/ri';
 import { TbBell, TbSearch } from 'react-icons/tb';
 import { HiOutlineShoppingCart } from 'react-icons/hi';
@@ -60,12 +61,13 @@ import {
   Wallet3, Home3, Chart, Shop,
   Chart1, Chart2, Chart21, ChartCircle, ChartFail, ChartSquare, ChartSuccess,
   Coin, Coin1,Money, Money2, Money3, Money4, MoneyAdd, MoneyArchive,
+  User,
   MoneyChange, MoneyForbidden, MoneyRecive, MoneyRemove, MoneySend, MoneyTick, MoneyTime, Moneys
 } from "iconsax-react";
 import { AiOutlineTransaction } from "react-icons/ai";
 
 
-export const BackButton = ({ to, onClick }) => {
+export const BackButton = ({ to, onClick, ...props }) => {
   const redirect = useNavigate();
 
   function goBack(){
@@ -92,6 +94,7 @@ export const BackButton = ({ to, onClick }) => {
      leftIcon={<FaChevronLeft />}
      mb={5}
      onClick={goBack}
+     {...props}
     > Back </Button>
   )
 }
@@ -321,7 +324,7 @@ export const CustomerNavbar = ({ props }) => {
               </Flex>
             }
 
-            {!isMobile && <SearchBar flex={1} />}
+            {!isMobile && <CustomerSearchBar flex={1} />}
 
             <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'nowrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
               {isMobile && 
@@ -387,7 +390,7 @@ export const CustomerNavbar = ({ props }) => {
         {isMobile && searchIsOpen &&
           <Fragment>
             <Box px={2} py={2}  w={'100%'} bg="#fff">
-              <SearchBar />
+              <CustomerSearchBar />
             </Box>
           </Fragment>
         }
@@ -397,7 +400,7 @@ export const CustomerNavbar = ({ props }) => {
 }
 
 
-export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
+export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
   const [navIsOpen, setNavState] = useState(false);
   const [searchIsOpen, setSearchState] = useState(false);
   const {authUser, onLogout} = useContext(GlobalStore);
@@ -460,7 +463,7 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
         <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
           {isMobile ? 
             <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-            : <SearchBar flex={1} />
+            : <DashboardSearchBar flex={1} />
           }
           {isMobile ? (
               <Button
@@ -490,7 +493,7 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
           <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
           <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
 
-          {isMobile &&
+          {(isMobile || props.hideSidebar) &&
             <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
               <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
             </Button>
@@ -501,7 +504,7 @@ export const DealerNavbar = ({ props, sidebarOpen, setSidebarState }) => {
       {isMobile && searchIsOpen &&
         <Fragment>
           <Box px={2} py={2}  w={'100%'} bg="#fff">
-            <SearchBar />
+            <DashboardSearchBar />
           </Box>
         </Fragment>
       }
@@ -577,7 +580,7 @@ export const MechanicNavbar = ({ props }) => {
                     <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
                   </Flex>
 
-                  <SearchBar flex={1} />
+                  <DashboardSearchBar flex={1} />
                 </Flex>
               }
 
@@ -654,7 +657,7 @@ export const MechanicNavbar = ({ props }) => {
         {isMobile && searchIsOpen &&
           <Fragment>
             <Box px={2} py={2}  w={'100%'} bg="#fff">
-              <SearchBar />
+              <DashboardSearchBar />
             </Box>
           </Fragment>
         }
@@ -666,25 +669,33 @@ export const MechanicNavbar = ({ props }) => {
 
 const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   const {logout, authUser} = useContext(GlobalStore);
+  const pathname = document.location.pathname;
+
+  useEffect(() => {
+
+  }, [window.location])
+
    const links = [
-    { icon: Home3, label: 'Dashboard', path: '/dashboard' },
-    { icon: Coin, label: 'Orders', path: '/orders'},
-    { icon: Shop, label: 'Inventory', children: [
-        { icon: GiHomeGarage, label: 'Listings', path: '/inventory' },
-        { icon: GiHomeGarage, label: 'Discounts', path: 'discounts' },
-      ]
-    },
-    { icon: LuChartLine, label: 'Analytics', path: '/analytics', children: [
-      {icon: Chart, label: 'Sales', path: '/sales'}
-    ]},
+    { icon: Home3, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
+    { icon: Coin, label: 'Orders', path: '/orders', active: pathname.includes('orders')},
+    { icon: Shop, label: 'Inventory', path: '/inventory', active: pathname.includes('analytics')},
+    // { icon: Shop, label: 'Inventory', children: [
+    //     { icon: GiHomeGarage, label: 'Listings', path: '/inventory', active: pathname.includes('inventory')},
+    //     { icon: GiHomeGarage, label: 'Discounts', path: '/discounts', active: pathname.includes('inventory')},
+    //   ]
+    // },
+    { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
+    // { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics'), children: [
+    //   {icon: Chart, label: 'Sales', path: '/sales'}
+    // ]},
     // { icon: Chart, label: 'Ads Center', path: '/ads'},
-    { icon: HelpCircle, label: 'Support', path: '/support'},
-    { icon: Settings, label: 'Settings', path: '/settings'},
+    { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
+    { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},
   ]
   return(
     <VStack align="stretch" spacing={6}>
       <HStack spacing={3}>
-        <Avatar size="sm" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
+        <Avatar size="md" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
 
         <Box flex={1}>
           <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
@@ -700,8 +711,17 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
           />
 
           <MenuList py={3} px={3} zIndex={'2 !important'}>
-            <MenuItem> Profile </MenuItem>
-            <MenuItem as={Button} onClick={logout} leftIcon={<RiLogoutBoxRLine />}> Logout </MenuItem>
+            <Box placeItems="center" placeContent="center" p={3}>
+              <Avatar 
+               size="lg"
+               name={`${authUser?.first_name} ${authUser?.first_name}`}
+               />
+              <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.first_name}`} </Heading>
+              <Text> {authUser?.email} </Text>
+            </Box>
+            <Divider my={2} />
+            <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
+            <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
           </MenuList>
         </Menu>
       </HStack>
@@ -720,12 +740,18 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
                     w={'100%'}
                     justifyContent="space-between"
                     alignItems="center"
+                    bgColor={item.active ? 'gray' : 'transparent'}
+                    _expanded={{ bgColor: 'gray', color: 'white'}}
                   >
+                  {({ expanded }) => 
+                    <>
                     <Flex flex={1} gap={3} alignItems="center">
                       <item.icon size={20} />
                       <Text fontWeight="600"> {item.label} </Text>
                     </Flex>
-                    <FaChevronDown />
+                    {expanded ? <FaChevronUp /> : <FaChevronDown />}
+                    </>
+                  }
                   </AccordionButton>
 
                   <AccordionPanel px={0}>
@@ -754,7 +780,7 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
                 </AccordionItem>
               </Accordion>
               ) : (
-                <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+                // <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
                   <Button
                     key={index}
                     as={NavLink}
@@ -771,7 +797,7 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
                     </Flex>
                     {item?.children && !!sidebarOpen && <FaChevronDown />}
                   </Button>
-                </Tooltip>
+                // </Tooltip>
               )
           }
           </Fragment>
@@ -792,21 +818,21 @@ const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
   )
 }
 
-export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose }) => {
+export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose, ...props }) => {
   const [isMobile] = useMediaQuery('(max-width: 768px)');
   const {authUser} = useContext(GlobalStore);
 
 
-  if (isMobile){
+  if (isMobile || props.mode === 'drawer'){
     return(
-      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)}>
+      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)} {...props}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerCloseButton />
           </DrawerHeader>
           
           <DrawerBody>
-            <NavLinks sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
+            <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
           </DrawerBody>
         </DrawerContent>
       </Drawer>
@@ -825,8 +851,9 @@ export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarStat
       zIndex="20"
       borderRightWidth={1}
       p={sidebarOpen ? 6 : 2}
+      {...props}
     >
-      <NavLinks sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} />
+      <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
     </Box>
   )
 }

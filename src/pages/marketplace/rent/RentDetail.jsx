@@ -2,10 +2,15 @@ import { Fragment, useContext, useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { GlobalStore } from "../../../App";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
-import { LocationBreadcrumb} from "../../../components";
+import { LocationBreadcrumb, DatePicker } from "../../../components";
 import { Country, State, City } from 'country-state-city';
 import { ListingDetailSkeleton } from "../../../components/loaders";
-import { ChevronLeft, ChevronRight, Star, Users, DoorOpen, Zap, Gauge, Key, Camera, Music, Smartphone, Sun, BatteryCharging, Shield, CheckCircle, MessageCircle, Heart, Share2 } from 'lucide-react'
+import { 
+  ChevronLeft, ChevronRight, Star, Users,
+  DoorOpen, Zap, Gauge, Key, Camera, Music,
+  Smartphone, Sun, BatteryCharging, Shield,
+  CheckCircle, MessageCircle, Heart, Share2 
+} from 'lucide-react'
 import { objectifyJSON } from "../../../utils";
 import {
   Box,
@@ -28,17 +33,67 @@ import {
   Switch,
   IconButton,
   useColorModeValue,
+  useMediaQuery,
 } from '@chakra-ui/react'
 
 
+const FeatureIcons = [
+  { icon: <Key />, label: 'Keyless Entry' },
+  { icon: <Camera />, label: 'Parking Camera' },
+  { icon: <Music />, label: 'Car Play' },
+  { icon: <Smartphone />, label: 'Android Auto' },
+  { icon: <Sun />, label: 'Sun Roof' },
+  { icon: <BatteryCharging />, label: 'USB-C Charging' },
+  { icon: <Shield />, label: 'Lane Assist' },
+  { icon: <Zap />, label: 'Wireless Charging' },
+]
+
+
+// Feature Card Component
+
+function FeatureCard({ feature }) {
+  const iconObj = FeatureIcons.find((feat) => feat.label.toLowerCase() === feature.toLowerCase());
+
+  return (
+    <HStack spacing={3}>
+      <Box
+        px={4}
+        py={3}
+        bg="lavender"
+        borderRadius="full"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {iconObj ? iconObj.icon : <Text>❓</Text>} {/* Fallback if no icon found */}
+      </Box>
+      <Text fontSize="md">{feature}</Text>
+    </HStack>
+  );
+}
+
+
 // Image Carousel Component
-function ImageCarousel({ images }) {
-  const [currentImage, setCurrentImage] = useState(0)
+function ImageCarousel({ ...props }) {
+  const [currentImage, setCurrentImage] = useState(0);
+  const [images, setImages] = useState([])
+  const [loading, setLoadingState] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => setLoadingState(false), 500);
+    if (props.images){
+      setImages(props.images)
+    }
+  }, [])
+
+  if(loading){
+    return null
+  }
 
   return (
     <Box position="relative">
       <Image
-        src={images[currentImage].url}
+        src={images[currentImage]?.url}
         alt="Vehicle"
         w="full"
         h="400px"
@@ -52,7 +107,7 @@ function ImageCarousel({ images }) {
         transform="translateX(-50%)"
         spacing={2}
       >
-        {images.map((_, index) => (
+        {images?.map((_, index) => (
           <Box
             key={index}
             w={index === currentImage ? 7 : 2}
@@ -72,7 +127,7 @@ function ImageCarousel({ images }) {
         left={4}
         top="50%"
         transform="translateY(-50%)"
-        onClick={() => setCurrentImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+        onClick={() => setCurrentImage((prev) => (prev > 0 ? prev - 1 : images?.length - 1))}
         variant="solid"
         colorScheme="blackAlpha"
         aria-label="Previous image"
@@ -85,7 +140,7 @@ function ImageCarousel({ images }) {
         right={4}
         top="50%"
         transform="translateY(-50%)"
-        onClick={() => setCurrentImage((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+        onClick={() => setCurrentImage((prev) => (prev < images?.length - 1 ? prev + 1 : 0))}
         variant="solid"
         colorScheme="blackAlpha"
         aria-label="Next image"
@@ -93,26 +148,6 @@ function ImageCarousel({ images }) {
     </Box>
   )
 }
-
-// Feature Card Component
-function FeatureCard({ icon, label }) {
-  return (
-    <HStack spacing={3}>
-      <Box
-        px={4}
-        py={3}
-        bg="lavender"
-        borderRadius="full"
-        spacing={3}
-        placeItems="center"
-      >
-        <Icon size="27px" as={icon} />
-      </Box>
-      <Text fontSize="md">{label}</Text>
-    </HStack>
-  )
-}
-
 
 // Review Card Component
 function ReviewCard({ name, rating, date, comment, avatar }) {
@@ -193,21 +228,22 @@ export default function RentalDetails() {
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoadingState] = useState(true);
     const [listing, setListing] = useState();
-    const {authUser, axios, notify, commaInt} = useContext(GlobalStore);
+    const {authUser, axios, notify, commaInt, otherContext, setOtherContext} = useContext(GlobalStore);
+    const [isMobile] = useMediaQuery('(max-width: 768px)');
 
     async function getData(){
-        try{
-
-            const res = await axios.get(`/listings/rentals/${listingId}/`);
-            let data = objectifyJSON(res.data);
-            if (res.status === 200){
-                setListing(data.data.listing);
-                setRecommended(data.data.recommended);
-                console.log(data.data.listing)
-            }
-        }catch(error){
-            
+      try{
+        // console.log("Other Context", oth)
+        const res = await axios.get(`/listings/rentals/${listingId}/`);
+        let data = objectifyJSON(res.data);
+        if (res.status === 200){
+            setListing(data.data.listing);
+            setRecommended(data.data.recommended);
+            console.log(data.data)
         }
+      }catch(error){
+          
+      }
     }
 
     function init(){
@@ -215,24 +251,13 @@ export default function RentalDetails() {
     }
 
     useEffect(() => {
-        init();
-        setTimeout(() => setLoadingState(false), 2500)
+      init();
+      setTimeout(() => setLoadingState(false), 2500)
     }, []);
 
     if (loading){
         return <ListingDetailSkeleton />
     }
-
-  const features = [
-    { icon: Key, label: 'Keyless Entry' },
-    { icon: Camera, label: 'Parking Camera' },
-    { icon: Music, label: 'Car Play' },
-    { icon: Smartphone, label: 'Android Auto' },
-    { icon: Sun, label: 'Moon Roof' },
-    { icon: BatteryCharging, label: 'USB C Charging' },
-    { icon: Shield, label: 'Lane Assist' },
-    { icon: Zap, label: 'Wireless Charging' },
-  ]
 
   const ratings = {
     Cleanliness: 4.8,
@@ -248,14 +273,17 @@ export default function RentalDetails() {
             <LocationBreadcrumb label={listing?.title} />
 
             <Grid
-             templateColumns={{ base: '1fr', lg: '2fr 1fr' }}
-             templateAreas={{lg: `"listing form"`}}
+             templateColumns={{base: '1fr', md: '2fr 1fr' }}
+             templateAreas={{base: 'unset', md: `"listing form"`}}
              mt={10}
              gap={8}
-             // gridTemplateAreas={{ base: 'form listing', md: 'listing form' }}
-            >              
+            >
+
+              {/* Right Column - Booking Form */}
+              <BookingForm listing={listing} gridArea={{base:'unset', md: "form"}} />
+
               {/* Left Column */}
-              <Box gridArea="listing">
+              <Box gridArea={{base:'unset', lg: "listing"}}>
                 <ImageCarousel
                   images={listing?.vehicle?.images}
                 />
@@ -270,23 +298,21 @@ export default function RentalDetails() {
                         <Text color="gray.500">(5 leases)</Text>
                       </HStack>
                     </Box>
-                    <Heading size="lg">₦{commaInt(listing?.price)}<Text className="small" color="gray.700" fontWeight="light" as="span">/{listing?.cycle}</Text></Heading>
+                    <Heading size="lg">₦{commaInt(listing?.price)}<Text className="small" color="gray.700" fontWeight="light" as="span">/{listing?.payment_cycle}</Text></Heading>
                   </HStack>
 
                   <Box mb={8}>
                     <Heading size="md" fontWeight={'500'} mb={4}>Description</Heading>
                     <Text color="gray.600" borderRadius="10px" px={2} py={3} border="1px solid gray">
-                      Experience luxury redefined with our 2023 Rolls Royce Ghost. 
-                      This masterpiece combines timeless elegance with cutting-edge technology, 
-                      offering an unparalleled driving experience.
+                      {listing?.notes}
                     </Text>
                   </Box>
 
                   <Box mb={8}>
                     <Heading size="md" mb={4} fontWeight={'500'}>Features & Accessories</Heading>
-                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                      {features.map((feature, index) => (
-                        <FeatureCard key={index} {...feature} />
+                    <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={4}>
+                      {listing?.vehicle?.features.map((feature, index) => (
+                        <FeatureCard key={index} feature={feature} />
                       ))}
                     </SimpleGrid>
                   </Box>
@@ -328,7 +354,7 @@ export default function RentalDetails() {
                     <VStack align="stretch" spacing={2} mb={8}>
                       {Object.entries(ratings).map(([category, rating]) => (
                         <Box key={category}>
-                          <SimpleGrid columns={3} justify="space-between">
+                          <SimpleGrid columns={3} justify="space-between" alignItems="center" spacing={2}>
                             <Text>{category}</Text>
                             <Progress size="sm" value={(100/2 - rating * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
                             <Text color="gray.500">({rating})</Text>
@@ -350,24 +376,36 @@ export default function RentalDetails() {
                       ))}
                     </VStack>
 
-                    <Button variant="outline" color="primary" colorScheme="blue">
+                    <Button as={Link} to={`/dealership/${listing?.vehicle?.dealer?.uuid}`} variant="outline" color="primary" colorScheme="blue">
                       See more reviews
                     </Button>
                   </Box>
 
-                  <Box>
-                    <Heading size="md" mb={4} fontWeight={'500'}>Recommended cars for you</Heading>
-                    <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                      {recommended?.map((car, index) => (
-                        <CarCard key={index} {...car} />
-                      ))}
-                    </SimpleGrid>
-                  </Box>
+                  
+                  <Stack display={recommended?.length < 1 &&  'none'}>
+                      <Heading textAlign="center" size="md" my={3}> Recommended Cars for You </Heading>
+
+                      <SimpleGrid
+                       minChildWidth="300px"
+                       maxChildWidth={'350px'}
+                       placeItems={isMobile ? 'center' : 'unset'}
+                       gap={8}
+                       spacing={8}
+                       columns={{base: 1, md: 2, lg: 3, xl: 4}}
+                      >
+                          {recommended?.map((listing, idx) =>
+                              <ListingItemCard
+                               listing={listing}
+                               key={idx}
+                               w="100%"
+                               maxW={'350px'}
+                              />
+                          )}
+                      </SimpleGrid>
+                  </Stack>
+
                 </Box>
               </Box>
-
-              {/* Right Column - Booking Form */}
-              <BookingForm  gridArea="form" />
             </Grid>
       </Container>
     </Box>
@@ -376,7 +414,13 @@ export default function RentalDetails() {
 
 
 
-const BookingForm = ({ props }) => {
+const BookingForm = ({ listing, ...props }) => {
+  const {authUser, axios, notify, commaInt, otherContext, setOtherContext} = useContext(GlobalStore);
+  const [from, setFrom] = useState(otherContext?.rental?.from);
+  const [until, setUntil] = useState(otherContext?.rental?.until);
+  const [where, setLocation] = useState(otherContext?.rental?.where);
+
+  console.log("Other context:", otherContext.rental)
 
   return(
     <Box {...props}>
@@ -390,25 +434,17 @@ const BookingForm = ({ props }) => {
         <VStack spacing={4} align="stretch">
           <Box>
             <Text mb={2}>From</Text>
-            <Input type="datetime-local" />
+            <DatePicker defaultValue={from} onChange={val => setFrom(val)} w="100%" />
           </Box>
+          
           <Box>
             <Text mb={2}>Until</Text>
-            <Input type="datetime-local" />
+            <DatePicker defaultValue={until} onChange={val => setUntil(val)} w="100%" />
           </Box>
+
           <Box>
-            <Text mb={2}>Pickup Location</Text>
-            <Select placeholder="Select location">
-              <option>Lagos Phase 1</option>
-              <option>Abuja Central</option>
-            </Select>
-          </Box>
-          <Box>
-            <Text mb={2}>Return Location</Text>
-            <Select placeholder="Select location">
-              <option>Lagos Phase 1</option>
-              <option>Abuja Central</option>
-            </Select>
+            <Text mb={2}>Location</Text>
+            <Input type="address" name="location" onInput={e => setLocation(e.target.value)} value={where} placeholder="Select location" />
           </Box>
 
           <HStack justify="space-between">
@@ -416,7 +452,15 @@ const BookingForm = ({ props }) => {
             <Switch colorScheme="blue" />
           </HStack>
 
-          <Button colorScheme="blue" bg="primary" size="lg" borderRadius="10px">
+          <Button
+           as={Link}
+           to={`/checkout/?listingId=${listing?.uuid}`}
+           colorScheme="blue"
+           bg="primary"
+           size="lg"
+           isDisabled={where?.trim() ? false : true}
+           borderRadius="10px"
+          >
             Book Rental
           </Button>
         </VStack>

@@ -4,7 +4,8 @@ import {
     Container, Divider, Flex, Heading, HStack, Image,
     Menu, MenuButton, MenuItem, MenuList, Switch, Text,
     ButtonGroup, Checkbox, Input, SimpleGrid,
-    useMediaQuery,
+    useMediaQuery, Tag, TagLabel, TagCloseButton,
+
 
 } from "@chakra-ui/react"
 import { Fragment, useContext, useEffect, useState } from "react"
@@ -26,7 +27,7 @@ TransmissionFilter,
 const BuyListing = ({ }) => {
     const [listings, setListings] = useState([]);
     const [matches, setMatches] = useState([]);
-    const [appliedFilters, setAppliedFilters] = useState([]);
+    const [appliedFilters, setAppliedFilters] = useState({});
     const [data, setData] = useState(null);
     const [carType, setCarType] = useState('new');
     const {axios, notify, commaInt} = useContext(GlobalStore);
@@ -101,23 +102,37 @@ const BuyListing = ({ }) => {
      * e.g { filter: 'price', value: 1200000-5000000}
      * 
      * */
-    function applyFilter({filter, value}){
-        let url = window.location.search;
-        const params = new URLSearchParams(url);
-        const _filters = appliedFilters;
-        params.delete(filter);
+    function applyFilter({ filter, value }) {
+        const params = new URLSearchParams();
 
-        if (!_filters.includes(filter) && Boolean(value)){
-            _filters.push(filter);
-            params.append(filter, value);
-        }else if (_filters.includes(filter) && !Boolean(value)){
-            _filters.splice(_filters.indexOf(filter), 1);
+        // Create a new copy of appliedFilters to avoid mutations
+        let updatedFilters = { ...appliedFilters };
+
+        if (Boolean(value)) {
+            // Add/update the filter value
+            updatedFilters[filter] = value;
+        } else {
+            // Remove the filter if the value is falsy
+            delete updatedFilters[filter];
         }
-        setAppliedFilters([ ..._filters ]);
 
-        // convert filterList to url param
-        getData(`/listings/buy/?${params.toLocaleString()}`);
+        // Convert appliedFilters to URL parameters
+        Object.entries(updatedFilters).forEach(([key, val]) => {
+            params.set(key, val);
+        });
+
+        setAppliedFilters(updatedFilters);
+        console.log("Applied filters", appliedFilters)
+
+        // Send updated filter parameters to the server
+        getData(`/listings/buy/?${params.toString()}`);
     }
+
+    function removeFilter(filter) {
+        applyFilter({ filter, value: null }); // Pass a falsy value to trigger removal logic
+    }
+
+
 
     function init(){
         getData();
@@ -130,7 +145,7 @@ const BuyListing = ({ }) => {
 
     useEffect(() => {
 
-    }, [listings, carType])
+    }, [listings, carType,])
 
     const filters = [
         <CarBrandFilter onChange={applyFilter} />,
@@ -187,16 +202,11 @@ const BuyListing = ({ }) => {
                         filters.map((filter, idx) => (filter))
                     }
                 </Flex>
-
-                {
-                    appliedFilters?.length > 0 && (
-                        <Heading> You've applied {appliedFilters.length} filters </Heading>
-                    )
-                }
+                
+                <FilterList appliedFilters={appliedFilters} onRemove={removeFilter} />
 
                 <SimpleGrid
                  minChildWidth="300px"
-                 maxChildWidth={'350px'}
                  placeItems={isMobile ? 'center' : 'unset'}
                  gap={8}
                  spacing={8}
@@ -204,7 +214,7 @@ const BuyListing = ({ }) => {
                 >
                     {
                         carType === 'new' ? (
-                            listings.filter((listing) => ['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
+                            listings?.filter((listing) => ['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
                                 <ListingItemCard
                                  listing={listing}
                                  key={idx}
@@ -213,7 +223,7 @@ const BuyListing = ({ }) => {
                                 />
                             )
                         ):(
-                            listings.filter((listing) => !['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
+                            listings?.filter((listing) => !['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
                                 <ListingItemCard
                                  listing={listing}
                                  key={idx}
@@ -231,6 +241,26 @@ const BuyListing = ({ }) => {
     )
 }
 
+
+const FilterList = ({ appliedFilters, onRemove }) => {
+    useEffect(() => {
+
+    }, [appliedFilters]);
+
+    return(
+        <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
+            {
+                Object.keys(appliedFilters)?.map((key, idx) => 
+                    <Tag size="lg" key={idx} variant="outline" colorScheme="blue" borderColor="primary">
+                        <TagLabel textTransform="capitalize">{key}: {appliedFilters[key]}</TagLabel>
+                        <TagCloseButton onClick={() => onRemove(key)} />
+                    </Tag>
+                )
+            }
+        </Flex>
+    )
+
+}
 
 // Image Carousel Component
 function BannerCarousel({ images }) {

@@ -167,7 +167,11 @@ body * {
   text-align: 'center';
 }
 
+.w-full{
+  width: 100%;
+}
 
-
-
+div.map-wrapper > div > div{
+  border-radius: 10px;
+}
 
