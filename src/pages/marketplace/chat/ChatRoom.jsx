@@ -33,7 +33,7 @@ function ChatRoom() {
   const {authUser, axios} = useContext(GlobalStore);
   const [socket, setSocket] = useState(null);
   const {room} = useParams();
-  const socketUrl = DEBUG ? 'ws://localhost:8000' : 'wss://dev.motaa.net'
+  const socketUrl = DEBUG ? 'ws://localhost:8000' : 'wss://server.motaa.net'
 
   async function getData(){
     const res = await axios.get(`/chat/chats/${room}/`);
