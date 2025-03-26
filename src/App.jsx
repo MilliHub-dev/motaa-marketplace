@@ -73,7 +73,7 @@ export const GlobalStore = createContext({
   commaInt: undefined,
 });
 
-const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
+const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
 
   
 function App() {
@@ -84,7 +84,7 @@ function App() {
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
     // baseURL: 'https://motaadev.pythonanywhere.com/api/v1',
-    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://motaadev.pythonanywhere.com/api/v1',
+    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
