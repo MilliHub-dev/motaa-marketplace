@@ -141,7 +141,8 @@ export default function MainPage() {
 
             <Box position="relative" gridArea="image">
               <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
-              <Box position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
+              <Box width="100px" position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
+                {/*<Image w="100%" lazy src="/assets/images/buy-widget.svg" h="auto" />*/}
               </Box>
             </Box>
           </Grid>
@@ -150,7 +151,7 @@ export default function MainPage() {
 
       {/* Recently Viewed Section */}
       {
-        recentlyViewed.length > 0 &&
+        recentlyViewed?.length > 0 &&
         <Container maxW="7xl" py={12}>
           <Heading size="lg" mb={2}>
             Recently viewed
@@ -284,7 +285,7 @@ export default function MainPage() {
           <TabPanels>
             <TabPanel>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
-                {topDeals.sales?.map((listing, index) => (
+                {topDeals?.sales?.map((listing, index) => (
                   <ListingItemCard key={index} listing={listing} />
                 ))}
               </SimpleGrid>
@@ -292,7 +293,7 @@ export default function MainPage() {
 
             <TabPanel>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={8}>
-                {topDeals.rentals?.map((listing, index) => (
+                {topDeals?.rentals?.map((listing, index) => (
                   <ListingItemCard key={index} listing={listing} />
                 ))}
               </SimpleGrid>
