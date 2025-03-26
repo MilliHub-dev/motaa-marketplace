@@ -24,7 +24,7 @@ import {useParams} from 'react-router-dom';
 
 
 function ChatRoom() {
-  const DEBUG = import.meta.env.VITE_DEBUG || false;
+  const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
   const [chatRoom, setChatRoom] = useState({});
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
