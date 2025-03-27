@@ -84,7 +84,7 @@ function ChatRoom() {
   const otherPerson = members?.find(mem => mem.email !== authUser.email)
 
   return (
-    <VStack position="absolute" top="0px" h="100%" left={"0px"} spacing={0} w="100%">
+    <VStack position="absolute" top="0px" h="90%" left={"0px"} spacing={0} w="100%">
       <HStack
         w="full"
         px={6}
@@ -92,7 +92,6 @@ function ChatRoom() {
         borderBottomWidth={1}
         justify="space-between"
       >
-
         <HStack spacing={4}>
           <Button as={Link} to='/chat/' variant="ghost"> <CloseIcon size="30px" /> </Button>
           <Avatar
