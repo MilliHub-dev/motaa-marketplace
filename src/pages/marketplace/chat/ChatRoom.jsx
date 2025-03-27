@@ -19,8 +19,8 @@ import { Search, Phone, Send, Smile, Mic, MoreVertical, Check, PlayCircle } from
 import { useState, useEffect, useContext } from 'react';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON} from '../../../utils';
-import {useParams} from 'react-router-dom';
-
+import {useParams, Link} from 'react-router-dom';
+import {ChevronLeftIcon, CloseIcon} from '@chakra-ui/icons';
 
 
 function ChatRoom() {
@@ -92,7 +92,9 @@ function ChatRoom() {
         borderBottomWidth={1}
         justify="space-between"
       >
+
         <HStack spacing={4}>
+          <Button as={Link} to='/chat/' variant="ghost"> <CloseIcon size="30px" /> </Button>
           <Avatar
             size="sm"
             name={otherPerson?.name}

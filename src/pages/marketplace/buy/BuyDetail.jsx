@@ -32,7 +32,6 @@ const BuyDetail = ({ }) => {
         const res = await axios.get(`/listings/buy/${listingId}/`);
         if (res.status === 200){
             let data = objectifyJSON(res.data);
-            console.log("Viewing ", data);
             setListing(data.data.listing);
             setRecommended(data.data.recommended);
         }
@@ -61,11 +60,11 @@ const BuyDetail = ({ }) => {
 
     function init(){
         getData();
+        setTimeout(() => setLoadingState(false), 2500)
     }
 
     useEffect(() => {
         init();
-        setTimeout(() => setLoadingState(false), 2500)
     }, []);
 
     if (loading){
@@ -81,12 +80,31 @@ const BuyDetail = ({ }) => {
                 <Text> {listing?.vehicle?.dealer?.location} </Text>
             </Box>
 
-            <Flex my={5} justifyContent={'space-between'} gap={4} flexWrap={'wrap'} alignItems={'flex-start'}>
-                <Box flex={{base: 'unset', sm: 1, md: 8/12, lg: (8/12)}} maxW='700px'>
+            <Flex
+             my={5}
+             // justifyContent={'space-between'}
+             alignItems={"flex-start"}
+             gap={4}
+              // direction={{ base: "column", md: "row" }} // Stack on mobile, row on larger screens
+              wrap="wrap"
+            >
+                <Box
+                    flex={{ base: "1 1 100%", md: "1 1 55%", lg: "1 1 65%" }} 
+                    maxW={{ md: "60%", lg: "80%" }} 
+                    w="100%"
+                >
                     <ImageCarousel w={'100%'} height={'350px'} images={listing?.vehicle?.images} />
                 </Box>
 
-                <Box flex={{base: 'unset', sm: 1, md: 4/12, lg: (4/12)}} w="100%" border={'2px solid lavender'} borderRadius={'10px'} p={3}>
+                <Box
+                    flex={{ base: "1 1 100%", md: "1 1 40%", lg: "1 1 30%" }} 
+                    maxW={{ md: "40%", lg: "40%" }}
+                    maxH="max-content"
+                    w="100%"
+                    border="2px solid lavender"
+                    borderRadius="10px"
+                    p={3}
+                >
                     <LinkBox>
                         <LinkOverlay as={Link} to={`/dealership/${listing?.vehicle?.dealer?.uuid}`}>
                             <Flex gap={2}>
@@ -122,6 +140,7 @@ const BuyDetail = ({ }) => {
                     </Stack>
                 </Box>
             </Flex>
+
             <ChatPopup
              isOpen={showPopup}
              onClose={() => setPopupState(false)}

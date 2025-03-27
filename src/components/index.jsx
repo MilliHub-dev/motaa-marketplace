@@ -23,6 +23,7 @@ import {
     useDisclosure,
     Tag,
     AspectRatio,
+    Avatar,
     Select,
     useColorModeValue,
     Menu,
@@ -32,6 +33,7 @@ import {
     BreadcrumbItem,
     BreadcrumbLink,
     Breadcrumb,
+    SimpleGrid,
     NumberInput,
     NumberInputField,
     NumberInputStepper,
@@ -41,6 +43,7 @@ import {
     PopoverTrigger,
     PopoverContent,
     PopoverBody,
+    Progress,
 } from '@chakra-ui/react';
 import {Fragment, useContext, useEffect, useState, useRef} from 'react';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiSearch2Line } from 'react-icons/ri'
@@ -52,11 +55,97 @@ import { TbManualGearbox } from 'react-icons/tb';
 import { BsFillPatchCheckFill } from 'react-icons/bs';
 import { GlobalStore } from '../App';
 import { FcCheckmark } from 'react-icons/fc';
-import { Leaf } from 'lucide-react';
+import { Leaf, Star } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, StarIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CalendarIcon, TimeIcon } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
 import { addMonths, endOfMonth, format, isSameDay, isSameMonth, isToday, startOfMonth, subMonths } from "date-fns"
+
+
+export const RatingCard = ({ avg_rating, ratings }) => {
+  const categories = {}
+  let count = 0;
+
+  for(let rating of ratings){
+    count++;
+    const keys = Object.keys(rating);
+    for(let key of keys){
+      if (typeof categories[key] === Number){
+        categories[`${key}`] += rating[`${key}`]
+      }else{
+        categories[`${key}`] = rating[`${key}`]
+      }
+    }
+  }
+  
+  const keys = Object.keys(categories);
+  for(let key of keys){
+    console.log(key, "has", categories[key])
+    categories[`${key}`] = categories[`${key}`]/count
+  }
+
+
+
+  return(
+    <Box mb={8}>
+      <Heading size="md" mb={4} fontWeight={'500'}>Ratings & reviews</Heading>
+      <HStack spacing={2} mb={6}>
+        <Heading size="lg">{avg_rating}</Heading>
+        <Icon as={StarIcon} color="yellow.400" w={6} h={6} />
+      </HStack>
+
+      <VStack align="stretch" spacing={2} mb={8}>
+        {Object.keys(categories)?.map((category, idx) => (
+          <Box key={idx}>
+            <SimpleGrid columns={2} justify="space-between" alignItems="center" spacing={2}>
+              <Text flex={1} colSpan={3} textTransform="capitalize">{category}</Text>
+              <Flex alignItems="center" gap={2}>
+                <Progress size="sm" value={(categories[category] * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
+                <Text color="gray.500">({categories[category]})</Text>
+              </Flex>
+            </SimpleGrid>
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  )
+}
+
+
+// Review Card Component
+export function ReviewCard({ review }) {
+  // const {reviewer, avg_rating, date, comment} = review;
+
+  return (
+    <Box pb={6} borderBottom="1px solid lavender">
+      <HStack mb={2}>
+        <Avatar size="sm" name={review?.reviewer?.name} src={review?.reviewer?.image} />
+        <VStack spacing={-1} placeItems="flex-start">
+          <HStack>
+            <Text fontWeight="bold">{review?.reviewer?.name}</Text>
+            <HStack spacing={1}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Icon
+                  key={i}
+                  as={Star}
+                  color={i < review?.avg_rating ? "yellow.400" : "gray.300"}
+                  fill={i < review?.avg_rating ? "currentColor" : "none"}
+                  w={3}
+                  h={3}
+                />
+              ))}
+            </HStack>
+          </HStack>
+          <Text fontSize="sm" color="gray.500"> {review?.date} </Text>
+        </VStack>
+      </HStack>
+      <Text color="gray.600" fontSize="sm">
+        {review?.comment}
+      </Text>
+    </Box>
+  )
+}
+
 
 export function CalendarPicker({
   className,
@@ -1243,28 +1332,38 @@ export function ImageCarousel({ images, ...props }) {
 }
 
 
+
 export const LocationBreadcrumb = ({ label }) => {
-  // Get the current URL from window.location.pathname (remove protocol and domain)
   const path = window.location.pathname;
-  
-  // Split the path into individual segments (remove any empty strings from the array)
+
+  // If on home, return only the home breadcrumb
+  if (path === '/' || path === '/home/') {
+    return (
+      <Breadcrumb alignItems="center" separator={<ChevronRightIcon />}>
+        <BreadcrumbItem>
+          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+      </Breadcrumb>
+    );
+  }
+
+  // Split path into segments and remove empty strings
   const pathSegments = path.split('/').filter(segment => segment);
 
-  // Initialize the breadcrumb items
+  // Generate breadcrumb links (excluding last segment)
   const breadcrumbItems = pathSegments.slice(0, -1).map((segment, index) => {
-    // Construct the path up to the current segment (excluding the last one)
     const routeTo = '/' + pathSegments.slice(0, index + 1).join('/');
 
     return (
       <BreadcrumbItem key={index}>
-        <BreadcrumbLink as={Link} to={routeTo} textTransform={'capitalize'}>
-          {segment.replace(/-/g, ' ')} {/* Replace hyphens with spaces */}
+        <BreadcrumbLink as={Link} to={routeTo} textTransform="capitalize">
+          {segment.replace(/-/g, ' ')}
         </BreadcrumbLink>
       </BreadcrumbItem>
     );
   });
 
-  // Add the label as the final breadcrumb, without a link
+  // Add final non-clickable label
   breadcrumbItems.push(
     <BreadcrumbItem key="current" isCurrentPage>
       <BreadcrumbLink>{label}</BreadcrumbLink>
@@ -1272,10 +1371,12 @@ export const LocationBreadcrumb = ({ label }) => {
   );
 
   return (
-    <Breadcrumb separator=">">
-      <BreadcrumbItem>
-        <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
-      </BreadcrumbItem>
+    <Breadcrumb alignItems={'center'} separator={<ChevronRightIcon />}>
+      {/*{breadcrumbItems &&
+        <BreadcrumbItem>
+          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+      }*/}
       {breadcrumbItems}
     </Breadcrumb>
   );

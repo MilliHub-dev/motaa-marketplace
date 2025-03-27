@@ -22,17 +22,17 @@ import {objectifyJSON} from '../../../utils';
 import {useParams, Outlet, Link} from 'react-router-dom';
 
 
-function ChatSidebar({ conversations, activeId, onSelect }) {
+function ChatSidebar({ conversations, activeId, onSelect, ...props }) {
 
   return (
     <Box
       w="300px"
       borderRightWidth={1}
-      // top="px"
       position="relative"
       h="calc(100vh - 65px)"
       overflow="auto"
       py={4}
+      {...props}
     >
       <VStack spacing={4} align="stretch" px={4}>
         <HStack justify="space-between">
@@ -134,6 +134,8 @@ function ChatLayout() {
           conversations={conversations}
           activeId={activeConversation}
           onSelect={setActiveConversation}
+          width={isMobile ? '100%' : '300px'}
+          display={(room && isMobile) && 'none'}
         />
 
         {

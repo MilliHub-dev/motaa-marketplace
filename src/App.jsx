@@ -200,9 +200,9 @@ function App() {
   }  
   
   return (
-    <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>
     <ChakraProvider theme={BrandColors}>
     <ErrorBoundary>
+      {/*<LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>*/}
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
           <Routes ErrorBoundary={ErrorBoundary}>
@@ -289,9 +289,9 @@ function App() {
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>
+      {/*</LoadScript>*/}
     </ErrorBoundary>
     </ChakraProvider>
-    </LoadScript>
   );
 }
 

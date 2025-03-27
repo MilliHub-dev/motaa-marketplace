@@ -2,7 +2,7 @@ import { Fragment, useContext, useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { GlobalStore } from "../../../App";
 import { RxCaretLeft, RxCaretRight } from "react-icons/rx";
-import { LocationBreadcrumb, DatePicker } from "../../../components";
+import { LocationBreadcrumb, DatePicker, ReviewCard, RatingCard,  } from "../../../components";
 import { Country, State, City } from 'country-state-city';
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { 
@@ -47,9 +47,6 @@ const FeatureIcons = [
   { icon: <Shield />, label: 'Lane Assist' },
   { icon: <Zap />, label: 'Wireless Charging' },
 ]
-
-
-// Feature Card Component
 
 function FeatureCard({ feature }) {
   const iconObj = FeatureIcons.find((feat) => feat.label.toLowerCase() === feature.toLowerCase());
@@ -149,82 +146,14 @@ function ImageCarousel({ ...props }) {
   )
 }
 
-// Review Card Component
-function ReviewCard({ name, rating, date, comment, avatar }) {
-  return (
-    <Box pb={6} borderBottom="1px solid lavender">
-      <HStack mb={2}>
-        <Avatar size="sm" name={name} src={avatar} />
-        <VStack spacing={-1} placeItems="flex-start">
-          <HStack>
-            <Text fontWeight="bold">{name}</Text>
-            <HStack spacing={1}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Icon
-                  key={i}
-                  as={Star}
-                  color={i < rating ? "yellow.400" : "gray.300"}
-                  fill={i < rating ? "currentColor" : "none"}
-                  w={3}
-                  h={3}
-                />
-              ))}
-            </HStack>
-          </HStack>
-          <Text fontSize="sm" color="gray.500"> {date} </Text>
-        </VStack>
-      </HStack>
-      <Text color="gray.600" fontSize="sm">
-        {comment}
-      </Text>
-    </Box>
-  )
-}
-
-
-// Car Card Component
-function CarCard({ image, title, price, rating, reviews, host }) {
-  return (
-    <Box
-      borderWidth="1px"
-      borderRadius="lg"
-      overflow="hidden"
-      bg="white"
-      _hover={{ transform: 'translateY(-4px)', transition: 'transform 0.2s' }}
-    >
-      <Image
-        src={image || "/placeholder.svg?height=200&width=300"}
-        alt={title}
-        h="200px"
-        w="full"
-        objectFit="cover"
-      />
-      <Box p={4}>
-        <HStack justify="space-between" mb={2}>
-          <Heading size="sm">{title}</Heading>
-          <Badge colorScheme="blue">VERIFIED</Badge>
-        </HStack>
-        <HStack spacing={1} mb={2}>
-          <Icon as={Star} color="yellow.400" />
-          <Text>{rating}</Text>
-          <Text color="gray.500">({reviews} reviews)</Text>
-        </HStack>
-        <Text fontWeight="bold" fontSize="xl" color="blue.600">
-          ₦{price.toLocaleString()}/hour
-        </Text>
-        <Text fontSize="sm" color="gray.500">
-          by {host}
-        </Text>
-      </Box>
-    </Box>
-  )
-}
 
 
 export default function RentalDetails() {
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedTime, setSelectedTime] = useState('')
     const {listingId} = useParams();
+    const [reviews, setReviews] = useState([]);
+    const [ratings, setRatings] = useState([]);
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoadingState] = useState(true);
     const [listing, setListing] = useState();
@@ -237,12 +166,18 @@ export default function RentalDetails() {
         const res = await axios.get(`/listings/rentals/${listingId}/`);
         let data = objectifyJSON(res.data);
         if (res.status === 200){
-            setListing(data.data.listing);
-            setRecommended(data.data.recommended);
-            console.log(data.data)
+          setListing(data.data.listing);
+          setRecommended(data.data.recommended);
+          let rats = [], _reviews = data.data.listing.vehicle.dealer.reviews;
+          setReviews(_reviews)
+          for(var i=0; i < _reviews?.length; i++){
+            console.log("Rat:", _reviews[i].ratings)
+            rats.push(_reviews[i].ratings);
+          }
+          setRatings(rats)
         }
       }catch(error){
-          
+        console.log("Error getting ratings", error)
       }
     }
 
@@ -256,16 +191,8 @@ export default function RentalDetails() {
     }, []);
 
     if (loading){
-        return <ListingDetailSkeleton />
+      return <ListingDetailSkeleton />
     }
-
-  const ratings = {
-    Cleanliness: 4.8,
-    Communication: 4.7,
-    Maintenance: 4.9,
-    Accuracy: 4.8,
-    Convenience: 4.9,
-  }
 
   return (
     <Box minH="100vh">
@@ -310,7 +237,7 @@ export default function RentalDetails() {
 
                   <Box mb={8}>
                     <Heading size="md" mb={4} fontWeight={'500'}>Features & Accessories</Heading>
-                    <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={4}>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
                       {listing?.vehicle?.features.map((feature, index) => (
                         <FeatureCard key={index} feature={feature} />
                       ))}
@@ -333,8 +260,8 @@ export default function RentalDetails() {
                         </HStack>
                         <HStack spacing={1}>
                           <Icon as={Star} color="tertiary" fill="tertiary" />
-                          <Text>5.0</Text>
-                          <Text color="gray.500">(234 reviews)</Text>
+                          <Text>{listing?.vehicle?.dealer?.rating}</Text>
+                          <Text color="gray.500">({reviews?.length} review{reviews?.length > 1 && 's'})</Text>
                         </HStack>
                       </Box>
                     </HStack>
@@ -343,45 +270,28 @@ export default function RentalDetails() {
                     </Text>
                   </Box>
 
+                  {/* Ratings */}
+                    <RatingCard
+                     avg_rating={listing?.vehicle?.dealer?.rating}
+                     ratings={ratings}
+                    />
 
-                  <Box mb={8}>
-                    <Heading size="md" mb={4} fontWeight={'500'}>Ratings & reviews</Heading>
-                    <HStack spacing={2} mb={6}>
-                      <Heading size="lg">5.0</Heading>
-                      <Icon as={Star} color="yellow.400" w={6} h={6} />
-                    </HStack>
+                  <VStack align="stretch" mb={4} spacing={6}>
+                    {reviews?.map((review, index) => (
+                      <ReviewCard
+                        key={index}
+                        review={review}
+                      />
+                    ))}
+                  </VStack>
+        
 
-                    <VStack align="stretch" spacing={2} mb={8}>
-                      {Object.entries(ratings).map(([category, rating]) => (
-                        <Box key={category}>
-                          <SimpleGrid columns={3} justify="space-between" alignItems="center" spacing={2}>
-                            <Text>{category}</Text>
-                            <Progress size="sm" value={(100/2 - rating * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
-                            <Text color="gray.500">({rating})</Text>
-                          </SimpleGrid>
-                        </Box>
-                      ))}
-                    </VStack>
 
-                    <VStack align="stretch" mb={4} spacing={6}>
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <ReviewCard
-                          key={index}
-                          name="Musa Adams"
-                          rating={5}
-                          date="10 hours ago"
-                          comment="Good host, normally replies fast. The Rolls Royce served well for me and my date, I will surely come back to rent the car again."
-                          avatar="/placeholder.svg?height=40&width=40"
-                        />
-                      ))}
-                    </VStack>
+                  <Button as={Link} to={`/dealership/${listing?.vehicle?.dealer?.uuid}`} variant="outline" color="primary" colorScheme="blue">
+                    See more reviews
+                  </Button>
 
-                    <Button as={Link} to={`/dealership/${listing?.vehicle?.dealer?.uuid}`} variant="outline" color="primary" colorScheme="blue">
-                      See more reviews
-                    </Button>
-                  </Box>
-
-                  
+                  {/* Recommended Cars */}
                   <Stack display={recommended?.length < 1 &&  'none'}>
                       <Heading textAlign="center" size="md" my={3}> Recommended Cars for You </Heading>
 

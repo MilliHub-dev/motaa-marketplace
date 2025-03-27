@@ -33,6 +33,7 @@ export const FlutterwavePaymentModal = ({
 
 	const {title, logo, description} = customizations;
 	const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
+	console.log("Amount", payment_option, amount)
 
 	const config = {
 		public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
@@ -46,7 +47,7 @@ export const FlutterwavePaymentModal = ({
 		  name: `${first_name} ${last_name}`,
 		},
 		customizations: {
-		  title: title,
+		  title: "Motaa",
 		  description: description,
 		  logo: logo,
 		},
@@ -72,12 +73,12 @@ export const FlutterwavePaymentModal = ({
 	}
 
 	function onPaymentComplete(response){
-	console.log("payment complete", response);
-	onSuccess(response)
+		return onSuccess(response)
 	}
 
 	function onModalClose(){
 	// user cancelled the payment flow
+		console.log("User cancelled the transaction")
 	}
 
 

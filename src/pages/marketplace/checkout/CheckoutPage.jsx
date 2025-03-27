@@ -150,6 +150,9 @@ function CheckoutPage({ props }) {
     onChange: val => {
       let payload = checkoutPayload;
       payload.payment_option = val;
+      if (val === 'pay-after-inspection'){
+        payload.amount = order.inspection_fee
+      }
       setCheckoutPayload({...payload})
     },
   });
@@ -184,6 +187,7 @@ function CheckoutPage({ props }) {
     e.preventDefault();
     switch(checkoutPayload.payment_option){
       case 'pay-after-inspection':{
+        // setCheckoutPayload({ ...checkoutPayload, amount: order.inspection_fee })
         onOpen();
         break;
       }
@@ -207,7 +211,9 @@ function CheckoutPage({ props }) {
     const data = objectifyJSON(res.data);
     if(res.status === 200){
       if (checkoutPayload.payment_option === 'pay-after-inspection'){
-        return redirect(`/checkout/inspection/?listingId=${listingId}`)
+        onClose();
+        console.log("Time for Inspection")
+        return redirect(`/checkout/inspection/?listingId=${listingId}`);
       }
       return redirect('/');
     }
@@ -281,11 +287,12 @@ function CheckoutPage({ props }) {
                         {countryList.map((place) => (
                           <option key={place.isoCode} value={place.name}>
                             <Icon as={'svg'} xmlns="http://www.w3.org/2000/svg">{place.flag}</Icon>
+                            {" " + place.name}
                           </option>
                         ))}
                       </Select>
                     </InputLeftAddon>
-                    <Input flex={1} value={checkoutPayload.phone_number} onChange={(e) => setCheckoutPayload({ ...checkoutPayload, phone_number: e.target.value })} />
+                    <Input placeholder={'+'} flex={1} value={checkoutPayload.phone_number} onChange={(e) => setCheckoutPayload({ ...checkoutPayload, phone_number: e.target.value })} />
                   </InputGroup>
                 </FormControl>
 
@@ -463,19 +470,19 @@ function CheckoutPage({ props }) {
             checkoutPayload?.payment_option === 'online-payment' || 
             checkoutPayload?.payment_option === 'pay-after-inspection' 
             )
-          ) ? (
+          ) ? ( isOpen &&
             <FlutterwavePaymentModal
              isOpen={isOpen}
              onClose={onClose}
              onSuccess={onSuccess}
              payload={checkoutPayload}
              customizations={{
-                title: listing?.title,
+                title: "Motaa Checkout",
                 logo: listing?.vehicle?.dealer?.logo,
                 description: `Payment for ${listing?.title}`,
              }}
             />
-          ): checkoutPayload?.payment_option === 'wallet' ? (
+          ): checkoutPayload?.payment_option === 'wallet' ? ( isOpen &&
             <WalletPaymentModal
               payload={{amount: total, recipient: listing?.vehicle?.dealer}}
               isOpen={isOpen}

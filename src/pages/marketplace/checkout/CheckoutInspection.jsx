@@ -51,6 +51,7 @@ function CheckoutInspection() {
           onSelect={(date) => setSelectedDate(date)}
           borderWidth="1px"
           borderRadius="md"
+          my={3}
         />
         <Button onClick={scheduleInspection} colorScheme="blue" size="lg" width="100%">
           Save & Apply
