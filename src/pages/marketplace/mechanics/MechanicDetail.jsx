@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, ChevronRightIcon, MapPinIcon, StarIcon, VerifiedIcon, MessageCircleIcon, MoreHorizontalIcon } from 'lucide-react'
 import {IoRibbonOutline} from 'react-icons/io5';
-import {LocationBreadcrumb} from '../../../components';
+import {LocationBreadcrumb, ReviewCard, RatingCard,} from '../../../components';
 import { ChatPopup } from "../../../components/chat";
 import { MapComponent } from "../../../components/maps";
 import {Autocomplete} from "@react-google-maps/api";
@@ -50,6 +50,7 @@ export const MechanicDetailPage = ({ }) => {
     const res = await axios.get(`/mechanics/${mechId}`);
     const data = objectifyJSON(res.data);
     setMechanic(data?.data);
+    console.log("Mech:", data?.data);
   }
 
   const onLoad = (auto) => setAutocomplete(auto);
@@ -170,95 +171,18 @@ export const MechanicDetailPage = ({ }) => {
               </Flex>
             </Box>
 
-            {/* Photo Gallery */}
-{/*            <Box bg={bgColor} p={6} rounded="lg" mb={4}>
-              <Flex justify="space-between" align="center" mb={4}>
-                <Heading size="md">Photo Gallery</Heading>
-                <Button variant="link" colorScheme="blue">
-                  See all
-                </Button>
-              </Flex>
-              <Box position="relative">
-                <Flex overflow="hidden" rounded="lg">
-                  {images.map((src, index) => (
-                    <Box
-                      key={index}
-                      flexShrink={0}
-                      w="full"
-                      transform={`translateX(-${currentImageIndex * 100}%)`}
-                      transition="transform 0.3s ease-in-out"
-                    >
-                      <img src={src} alt={`Gallery ${index + 1}`} style={{ width: '100%', height: 'auto' }} />
-                    </Box>
-                  ))}
-                </Flex>
-                <IconButton
-                  icon={<ChevronLeftIcon />}
-                  aria-label="Previous image"
-                  position="absolute"
-                  left={2}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
-                  isDisabled={currentImageIndex === 0}
-                />
-                <IconButton
-                  icon={<ChevronRightIcon />}
-                  aria-label="Next image"
-                  position="absolute"
-                  right={2}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  onClick={() => setCurrentImageIndex(Math.min(images.length - 1, currentImageIndex + 1))}
-                  isDisabled={currentImageIndex === images.length - 1}
-                />
-              </Box>
-            </Box>*/}
-
             {/* Ratings & Reviews */}
             <Box bg={bgColor} p={6} rounded="lg">
-              <Heading size="md" mb={6}>Ratings & reviews</Heading>
-              <Flex align="center" gap={4} mb={6}>
-                <Heading size="xl">{mechanic?.rating}</Heading>
-                <Box flex={1}>
-                  <Text mb={2}>Service Delivery</Text>
-                  <Progress value={94} size="sm" colorScheme="blue" rounded="full" />
-                  <Text mt={4} mb={2}>Communication</Text>
-                  <Progress value={96} size="sm" colorScheme="blue" rounded="full" />
-                  <Text mt={4} mb={2}>Value for work</Text>
-                  <Progress value={90} size="sm" colorScheme="blue" rounded="full" />
-                </Box>
-              </Flex>
+              <RatingCard
+                avg_rating={mechanic?.rating}
+                ratings={[mechanic?.ratings]}
+              />
 
               <VStack spacing={6} align="stretch">
-                {mechanic?.reviews?.map((review) => (
-                  <Box key={review.id}>
-                    <Flex gap={3}>
-                      <Avatar size="sm" name={review.name} />
-                      <Box flex={1}>
-                        <Flex justify="space-between" align="center">
-                          <Text fontWeight="bold">{review.name}</Text>
-                          <Text color="gray.500" fontSize="sm">{review.date}</Text>
-                        </Flex>
-                        <Flex gap={1} my={1}>
-                          {Array(5).fill('').map((_, i) => (
-                            <StarIcon
-                              key={i}
-                              className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-200'}`}
-                              fill="currentColor"
-                            />
-                          ))}
-                        </Flex>
-                        <Text color="gray.600">{review.text}</Text>
-                      </Box>
-                    </Flex>
-                  </Box>
-                ))}
+                {mechanic?.reviews?.map((review) => 
+                  <ReviewCard key={review.id} rating={review} />
+                )}
               </VStack>
-
-              {/*<Button variant="link" colorScheme="blue" mt={6}>
-                See more reviews
-              </Button>*/}
             </Box>
           </Box>
 
@@ -267,23 +191,23 @@ export const MechanicDetailPage = ({ }) => {
             <Box position="relative" top={4}>
               <Box bg={bgColor} className="map-wrapper">
                 {/* Map placeholder */}
-                <Box
+                {/*<Box
                   style={{height: "320px"}}
                   mb={4}
                   as={MapComponent}
                   location={location}
-                />
+                />*/}
                             
                 <VStack  w="100%">
                   <Flex w="100%" my={2} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                     <Text>Location:</Text>
-
+{/*
                     <Autocomplete
                       onLoad={onLoad}
                       style={{width: "100%"}}
                       onPlaceChanged={onPlaceChanged}
                       className="w-full"
-                    >
+                    >*/}
                       <Input
                         flex={1}
                         w="100%"
@@ -291,7 +215,7 @@ export const MechanicDetailPage = ({ }) => {
                         outline="none"
                         placeholder="Search location..."
                       />
-                    </Autocomplete>
+                    {/*</Autocomplete>*/}
                   </Flex>
                   
                   <Select placeholder="Choose Service">

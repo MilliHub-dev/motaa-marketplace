@@ -30,15 +30,20 @@ import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
 import CheckoutWithInspection from './pages/marketplace/checkout/CheckoutInspection';
 import NotificationsPage from './pages/marketplace/Notifications';
 
-// Dealership Dashboard
+// Mechanic Dashboard
+import MechanicDashboardLayout from './pages/dashboard/mechanic/Layout';
+import MechanicDashboard from './pages/dashboard/mechanic/MechanicDashboard';
+import BookingsAdmin from './pages/dashboard/mechanic/Bookings';
+import BusinessProfile from './pages/dashboard/mechanic/settings/BusinessProfile';
 
+// Dealership Dashboard
 import DealerProfile from './pages/marketplace/DealerProfile';
 import DealerDashboardLayout from './pages/dashboard/dealer/Layout';
 import DealerDashboard from './pages/dashboard/dealer/Dashboard';
 import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
 import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
 import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
-import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';
+// import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';``
 import DealershipSettings from './pages/dashboard/dealer/Settings';
 
 // Wallet
@@ -73,7 +78,7 @@ export const GlobalStore = createContext({
   commaInt: undefined,
 });
 
-const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+// const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
 
   
 function App() {
@@ -83,7 +88,8 @@ function App() {
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
-    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
+    // baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -218,14 +224,20 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
                       <Route ErrorBoundary={ErrorBoundary} path='/orders' element={<DealerDashboard />} />
-                      <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
+                      {/*<Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />*/}
                       <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<DealershipSettings />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/support' element={<DealerDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
                     </Route>
                     ) : authUser?.user_type === 'mechanic' ? (
-                      <Fragment></Fragment>
+                      <Route ErrorBoundary={ErrorBoundary} element={<MechanicDashboardLayout />}>
+                        <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<MechanicDashboard />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/bookings' element={<BookingsAdmin />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
+                      </Route>
                     ) : (
                       <Route ErrorBoundary={ErrorBoundary} element={<Layout />}>
                         <Route ErrorBoundary={ErrorBoundary} path='/rent' element={<RentListing />} />
@@ -237,7 +249,6 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics' element={<MechanicListPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dealership/:dealerId' element={<DealerProfile />} />
-                        
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
@@ -258,7 +269,7 @@ function App() {
                   {/* Wallet Routes */}
                   <Route ErrorBoundary={ErrorBoundary} element={
                     authUser?.user_type === 'dealer' ? <DealerDashboardLayout hideSidebar={true} hideFooter={true} />
-                    : authUser?.user_type === 'mechanic' ? <DealerDashboardLayout />
+                    : authUser?.user_type === 'mechanic' ? <MechanicDashboardLayout hideFooter={true} hideSidebar={true} />
                     : <Layout hideFooter={true} />
                   }>
                     <Route ErrorBoundary={ErrorBoundary} path={'/wallet'} element={<WalletLayout />}>

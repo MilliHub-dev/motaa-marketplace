@@ -134,7 +134,7 @@ export const MechanicListPage = ({ props }) => {
     <Box minH="100vh">
         <Container maxW="container.xl" py={8}>
           {/* Search and Location */}
-          <Container maxW={"container.lg"}>
+          <Container maxW={"container.xl"}>
             <Flex gap={4} mb={6} flexWrap={"wrap"}>
               <InputGroup size="lg" flex={1}>
                 <InputLeftElement>
@@ -234,16 +234,16 @@ export const MechanicListPage = ({ props }) => {
 
             {/* Map Section */}
             <Box className="map-wrapper" w="100%" maxW={{ md: "300px", lg: "400px" }} minH="500px" bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} px={4} py={4} top={4}>
-              <Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      
+              {/*<Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      */}
               <Flex my={5} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                 <Text>Location:</Text>
-
+{/*
                 <Autocomplete
                   onLoad={onLoad}
                   style={{width: "100%"}}
                   onPlaceChanged={onPlaceChanged}
                   className="w-full"
-                >
+                >*/}
                   <Input
                     flex={1}
                     w="100%"
@@ -251,7 +251,7 @@ export const MechanicListPage = ({ props }) => {
                     outline="none"
                     placeholder="Search location..."
                   />
-                </Autocomplete>
+                {/*</Autocomplete>*/}
               </Flex>
               <Button w="100%" size="lg" colorScheme="blue" onClick={expandMap} p={4}>Expand Map</Button>
             </Box>

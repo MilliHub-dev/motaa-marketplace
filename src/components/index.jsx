@@ -1183,14 +1183,18 @@ export const DNDUploadField = ({ accept, multiple=true, onUpload, ...props}) => 
 
 export function ImageCarousel({ images, ...props }) {
   const [currentImage, setCurrentImage] = useState(0)
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  if (!images){
+    return null;
+  }
 
   const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length)
+    setCurrentImage((prev) => (prev + 1) % images?.length)
   }
 
   const previousImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
+    setCurrentImage((prev) => (prev - 1 + images?.length) % images?.length)
   }
 
   return (
@@ -1198,7 +1202,7 @@ export function ImageCarousel({ images, ...props }) {
         <Box position="relative" mb={4}>
             <Box
                 sx={{
-                    backgroundImage: `url(${images[currentImage].url})`,
+                    backgroundImage: `url(${images[currentImage]?.url})`,
                     borderRadius: '10px',
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: 'cover',
@@ -1243,7 +1247,7 @@ export function ImageCarousel({ images, ...props }) {
         </Box>
 
         <HStack spacing={2} overflowX="scroll" w='100%' pb={2}>
-        {images.map((img, index) => (
+        {images?.map((img, index) => (
             <AspectRatio
             key={index}
             ratio={4/3}
@@ -1256,9 +1260,9 @@ export function ImageCarousel({ images, ...props }) {
                 images?.length > 4 ? (
                     <Fragment>
                         {
-                            index > 4 ? (null):(
+                            index > 3 ? (null):(
                                 <Image
-                                    src={img.url}
+                                    src={img?.url}
                                     alt={`Thumbnail ${index + 1}`}
                                     objectFit="cover"
                                     borderRadius="md"
@@ -1267,7 +1271,7 @@ export function ImageCarousel({ images, ...props }) {
                                 />
                             )
                         }
-                        {index === 4 &&
+                        {index === 3 &&
                         <Image
                                 src={img.url}
                                 alt={`Thumbnail ${index + 1}`}
@@ -1280,7 +1284,7 @@ export function ImageCarousel({ images, ...props }) {
                     </Fragment>
                 ) : (
                     <Image
-                        src={img.url}
+                        src={img?.url}
                         alt={`Thumbnail ${index + 1}`}
                         objectFit="cover"
                         borderRadius="md"

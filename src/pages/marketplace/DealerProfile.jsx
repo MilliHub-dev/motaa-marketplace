@@ -160,7 +160,7 @@ export default function DealerProfile() {
           left={'30px'}
           top={'10%'}
           variant="solid"
-          color="primary"
+          color="white"
         />
       </Box>
 

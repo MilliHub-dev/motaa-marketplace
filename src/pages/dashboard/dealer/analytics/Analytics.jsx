@@ -60,12 +60,13 @@ const chartOptions = {
 };
 
 
-
 const transactions = [
   { car: "2021 Toyota Corolla XLE", amount: "+₦21,600,000.00", date: "Apr 12, 2023", status: "Successful" },
   { car: "2008 Honda Accord", amount: "+₦21,600,000.00", date: "Apr 12, 2023", status: "Locked" },
   { car: "2023 Tesla Model Y", amount: "+₦21,600,000.00", date: "Apr 12, 2023", status: "Pending" },
 ];
+
+
 
 export default function AnalyticsDashboard() {
   return (
@@ -149,3 +150,4 @@ export default function AnalyticsDashboard() {
     </Box>
   );
 }
+

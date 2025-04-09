@@ -13,13 +13,18 @@ import {
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { useState, useEffect, useContext } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {CalendarPicker, TimePicker} from '../../../components';
+import {jsonifyObject, objectifyJSON} from '../../../utils';
 import {GlobalStore} from '../../../App';
 
 function CheckoutInspection() {
-  const [selectedDate, setSelectedDate] = useState()
-  const [selectedTime, setSelectedTime] = useState()
-  const {axios, notify} = useContext(GlobalStore);
+  const [selectedDate, setSelectedDate] = useState();
+  const [selectedTime, setSelectedTime] = useState();
+  const {axios, notify, redirect} = useContext(GlobalStore);
+  const [params] = useSearchParams();
+  const listing_id = params.get('listingId');
+
 
   async function scheduleInspection(e){
     e.preventDefault();
@@ -27,6 +32,22 @@ function CheckoutInspection() {
     const date = selectedDate.toLocaleDateString();
     const time = selectedTime.toLocaleTimeString();
     console.log("Inspection scheduled for:", date, " at ", time);
+
+    const res = await axios.post(`/listings/checkout/inspection/`, jsonifyObject({
+      listing_id,
+      date,
+      time,
+    }));
+
+    if (res.status === 200){
+      setTimeout(() => notify({
+        title: 'Success',
+        body: `Inspection scheduled for ${date}`,
+        level: 'green'
+      }), 1000)
+      return redirect('/cart', 300)
+    }
+
   }
 
   return (

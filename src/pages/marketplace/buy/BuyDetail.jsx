@@ -19,7 +19,7 @@ import {FaCartPlus} from 'react-icons/fa';
 
 
 
-const BuyDetail = ({ }) => {
+export const BuyDetail = ({ }) => {
     const {listingId} = useParams();
     const [recommended, setRecommended] = useState([]);
     const [loading, setLoadingState] = useState(true);
@@ -59,13 +59,14 @@ const BuyDetail = ({ }) => {
     }
 
     function init(){
+        setLoadingState(true)
         getData();
         setTimeout(() => setLoadingState(false), 2500)
     }
 
     useEffect(() => {
         init();
-    }, []);
+    }, [listingId]);
 
     if (loading){
         return <ListingDetailSkeleton />
@@ -82,22 +83,20 @@ const BuyDetail = ({ }) => {
 
             <Flex
              my={5}
-             // justifyContent={'space-between'}
              alignItems={"flex-start"}
              gap={4}
-              // direction={{ base: "column", md: "row" }} // Stack on mobile, row on larger screens
               wrap="wrap"
             >
                 <Box
-                    flex={{ base: "1 1 100%", md: "1 1 55%", lg: "1 1 65%" }} 
-                    maxW={{ md: "60%", lg: "80%" }} 
+                    flex={{ base: "1 1 100%", md: "1 1 55%", lg: "1 1 60%" }} 
+                    maxW={{ md: "60%", lg: "60%" }} 
                     w="100%"
                 >
                     <ImageCarousel w={'100%'} height={'350px'} images={listing?.vehicle?.images} />
                 </Box>
 
                 <Box
-                    flex={{ base: "1 1 100%", md: "1 1 40%", lg: "1 1 30%" }} 
+                    flex={{ base: "1 1 100%", md: "1 1 40%", lg: "1 1 35%" }} 
                     maxW={{ md: "40%", lg: "40%" }}
                     maxH="max-content"
                     w="100%"
