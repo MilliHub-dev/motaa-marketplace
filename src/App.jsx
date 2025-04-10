@@ -78,7 +78,7 @@ export const GlobalStore = createContext({
   commaInt: undefined,
 });
 
-// const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
 
   
 function App() {
@@ -88,8 +88,8 @@ function App() {
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
-    // baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
-    baseURL: 'http://localhost:8000/api/v1',
+    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
+    // baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -208,7 +208,7 @@ function App() {
   return (
     <ChakraProvider theme={BrandColors}>
     <ErrorBoundary>
-      {/*<LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>*/}
+      <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
           <Routes ErrorBoundary={ErrorBoundary}>
@@ -300,7 +300,7 @@ function App() {
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>
-      {/*</LoadScript>*/}
+      </LoadScript>
     </ErrorBoundary>
     </ChakraProvider>
   );
