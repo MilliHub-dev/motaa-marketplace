@@ -13,6 +13,10 @@ import {Autocomplete, LoadScript} from "@react-google-maps/api";
 import HomePage from './pages/marketplace/HomePage';
 import LandingPage from './pages/LandingPage';
 import ComingSoon from './pages/ComingSoon';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+
+
 import RentListing from './pages/marketplace/rent/RentListing';
 import RentDetail from './pages/marketplace/rent/RentDetail';
 import BuyListing from './pages/marketplace/buy/BuyListing';
@@ -43,6 +47,7 @@ import DealerDashboard from './pages/dashboard/dealer/Dashboard';
 import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
 import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
 import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
+import OrderListAdmin from './pages/dashboard/dealer/orders/OrderList';
 // import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';``
 import DealershipSettings from './pages/dashboard/dealer/Settings';
 
@@ -217,6 +222,7 @@ function App() {
                   {authUser?.user_type === 'dealer' ? (
                     <Route ErrorBoundary={ErrorBoundary} element={<DealerDashboardLayout />}>
                       <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<DealerDashboard />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/orders' element={<OrderListAdmin />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/inventory' element={<><Outlet /></>}>
                         <Route ErrorBoundary={ErrorBoundary} path='edit/:listingId' element={<EditListingAdmin />} />
                         <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateListingAdmin />} />
@@ -292,6 +298,10 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/login' element={<LoginView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup' element={<SignupView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<SignupView type={'business'} />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
+                  {/*<Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />*/}
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
                 </Route>      
               )              

@@ -105,12 +105,13 @@ function ChatSidebar({ conversations, activeId, onSelect, ...props }) {
 }
 
 function ChatLayout() {
-  const [activeConversation, setActiveConversation] = useState(null);
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const {authUser, axios, apiUrl, notify} = useContext(GlobalStore);
-  const [conversations, setConversations] = useState([]);
   const {room} = useParams();
-  const [isMobile] = useMediaQuery('(max-width: 768px)')
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const [isMobile] = useMediaQuery('(max-width: 568px)')
+  const {authUser, axios, apiUrl, notify} = useContext(GlobalStore);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoadingState] = useState(true);
 
 
   async function getData(){
@@ -124,26 +125,33 @@ function ChatLayout() {
   }
 
   useEffect(() => {
+    setLoadingState(true);
     init();
+    setTimeout(()=> setLoadingState(false), 500)
   }, [])
+
+  if (loading){
+    return null
+  }
 
   return (
     <Box position="fixed" left={'0px'} width={'100%'} height="100%">
       <HStack spacing={0}>
+      {room && isMobile ? null :
         <ChatSidebar
           conversations={conversations}
           activeId={activeConversation}
           onSelect={setActiveConversation}
           width={isMobile ? '100%' : '300px'}
-          display={(room && isMobile) && 'none'}
         />
+      }
 
-        {
-          room &&
-          <Box flex={1} h="calc(100vh - 75px)" position="relative">
+        <Box w={room && "calc(100vw - 300px)"} h="calc(100vh - 75px)" position="relative">
+          {
+            room &&
             <Outlet />
-          </Box>
-        }
+          }
+        </Box>
 
         {(!room && !isMobile) && 
           <Box flex={1} h="full">

@@ -28,6 +28,7 @@ import {
     DrawerFooter,
     Container,
     Input,
+    Tag,
     Accordion,
     AccordionItem,
     AccordionButton,
@@ -39,7 +40,7 @@ import {motion} from 'framer-motion';
 import {GlobalStore} from '../App';
 import {FcMenu} from 'react-icons/fc';
 import {CheckCircleIcon} from '@chakra-ui/icons'
-import { FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, FaUser } from "react-icons/fa";
 import { CustomerSearchBar, DashboardSearchBar } from '.';
 import { RiAccountCircleLine, RiBellLine, RiFacebookFill, RiHeadphoneLine, RiInstagramFill, RiLinkedinFill, RiLogoutBoxRLine, RiMenuLine, RiTwitterFill, RiAccountCircleFill } from 'react-icons/ri';
 import { TbBell, TbSearch } from 'react-icons/tb';
@@ -403,7 +404,7 @@ export const CustomerNavbar = ({ props }) => {
 export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
   const [navIsOpen, setNavState] = useState(false);
   const [searchIsOpen, setSearchState] = useState(false);
-  const {authUser, onLogout} = useContext(GlobalStore);
+  const {authUser, onLogout, logout} = useContext(GlobalStore);
   const [isMobile] = useMediaQuery('(max-width: 768px)');
   const isLoggedIn = Boolean(authUser);
 
@@ -451,7 +452,6 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
         flex={1} w={'100%'}
         >
         <Flex justifyContent="space-betweeen" alignItems="center">
-
           <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
             <RLink to={'/'}><Image loading='eager'
                 src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
@@ -460,17 +460,27 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
         </Flex>
 
 
-        <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+        <Flex
+         flex={isMobile ? 1 : 'unset'}
+         flexWrap={'nowrap'}
+         justifyContent={{base: 'space-around', lg: 'flex-end'}}
+         gap={isMobile ? 3 : 5}
+         alignItems={'center'}
+        >
           {isMobile ? 
-            <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-            : <DashboardSearchBar flex={1} />
+            <Button px={0} onClick={toggleSearch} variant="unstyled">
+              <Icon className='icon'><TbSearch /></Icon>
+            </Button>
+            :
+            <DashboardSearchBar flex={1} />
           }
           {isMobile ? (
               <Button
                as={RLink}
                to="/wallet"
-               variant="outline"
+               variant="ghost"
                borderColor="primary"
+               px={2}
               >
                 <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
               </Button> 
@@ -490,11 +500,35 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
               >Wallet</Button>
             )
           }
-          <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
-          <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+          <Button px={2} as={RLink} variant="ghost" to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></Button>
+          <Button px={2} as={RLink} variant="ghost" to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></Button>
+          
+          <Menu zIndex={2} display="block">
+            <MenuButton
+              as={IconButton}
+              icon={<FaUser size={18} />}
+              variant="ghost"
+              size="sm"
+              aria-label="Share"
+            />
+
+            <MenuList py={3} px={3} zIndex={'2 !important'}>
+              <Box placeItems="center" placeContent="center" p={3}>
+                <Avatar 
+                 size="lg"
+                 name={`${authUser?.first_name} ${authUser?.first_name}`}
+                 />
+                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.first_name}`} </Heading>
+                <Text> {authUser?.email} </Text>
+              </Box>
+              <Divider my={2} />
+              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
+              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
+            </MenuList>
+          </Menu>
 
           {(isMobile || props.hideSidebar) &&
-            <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
+            <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={0}>
               <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
             </Button>
           }
@@ -511,6 +545,165 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
     </Box>
   )
 }
+
+
+export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose, ...props }) => {
+  const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
+    const {logout, authUser} = useContext(GlobalStore);
+    const pathname = document.location.pathname;
+
+    useEffect(() => {
+
+    }, [window.location])
+
+     const links = [
+      { icon: Home3, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
+      { icon: Coin, label: 'Orders', path: '/orders', active: pathname.includes('orders')},
+      { icon: Shop, label: 'Inventory', path: '/inventory', active: pathname.includes('analytics')},
+      { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
+      { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
+      { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},
+    ]
+
+    return(
+      <VStack align="stretch" spacing={6}>
+        <HStack spacing={3}>
+          <Avatar size="md" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
+
+          <Box flex={1}>
+            <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
+            <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
+          </Box>
+        </HStack>
+
+        <VStack align="stretch" spacing={2}>
+          {links.map((item, index) =>
+            <Fragment key={index}>
+            {
+              item?.children ? (
+                <Accordion allowToggle>
+                  <AccordionItem border="none">
+                    <AccordionButton
+                      key={index}
+                      as={NavLink}
+                      borderRadius="5px"
+                      w={'100%'}
+                      justifyContent="space-between"
+                      alignItems="center"
+                      bgColor={item.active ? 'gray' : 'transparent'}
+                      _expanded={{ bgColor: 'gray', color: 'white'}}
+                    >
+                    {({ expanded }) => 
+                      <>
+                      <Flex flex={1} gap={3} alignItems="center">
+                        <item.icon size={20} />
+                        <Text fontWeight="600"> {item.label} </Text>
+                      </Flex>
+                      {expanded ? <FaChevronUp /> : <FaChevronDown />}
+                      </>
+                    }
+                    </AccordionButton>
+
+                    <AccordionPanel px={0}>
+                      {
+                        item.children.map((child, idx) => 
+                          <Tooltip key={idx} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+                          <Button
+                            as={NavLink}
+                            to={child.path}
+                            w={'100%'}
+                            mt={1.5}
+                            bgColor="transparent"
+                            _activeLink={{ bgColor: 'primary', color: 'white', }}
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Flex flex={1} gap={3} alignItems="center">
+                              <item.icon size={20} />
+                              <Text> {child.label} </Text>
+                            </Flex>                          
+                          </Button>
+                          </Tooltip>
+                        )
+                      }
+                    </AccordionPanel>
+                  </AccordionItem>
+                </Accordion>
+                ) : (
+                  // <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
+                    <Button
+                      key={index}
+                      as={NavLink}
+                      to={item.path}
+                      w={'100%'}
+                      bgColor="transparent"
+                      _activeLink={{ bgColor: 'primary', color: 'white' }}
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Flex flex={1} gap={3} alignItems="center">
+                        <item.icon size={20} />
+                        <Text> {item.label} </Text>
+                      </Flex>
+                      {item?.children && !!sidebarOpen && <FaChevronDown />}
+                    </Button>
+                  // </Tooltip>
+                )
+            }
+            </Fragment>
+          )}
+
+          {/* Main Content */}
+          <Button
+           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
+           onClick={() => setSidebarState(!sidebarOpen)}
+           justifyContent="start"
+           colorScheme="gray.500"
+           variant="solid"
+           bottom="0px"
+           zIndex="10"
+          > {sidebarOpen && 'Close'} </Button>
+        </VStack>
+      </VStack>
+    )
+  }
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
+  const {authUser} = useContext(GlobalStore);
+
+  if (isMobile || props.mode === 'drawer'){
+    return(
+      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)} {...props}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerCloseButton />
+          </DrawerHeader>
+          
+          <DrawerBody>
+            <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return(
+    <Box
+      w={"280px"}
+      overflow={'hidden'}
+      position={"fixed"}
+      left="0"
+      h={"100vh"}
+      bgColor="#fff"
+      zIndex="20"
+      borderRightWidth={1}
+      p={sidebarOpen ? 6 : 2}
+      {...props}
+    >
+      <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
+    </Box>
+  )
+}
+
 
 
 export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
@@ -806,196 +999,6 @@ export const MechanicDashboardSideBar = ({ mechanic, sidebarOpen, setSidebarStat
 }
 
 
-export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose, ...props }) => {
-  const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
-    const {logout, authUser} = useContext(GlobalStore);
-    const pathname = document.location.pathname;
-
-    useEffect(() => {
-
-    }, [window.location])
-
-     const links = [
-      { icon: Home3, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
-      { icon: Coin, label: 'Orders', path: '/orders', active: pathname.includes('orders')},
-      { icon: Shop, label: 'Inventory', path: '/inventory', active: pathname.includes('analytics')},
-      // { icon: Shop, label: 'Inventory', children: [
-      //     { icon: GiHomeGarage, label: 'Listings', path: '/inventory', active: pathname.includes('inventory')},
-      //     { icon: GiHomeGarage, label: 'Discounts', path: '/discounts', active: pathname.includes('inventory')},
-      //   ]
-      // },
-      { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
-      // { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics'), children: [
-      //   {icon: Chart, label: 'Sales', path: '/sales'}
-      // ]},
-      // { icon: Chart, label: 'Ads Center', path: '/ads'},
-      { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
-      { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},
-    ]
-
-    return(
-      <VStack align="stretch" spacing={6}>
-        <HStack spacing={3}>
-          <Avatar size="md" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
-
-          <Box flex={1}>
-            <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
-            <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
-          </Box>
-          <Menu zIndex={2} display="block">
-            <MenuButton
-              as={IconButton}
-              icon={<MoreVertical size={18} />}
-              variant="ghost"
-              size="sm"
-              aria-label="Share"
-            />
-
-            <MenuList py={3} px={3} zIndex={'2 !important'}>
-              <Box placeItems="center" placeContent="center" p={3}>
-                <Avatar 
-                 size="lg"
-                 name={`${authUser?.first_name} ${authUser?.first_name}`}
-                 />
-                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.first_name}`} </Heading>
-                <Text> {authUser?.email} </Text>
-              </Box>
-              <Divider my={2} />
-              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
-              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
-            </MenuList>
-          </Menu>
-        </HStack>
-
-        <VStack align="stretch" spacing={2}>
-          {links.map((item, index) =>
-            <Fragment key={index}>
-            {
-              item?.children ? (
-                <Accordion allowToggle>
-                  <AccordionItem border="none">
-                    <AccordionButton
-                      key={index}
-                      as={NavLink}
-                      borderRadius="5px"
-                      w={'100%'}
-                      justifyContent="space-between"
-                      alignItems="center"
-                      bgColor={item.active ? 'gray' : 'transparent'}
-                      _expanded={{ bgColor: 'gray', color: 'white'}}
-                    >
-                    {({ expanded }) => 
-                      <>
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text fontWeight="600"> {item.label} </Text>
-                      </Flex>
-                      {expanded ? <FaChevronUp /> : <FaChevronDown />}
-                      </>
-                    }
-                    </AccordionButton>
-
-                    <AccordionPanel px={0}>
-                      {
-                        item.children.map((child, idx) => 
-                          <Tooltip key={idx} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                          <Button
-                            as={NavLink}
-                            to={child.path}
-                            w={'100%'}
-                            mt={1.5}
-                            bgColor="transparent"
-                            _activeLink={{ bgColor: 'primary', color: 'white', }}
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Flex flex={1} gap={3} alignItems="center">
-                              <item.icon size={20} />
-                              <Text> {child.label} </Text>
-                            </Flex>                          
-                          </Button>
-                          </Tooltip>
-                        )
-                      }
-                    </AccordionPanel>
-                  </AccordionItem>
-                </Accordion>
-                ) : (
-                  // <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                    <Button
-                      key={index}
-                      as={NavLink}
-                      to={item.path}
-                      w={'100%'}
-                      bgColor="transparent"
-                      _activeLink={{ bgColor: 'primary', color: 'white' }}
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text> {item.label} </Text>
-                      </Flex>
-                      {item?.children && !!sidebarOpen && <FaChevronDown />}
-                    </Button>
-                  // </Tooltip>
-                )
-            }
-            </Fragment>
-          )}
-
-          {/* Main Content */}
-          <Button
-           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
-           onClick={() => setSidebarState(!sidebarOpen)}
-           justifyContent="start"
-           colorScheme="gray.500"
-           variant="solid"
-           bottom="0px"
-           zIndex="10"
-          > {sidebarOpen && 'Close'} </Button>
-        </VStack>
-      </VStack>
-    )
-  }
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const {authUser} = useContext(GlobalStore);
-
-  if (isMobile || props.mode === 'drawer'){
-    return(
-      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)} {...props}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerCloseButton />
-          </DrawerHeader>
-          
-          <DrawerBody>
-            <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return(
-    <Box
-      w={"280px"}
-      overflow={'hidden'}
-      position={"fixed"}
-      left="0"
-      h={"100vh"}
-      bgColor="#fff"
-      zIndex="20"
-      borderRightWidth={1}
-      p={sidebarOpen ? 6 : 2}
-      {...props}
-    >
-      <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
-    </Box>
-  )
-}
-
-
 export const Sidebar = ({ show, onClose, }) => {
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const {authUser, logout} = useContext(GlobalStore);
@@ -1045,19 +1048,38 @@ export const Footer = ({ props }) => {
   const sections = [
     {
       title: 'Product',
-      links: ['Buy a car', 'Sell your car', 'Rent a car', 'Find Mechanic'],
+      links: [
+        {label: 'Buy a car', url: '/signup' }, 
+        {label: 'Sell your car', url: '/signup' },
+        {label: 'Rent a car', url: '/signup'},
+        {label: 'Find Mechanic', url: '/signup'}
+      ],
     },
     {
       title: 'Company',
-      links: ['About us', 'Careers', 'Press', 'News'],
+      links: [
+        {label: 'About us', url: '/#about-us' }, 
+        {label: 'Careers', coming: true },
+        {label: 'Press', coming: true},
+        {label: 'News', coming: true},
+      ],
     },
     {
       title: 'Resources',
-      links: ['Blog', 'Newsletter', 'Events', 'Help centre'],
+      links: [
+        {label: 'Blog', url: '/blog' }, 
+        {label: 'Newsletter', url: '/bad'},
+        {label: 'Events', },
+        {label: 'Help centre', url: '/help'}
+      ],
     },
     {
       title: 'Legal',
-      links: ['Terms', 'Privacy', 'Cookies', 'Licenses'],
+      links: [
+        {label: 'Terms of Service', url: '/terms-of-service' }, 
+        {label: 'Privacy Policy', url: '/privacy-policy' },
+        {label: 'Licenses', url: '/licenses'}
+      ],
     },
   ]
 
@@ -1094,15 +1116,17 @@ export const Footer = ({ props }) => {
           {sections.map((section) => (
             <Stack key={section.title} spacing={4}>
               <Text fontWeight="bold">{section.title}</Text>
-              {section.links.map((link) => (
+              {section.links.map(({ label, url, coming}) => (
                 <Text
-                  key={link}
+                  key={label}
+                  as={url && RLink}
+                  to={url}
                   fontSize="sm"
                   color="white.800"
                   cursor="pointer"
                   _hover={{ color: 'gray.500' }}
                 >
-                  {link}
+                  {label} {coming ? <Tag colorScheme="green" size="sm"> coming soon </Tag> : null}
                 </Text>
               ))}
             </Stack>

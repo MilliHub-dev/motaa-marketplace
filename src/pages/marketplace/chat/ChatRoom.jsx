@@ -84,7 +84,7 @@ function ChatRoom() {
   const otherPerson = members?.find(mem => mem.email !== authUser.email)
 
   return (
-    <VStack position="fixed" h="100vh" left="0px" spacing={0} w="100%">
+    <VStack position="fixed" h="calc(100vh - 85px)" left="0px" zindex={"2000"} bg="white" spacing={0} w="100%">
       {/* Chat Header */}
       <HStack
         w="full"

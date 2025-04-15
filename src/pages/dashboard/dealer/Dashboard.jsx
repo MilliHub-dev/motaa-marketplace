@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
 import {DealerDashboardSideBar} from '../../../components/nav';
-import {StatsCards} from '../../../components/charts';
+import {StatCard} from '../../../components/charts';
 import {
   Box,
   Container,
@@ -27,6 +27,7 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  SimpleGrid,
   Badge,
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
@@ -39,10 +40,21 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 
 
 
+
+
+
 function Dashboard({ }) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const [wallet, setWallet] = useState({});
   const [transactions, setTransactions] = useState([])
+  const [dashboardData, setDashboardData] = useState({})
+  const formatCurrency = (value) => {
+    return `₦${parseInt(value).toLocaleString()}`;
+  };
+
+  const formatNumber = (value) => {
+    return parseFloat(value).toLocaleString();
+  };
 
   const chartData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June'],
@@ -83,6 +95,13 @@ function Dashboard({ }) {
     console.log("Wallet:", data)
     setWallet(data?.data)
   }
+  
+  async function getDashboardData(){
+    const res = await axios.get('/admin/dealership/dashboard/');
+    const data = objectifyJSON(res.data);
+    setDashboardData(data.data)
+    // setWallet(data?.data)
+  }
 
   async function getWalletTransactions(){
     try{
@@ -98,6 +117,8 @@ function Dashboard({ }) {
 
   function init(){
     getWalletBalance();
+    getWalletTransactions();
+    getDashboardData();
     // setTimeout(() => setLoadingState(false), 2000);
   }
 
@@ -121,7 +142,30 @@ function Dashboard({ }) {
         </Button>*/}
       </Box>
 
-      <StatsCards />
+      <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>
+        
+        <StatCard
+          title={"Revenue"}
+          value={dashboardData?.total_revenue}
+          // change={10}
+          // data={sparklineData.revenue}
+          format={formatCurrency}
+        />
+        <StatCard
+          title={"Impressions"}
+          value={dashboardData?.impressions}
+          // change={-2}
+          // data={sparklineData.impressions}
+          format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
+        />
+        <StatCard
+          title={"Total Deals"}
+          value={dashboardData?.total_deals}
+          // change={14}
+          // data={sparklineData.deals}
+          format={formatNumber}
+        />
+      </SimpleGrid>
 
       <Box py={4} my={5}>
         <Heading size={'sm'} fontWeight="500" my={3}> Revenue Earnings </Heading>

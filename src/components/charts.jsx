@@ -73,7 +73,7 @@ export const StatCard = ({ title, value, change, data, format = (v) => v }, ...p
   );
 };
 
-export const StatsCards = () => {
+export const StatsCards = ({ title, value }) => {
   const formatCurrency = (value) => {
     return `₦${parseInt(value).toLocaleString()}`;
   };
@@ -85,22 +85,22 @@ export const StatsCards = () => {
   return (
     <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>
       <StatCard
-        title="Total Revenue"
-        value="80000000"
+        title={title}
+        value={value}
         change={10}
         data={sparklineData.revenue}
         format={formatCurrency}
       />
       <StatCard
-        title="Impressions"
-        value="32700"
+        title={title}
+        value={value}
         change={-2}
         data={sparklineData.impressions}
         format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
       />
       <StatCard
-        title="Total Deals"
-        value="546"
+        title={title}
+        value={value}
         change={14}
         data={sparklineData.deals}
         format={formatNumber}

@@ -164,13 +164,14 @@ export const MechanicListPage = ({ props }) => {
 
           <Flex gap={6} alignItems="self-start" flexWrap="wrap-reverse">
             {/* Mechanics List */}
-            <VStack minW="400px" spacing={0} flex={1}>
+            <VStack w="100%" spacing={0} flex={1} maxW={{ md: "calc(100% - 350px)", lg: "calc(100% - 450px)" }}>
               {matches?.map((mechanic) => (
                 <Box key={mechanic.id} w="full" bg={bgColor} p={6} borderBottomWidth={2} borderColor={borderColor}>
-                  <Flex gap={4}>
+                  <Box as={Flex} direction={{ base: 'column', md: 'row'}} gap={4} flexWrap="wrap">
                     <Link to={`/mechanics/${mechanic?.uuid}`}>
                       <Avatar size="lg" name={mechanic?.business_name || mechanic?.user?.name} src={mechanic?.logo} />
                     </Link>
+
                     <Box flex={1}>
                       <Flex justify="space-between" align="start">
                         <Box>
@@ -227,23 +228,24 @@ export const MechanicListPage = ({ props }) => {
                         </Flex>
                       </Flex>
                     </Box>
-                  </Flex>
+                  </Box>
                 </Box>
               ))}
             </VStack>
 
             {/* Map Section */}
             <Box className="map-wrapper" w="100%" maxW={{ md: "300px", lg: "400px" }} minH="500px" bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} px={4} py={4} top={4}>
-              {/*<Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      */}
+              <Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      
+  
               <Flex my={5} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                 <Text>Location:</Text>
-{/*
+
                 <Autocomplete
                   onLoad={onLoad}
                   style={{width: "100%"}}
                   onPlaceChanged={onPlaceChanged}
                   className="w-full"
-                >*/}
+                >
                   <Input
                     flex={1}
                     w="100%"
@@ -251,7 +253,7 @@ export const MechanicListPage = ({ props }) => {
                     outline="none"
                     placeholder="Search location..."
                   />
-                {/*</Autocomplete>*/}
+                </Autocomplete>
               </Flex>
               <Button w="100%" size="lg" colorScheme="blue" onClick={expandMap} p={4}>Expand Map</Button>
             </Box>
