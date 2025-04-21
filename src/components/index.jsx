@@ -904,7 +904,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
     }
 
     useEffect(() => {
-        setImage(vehicle.images[0])
+        setImage(vehicle?.images[0])
     }, [listing]);
 
     function nextImage(idx){
@@ -946,7 +946,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
                                 flex={1} w={'100%'} height={'200px'}
                                 position={'relative'}
                                 sx={{
-                                    backgroundImage: `url(${image.url})`,
+                                    backgroundImage: `url(${image?.url})`,
                                     borderRadius: '10px',
                                     backgroundRepeat: 'no-repeat',
                                     backgroundSize: 'cover',
@@ -956,7 +956,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
                             />
                         </NavLink>
                         {
-                            vehicle?.images.length > 1 &&
+                            vehicle?.images?.length > 1 &&
                             <Flex
                              position={'absolute'}
                              w={'100%'}
