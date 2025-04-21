@@ -34,16 +34,21 @@ import { jsonifyObject, objectifyJSON } from "../../utils";
 import {ArrowRight} from 'lucide-react';
 import { auth } from "../../firebase";
 import firebase from 'firebase/compat/app';
+import BusinessProfile from './BusinessProfile';
 
-
-const SignupContext = createContext({});
+export const SignupContext = createContext({});
 
 export const SignupView = ({ type="personal", ...props }) => {
     const {onAuthenticated, axios, notify, onError} = useContext(GlobalStore)
     const [step, setStepValue] = useState(0);
     const [payload, setPayload] = useState({});
     const [user, setUser] = useState(null);
-    const [skipConfirmation, setSkipStep] = useState({email: false, phone_number: false});
+    const [skipConfirmation, setSkipStep] = useState({
+        profile: false,
+        email: false,
+        phone_number: true,
+        business: type === 'business' ? false : true
+    });
     const [verification, setVerification] = useState('email');
     const [userProvider, setUserProvider] = useState('email'); // email | google | facebook
     const [user_type, setUserType] = useState('customer');
@@ -61,8 +66,7 @@ export const SignupView = ({ type="personal", ...props }) => {
         checkEmail,
     }
 
-
-    const signInWithGoogle = async () => {
+    const signUpWithGoogle = async () => {
         try{
             const provider = new firebase.auth.GoogleAuthProvider();
             const result = await auth.signInWithPopup(provider);
@@ -78,15 +82,15 @@ export const SignupView = ({ type="personal", ...props }) => {
                 first_name,
                 last_name,
                 provider: 'google',
-                // action: 'create-account',
             };
 
             const newUser = await checkEmail(_user.email);
+
             if (newUser){
                 await setPayload({...data});
                 await setUser(user);
                 setSkipStep({...skipConfirmation, email: true});
-                gotoStep(1);
+                nextStep();
             }
         }catch(error){
             console.error("Signup with google error", error);
@@ -94,21 +98,35 @@ export const SignupView = ({ type="personal", ...props }) => {
     };
 
     const steps = [
-        { title: `Create ${type === 'business'? 'a business' : 'your'} account`,
+        {
+            title: 'Add your Business Info',
+            description: 'Complete and personalise your profile in order to standout from the crowd!',
+            key: 'business',
+            component: <BusinessProfile onSubmit={handleEmailSubmission} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
+        },
+        {
+            title: `Create ${type === 'business'? 'a business' : 'your'} account`,
             description: 'Start your 30-day free trial', 
-            component: <EmailStep signInWithGoogle={signInWithGoogle} type={type} />
+            key: 'signup',
+            component: <EmailStep onSubmit={handleEmailSubmission} signUpWithGoogle={signUpWithGoogle} type={type} />
         },
-        { title: 'Create your account',
+        {
+            title: 'Create your account',
             description: 'Start your 30-day free trial', 
-            component: <SignupStep skipConfirmation={skipConfirmation} />
+            key: 'profile',
+            component: <SignupStep onSubmit={handleEmailSubmission} skipConfirmation={skipConfirmation} />
         },
-        { title: 'Confirm your email',
+        {
+            title: 'Confirm your email',
             description: 'Verify your email to get notifications and updates from Motaa.',
-            component: <ConfirmationStep verification={verification}  />
+            key: 'email',
+            component: <ConfirmationStep onSubmit={handleEmailSubmission} verification={verification}  />
         },
-        { title: 'Confirm your phone number',
+        {
+            title: 'Confirm your phone number',
             description: 'Verify your email to get notifications and updates from Motaa.',
-            component: <ConfirmationStep verification={verification} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
+            key: 'phone_number',
+            component: <ConfirmationStep onSubmit={handleEmailSubmission} verification={verification} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
         },
     ]
 
@@ -128,6 +146,10 @@ export const SignupView = ({ type="personal", ...props }) => {
             ...payload,
             ...data
         });
+    }
+
+    function handleEmailSubmission(data){
+
     }
 
     async function checkEmail(email){
@@ -157,6 +179,17 @@ export const SignupView = ({ type="personal", ...props }) => {
         onSubmit(formData);
     }
 
+    const StepComponent = ({ props }) => {
+        const currentStep = steps[step];
+
+        useEffect(() => {
+            if (skipConfirmation[`${currentStep.key}`]){
+                nextStep();
+            }
+        }, [])
+        return currentStep.component
+    }
+
     return(
         <SignupContext.Provider value={context}>
         <CenteredLayout>
@@ -166,7 +199,7 @@ export const SignupView = ({ type="personal", ...props }) => {
                 <Text textAlign='center' my={4} className="text"> {steps[step].description} </Text>
                 
                 <Box>
-                    {steps[step].component}
+                    <StepComponent />
                 </Box>
             </Box>
         </CenteredLayout>
@@ -175,7 +208,7 @@ export const SignupView = ({ type="personal", ...props }) => {
 }
 
 
-const EmailStep = ({ signInWithGoogle, type }) => {
+const EmailStep = ({ signUpWithGoogle, type }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const {axios, notify, onError} = useContext(GlobalStore);
@@ -274,8 +307,7 @@ const EmailStep = ({ signInWithGoogle, type }) => {
                 </HStack>
 
                 <Stack flex={1} columnGap={4} rowGap={4} my={3}>
-                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signInWithGoogle} leftIcon={<FaGoogle />} colorScheme="white" color={'secondary'} bg={'white'}> Sign up with Google </Button>
-                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signInWithGoogle} leftIcon={<FaFacebook />} colorScheme="white" color={'secondary'} bg={'white'}>Sign up with Facebook </Button>
+                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signUpWithGoogle} leftIcon={<FaGoogle />} colorScheme="white" color={'secondary'} bg={'white'}> Sign up with Google </Button>
                 </Stack>
 
                 <Divider my={3} />
@@ -380,35 +412,7 @@ const SignupStep = ({ skipEmailConfirmation }) => {
                         placeholder="+234 812 4128 234"
                     />
                 </FormControl>
-
-                <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                    <FormLabel> Means of Identification </FormLabel>
-                    <Input as={Select}
-                        onChange={e => setIdType(e.target.value)}
-                        value={id_type}
-                        defaultValue={'nin'}
-                    >
-                        <option value={'nin'}> NIN Number </option>
-                        <option value={'voters-card'}> Voter's Card </option>
-                        <option value={'drivers-license'}> Driver's License </option>
-                        <option value={'passport'}> Passport </option>
-                    </Input>
-                </FormControl>
             </Flex>
-
-            {
-                user_type === "dealer" || user_type === "mechanic" && 
-                <Flex justifyContent={'space-between'} columnGap={3} flexWrap={{base: 'wrap', md: 'nowrap'}}>
-                    <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                        <FormLabel> CAC Registration number </FormLabel>
-                        <Input
-                            onInput={e => setCACNumber(e.target.value)}
-                            value={cac_number} type="tel"
-                            placeholder="RC 12 4128 234"
-                        />
-                    </FormControl>
-                </Flex>
-            }
 
             <FormControl mt={3}>
                 <Button type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Continue </Button>

@@ -24,8 +24,7 @@ import { ChevronLeftIcon, ChevronRightIcon, MapPinIcon, StarIcon, VerifiedIcon, 
 import {IoRibbonOutline} from 'react-icons/io5';
 import {LocationBreadcrumb, ReviewCard, RatingCard,} from '../../../components';
 import { ChatPopup } from "../../../components/chat";
-import { MapComponent } from "../../../components/maps";
-import {Autocomplete} from "@react-google-maps/api";
+import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
 
 
 export const MechanicDetailPage = ({ }) => {
@@ -36,7 +35,8 @@ export const MechanicDetailPage = ({ }) => {
   const [autocomplete, setAutocomplete] = useState(null);
   const [locationName, setLocationName] = useState("Current Location");
   const [inputValue, setInputValue] = useState("Your Current Location");
-  const [location, setLocation] = useState({lat: 10, lng: 8, name: 'Current Location'});
+  const [location, setLocation] = useState();
+  const [selectedService, setSelectedService] = useState();
   const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const bgColor = useColorModeValue('white', 'gray.800')
@@ -50,10 +50,30 @@ export const MechanicDetailPage = ({ }) => {
     const res = await axios.get(`/mechanics/${mechId}`);
     const data = objectifyJSON(res.data);
     setMechanic(data?.data);
-    console.log("Mech:", data?.data);
   }
 
   const onLoad = (auto) => setAutocomplete(auto);
+
+  function gotoBookingPage(){
+
+    if(selectedService && selectedService.trim()){
+      if (location){
+        const {lat, lng } = location;
+        const address = ""
+        return redirect(`/mechanics/book/${mechId}/?lat=${lat}&lng=${lng}&address=${address}`)
+      }
+      return notify({
+        title: "Error",
+        body: 'Please enter a location',
+        color: 'red',
+      })
+    }
+    return notify({
+      title: "Error",
+      body: 'Please select a service',
+      color: 'red',
+    })
+  }
 
   const onPlaceChanged = () => {
     if (autocomplete) {
@@ -71,11 +91,11 @@ export const MechanicDetailPage = ({ }) => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // setLocation({
-          //   lat: position.coords.latitude,
-          //   lng: position.coords.longitude,
-          //   name: "Current Location"
-          // });
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            name: "Current Location"
+          });
         },
         (error) => {
           setError("Unable to retrieve location.");
@@ -121,7 +141,7 @@ export const MechanicDetailPage = ({ }) => {
 
                       <Flex align="center" gap={2} mt={2} color="gray.600">
                         <MapPinIcon className="w-4 h-4" />
-                        <Text>{mechanic?.location}</Text>
+                        <Text>{mechanic?.location?.name}</Text>
                         <Text color="gray.700"> • 300m away</Text>
                       </Flex>
                     </Box>
@@ -131,12 +151,12 @@ export const MechanicDetailPage = ({ }) => {
                         <MessageCircleIcon className="w-4 h-4 mr-2" />
                         Chat
                       </Button>
-
+{/*
                       <IconButton
                         variant="outline"
                         icon={<MoreHorizontalIcon className="w-4 h-4" />}
                         aria-label="More options"
-                      />
+                      />*/}
                     </Flex>
                   </Flex>
                   <Flex flexWrap="wrap" align="center" gap={2} mt={4}>
@@ -191,23 +211,23 @@ export const MechanicDetailPage = ({ }) => {
             <Box position="relative" top={4}>
               <Box bg={bgColor} className="map-wrapper">
                 {/* Map placeholder */}
-                {/*<Box
+                <Box
                   style={{height: "320px"}}
                   mb={4}
                   as={MapComponent}
                   location={location}
-                />*/}
+                />
                             
                 <VStack  w="100%">
                   <Flex w="100%" my={2} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                     <Text>Location:</Text>
-{/*
-                    <Autocomplete
+
+                    <CustomPlacesAutocomplete
                       onLoad={onLoad}
                       style={{width: "100%"}}
                       onPlaceChanged={onPlaceChanged}
                       className="w-full"
-                    >*/}
+                    >
                       <Input
                         flex={1}
                         w="100%"
@@ -215,16 +235,16 @@ export const MechanicDetailPage = ({ }) => {
                         outline="none"
                         placeholder="Search location..."
                       />
-                    {/*</Autocomplete>*/}
+                    </CustomPlacesAutocomplete>
                   </Flex>
                   
-                  <Select placeholder="Choose Service">
+                  <Select onInput={e => setSelectedService(e.target.value)} value={selectedService} placeholder="Choose Service">
                     {mechanic?.services?.map((service) =>
-                      <option> {service?.service} </option>
+                      <option  value={service?.uuid}> {service?.service} </option>
                     )}
                   </Select>
                   
-                  <Button colorScheme="blue" size="lg" w="full">
+                  <Button colorScheme="blue" size="lg" w="full" onClick={gotoBookingPage}>
                     Book Now
                   </Button>
                 </VStack>

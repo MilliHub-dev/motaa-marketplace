@@ -60,29 +60,97 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, StarIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CalendarIcon, TimeIcon } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
 import { addMonths, endOfMonth, format, isSameDay, isSameMonth, isToday, startOfMonth, subMonths } from "date-fns"
+import {
+  MdSearch,
+  MdHome,
+  MdBarChart,
+  MdPeople,
+  MdSettings,
+  MdMoreVert,
+  MdFilterList,
+  MdShare,
+  MdMessage,
+  MdNotifications,
+  MdBolt,
+  MdLock,
+  MdLocationOn,
+  MdKeyboardArrowDown,
+  MdInventory,
+  MdCalendarMonth,
+} from "react-icons/md"
+import { BsWallet2 } from "react-icons/bs"
+
+
+
+// Status Badge Component
+export const StatusBadge = ({ status }) => {
+  let color, bg, icon
+
+  switch (status) {
+    case "Successful":
+      color = "green.600"
+      bg = "green.50"
+      break
+    case "Locked":
+      color = "blue.500"
+      bg = "blue.50"
+      icon = <MdLock size={12} style={{ marginRight: "4px" }} />
+      break
+    case "Pending":
+      color = "orange.500"
+      bg = "orange.50"
+      break
+    default:
+      color = "gray.500"
+      bg = "gray.50"
+  }
+
+  return (
+    <Badge
+      display="flex"
+      alignItems="center"
+      px={3}
+      py={1}
+      borderRadius="full"
+      color={color}
+      bg={bg}
+      fontWeight="medium"
+      fontSize="sm"
+    >
+      {icon}
+      {status}
+    </Badge>
+  )
+}
 
 
 export const RatingCard = ({ avg_rating, ratings }) => {
   const categories = {}
   let count = 0;
 
-  for(let rating of ratings){
-    count++;
-    const keys = Object.keys(rating);
-    for(let key of keys){
-      if (typeof categories[key] === Number){
-        categories[`${key}`] += rating[`${key}`]
-      }else{
-        categories[`${key}`] = rating[`${key}`]
+  if (ratings){
+    console.log("Ratings: ", ratings)
+    for(let rating of ratings){
+      count++;
+      if (rating){
+        const keys = Object.keys(rating);
+        for(let key of keys){
+          if (typeof categories[key] === Number){
+            categories[`${key}`] += rating[`${key}`]
+          }else{
+            categories[`${key}`] = rating[`${key}`]
+          }
+        }
       }
     }
+    
+    const keys = Object.keys(categories);
+    for(let key of keys){
+      console.log(key, "has", categories[key])
+      categories[`${key}`] = categories[`${key}`]/count
+    }
   }
-  
-  const keys = Object.keys(categories);
-  for(let key of keys){
-    console.log(key, "has", categories[key])
-    categories[`${key}`] = categories[`${key}`]/count
-  }
+
 
 
 

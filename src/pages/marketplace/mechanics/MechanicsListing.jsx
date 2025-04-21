@@ -32,13 +32,11 @@ import {  RiFilterLine, } from 'react-icons/ri'
 import {BiBuildings} from 'react-icons/bi';
 import {GrLocation} from 'react-icons/gr';
 import { MechanicListSkeleton } from "../../../components/loaders";
-import { MapComponent } from "../../../components/maps";
+import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
 import { 
   LocationFilter,
 } from "../../../components/filters";
 import { Paginator } from "../../../components/nav";
-import {Autocomplete} from "@react-google-maps/api";
-
 
 
 
@@ -236,24 +234,13 @@ export const MechanicListPage = ({ props }) => {
             {/* Map Section */}
             <Box className="map-wrapper" w="100%" maxW={{ md: "300px", lg: "400px" }} minH="500px" bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} px={4} py={4} top={4}>
               <Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      
-  
               <Flex my={5} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                 <Text>Location:</Text>
 
-                <Autocomplete
+                <CustomPlacesAutocomplete
                   onLoad={onLoad}
-                  style={{width: "100%"}}
                   onPlaceChanged={onPlaceChanged}
-                  className="w-full"
-                >
-                  <Input
-                    flex={1}
-                    w="100%"
-                    border="none"
-                    outline="none"
-                    placeholder="Search location..."
-                  />
-                </Autocomplete>
+                />
               </Flex>
               <Button w="100%" size="lg" colorScheme="blue" onClick={expandMap} p={4}>Expand Map</Button>
             </Box>

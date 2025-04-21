@@ -240,7 +240,7 @@ export const UnauthenticatedNavbar = ({ props }) => {
 
             {isMobile &&
               <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
+                <Icon sx={{ fill: 'white', '& *': {fill: 'white'}}} className='icon'><FcMenu /></Icon>
               </Button>
             }
           </Flex>
@@ -1015,11 +1015,11 @@ export const Sidebar = ({ show, onClose, }) => {
                 isLoggedIn ? (
                   // isMobile &&
                   <Stack>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/dashboard"}>Dashboard</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/home"}>Home</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
                     <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
+                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/wallet"}>Wallet</Text>
                   </Stack>
                 ) : (
                 <Stack>

@@ -9,6 +9,7 @@ import {
   Container,
   Flex,
   VStack,
+  Image,
   HStack,
   Text,
   Heading,
@@ -29,16 +30,37 @@ import {
   MenuItem,
   SimpleGrid,
   Badge,
+  TableContainer,
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from 'chart.js';
+import {
+  MdSearch,
+  MdHome,
+  MdBarChart,
+  MdPeople,
+  MdSettings,
+  MdMoreVert,
+  MdFilterList,
+  MdShare,
+  MdMessage,
+  MdNotifications,
+  MdBolt,
+  MdLock,
+  MdLocationOn,
+  MdKeyboardArrowDown,
+  MdInventory,
+  MdCalendarMonth,
+} from "react-icons/md"
+import { BsWallet2 } from "react-icons/bs"
+import {StatusBadge} from '../../../components'
+
+
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
-
-
 
 
 
@@ -46,7 +68,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 function Dashboard({ }) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const [wallet, setWallet] = useState({});
-  const [transactions, setTransactions] = useState([])
+  const [recentOrders, setRecentOrders] = useState([])
   const [dashboardData, setDashboardData] = useState({})
   const formatCurrency = (value) => {
     return `₦${parseInt(value).toLocaleString()}`;
@@ -59,13 +81,6 @@ function Dashboard({ }) {
   const chartData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June'],
     datasets: [
-      {
-        data: [30, 20, 10, 30, 45, 25],
-        borderColor: '#E53E3E',
-        borderWidth: 2,
-        tension: 0.4,
-        pointRadius: 0,
-      },
       {
         data: [10, 20, 30, 50, 45, 58],
         borderColor: '#38A169',
@@ -100,7 +115,7 @@ function Dashboard({ }) {
     const res = await axios.get('/admin/dealership/dashboard/');
     const data = objectifyJSON(res.data);
     setDashboardData(data.data)
-    // setWallet(data?.data)
+    setRecentOrders(data.data.recent_orders)
   }
 
   async function getWalletTransactions(){
@@ -156,7 +171,13 @@ function Dashboard({ }) {
           value={dashboardData?.impressions}
           // change={-2}
           // data={sparklineData.impressions}
-          format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
+          format={(v) => {
+            if (v > 1000){
+              return `${(parseInt(v) / 1000).toFixed(3)}K`
+            }else{
+              return `${(parseInt(v))}`
+            }
+          }}
         />
         <StatCard
           title={"Total Deals"}
@@ -175,73 +196,70 @@ function Dashboard({ }) {
       </Box>
 
       {/* Transactions */}
-      <Heading size="sm" my={3} fontWeight="500"> Transactions </Heading>
-      <Box borderWidth={1} borderRadius="lg" overflow="hidden">
-
-        <Table>
+      <Heading size="sm" my={3} fontWeight="500"> Recent Orders </Heading>
+      <TableContainer borderWidth={1} borderRadius="lg" overflow="auto">
+        <Table variant="simple" textWrap="nowrap">
           <Thead bg="gray.50">
             <Tr>
-              <Th>Name</Th>
+              <Th>Car Listings</Th>
               <Th>Amount</Th>
               <Th>Date</Th>
               <Th>Status</Th>
+              <Th>Client</Th>
               <Th></Th>
             </Tr>
           </Thead>
           <Tbody>
-            {wallet?.transactions?.map((transaction) => (
-              <Tr key={transaction.id}>
+            {recentOrders?.map((order) => (
+              <Tr key={order?.uuid}>
                 <Td>
-                  <HStack>
-                    <Avatar size="sm" name={transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}` } />
-                    <Box>
-                      <Text fontWeight="medium">{transaction.recipient || `${authUser?.first_name} ${authUser?.last_name}`}</Text>
-                      <Text fontSize="sm" color="gray.500">
-                        {transaction.type}
-                      </Text>
-                    </Box>
-                  </HStack>
-                </Td>
-                <Td>
-                  <Text
-                    color={
-                      transaction.amount.startsWith('+')
-                        ? 'green.500'
-                        : 'red.500'
-                    }
-                    fontWeight="medium"
-                  >
-                    {commaInt(transaction.amount)}
-                  </Text>
-                </Td>
-                <Td>
-                  <Text>{transaction.date}</Text>
-                  <Text fontSize="sm" color="gray.500">
-                    {transaction.date_created}
-                  </Text>
-                </Td>
-                <Td>
-                  <Badge colorScheme="green">{transaction.status}</Badge>
-                </Td>
-                <Td>
-                  <Menu>
-                    <MenuButton
-                      as={IconButton}
-                      icon={<MoreVertical size={16} />}
-                      variant="ghost"
-                      size="sm"
+                  <Flex align="center">
+                    <Image
+                      src={order?.order_item?.vehicle?.images[0]?.url}
+                      alt={order?.order_item?.vehicle.name}
+                      w="80px"
+                      h="50px"
+                      objectFit="cover"
+                      borderRadius="md"
+                      mr={3}
                     />
-                    <MenuList>
-                      <MenuItem>View details</MenuItem>
-                      <MenuItem>Download receipt</MenuItem>
-                    </MenuList>
-                  </Menu>
+                    <Box>
+                      <Text fontWeight="medium">{order?.order_item.vehicle.name}</Text>
+                      <Text color="gray.700" fontWeight="medium">
+                        {order?.order_type}
+                      </Text>
+                      <Flex align="center" color="gray.500" fontSize="xs">
+                        <MdLocationOn size={12} style={{ marginRight: "4px" }} />
+                        {order?.order_item?.vehicle?.dealer?.location}
+                      </Flex>
+                    </Box>
+                  </Flex>
+                </Td>
+                <Td>
+                  <Text color="green.500" fontWeight="medium">
+                    {parseInt(order?.order_item?.price).toLocaleString()}
+                  </Text>
+                </Td>
+                <Td>
+                  <Text>{new Date(order?.last_updated).toLocaleDateString()}</Text>
+                  <Text color="gray.500" fontSize="sm">
+                    {new Date(order?.last_updated).toLocaleTimeString()}
+                  </Text>
+                </Td>
+                <Td>
+                  <StatusBadge status={order?.order_status} />
+                </Td>
+                <Td>
+                  <Avatar size="sm" name={order?.customer} />
+                </Td>
+                <Td>
+
                 </Td>
               </Tr>
             ))}
           </Tbody>
         </Table>
-      </Box>
+      </TableContainer>
     </Box>
   )
 }

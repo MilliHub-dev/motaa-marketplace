@@ -206,7 +206,6 @@ const BuyListing = ({ }) => {
                 <FilterList appliedFilters={appliedFilters} onRemove={removeFilter} />
 
                 <SimpleGrid
-                 minChildWidth="300px"
                  placeItems={isMobile ? 'center' : 'unset'}
                  gap={8}
                  spacing={8}

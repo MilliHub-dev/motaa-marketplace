@@ -22,6 +22,7 @@ class ErrorBoundary extends Component {
   };
 
   handleGoBack = () => {
+    this.setState({ hasError: false, error: null });
     window.history.back();
   };
 

@@ -34,93 +34,6 @@ import {useState, useEffect, useContext} from 'react';
 import {GlobalStore} from '../../../App';
 
 
-
-
-
-// Sample data for the tables
-const pendingRequests = [
-  {
-    id: 1,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    hasAvatar: true,
-  },
-  {
-    id: 2,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    hasAvatar: false,
-  },
-  {
-    id: 3,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    hasAvatar: true,
-  },
-]
-
-const bookingHistory = [
-  {
-    id: 1,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    status: "Completed",
-    hasAvatar: true,
-  },
-  {
-    id: 2,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    status: "Rejected",
-    hasAvatar: false,
-  },
-  {
-    id: 3,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    status: "Completed",
-    hasAvatar: true,
-  },
-  {
-    id: 4,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    status: "Rejected",
-    hasAvatar: true,
-  },
-  {
-    id: 5,
-    client: "Joe Lance",
-    location: "No.23 Conakry close wuse abuja",
-    service: "Oil Change",
-    date: "Apr 12, 2023",
-    time: "09:32AM",
-    status: "Completed",
-    hasAvatar: true,
-  },
-]
-
 // Metric Card Component
 const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
   const isPositive = change > 0
@@ -133,7 +46,6 @@ const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
         <Text fontSize="sm" fontWeight="medium" color="gray.600">
           {title}
         </Text>
-        <Icon as={FaChevronRight} color="gray.400" />
       </Flex>
       <Flex align="center" mb={2}>
         <Text fontSize="2xl" fontWeight="bold">
@@ -141,16 +53,22 @@ const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
         </Text>
         {suffix && <Box ml={1}>{suffix}</Box>}
       </Flex>
-      <Flex align="center">
-        <Text fontSize="sm" color={trendColor} fontWeight="medium">
-          {changeText}
-        </Text>
-      </Flex>
-      <Box position="absolute" bottom="0" left="0" right="0" h="40px" overflow="hidden">
-        <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
-          <path d={trend} fill="none" stroke={isPositive ? "green" : "red"} strokeWidth="1.5" opacity="0.5" />
-        </svg>
-      </Box>
+
+      {
+        changeText &&
+        <>
+        <Flex align="center">
+          <Text fontSize="sm" color={trendColor} fontWeight="medium">
+            {changeText}
+          </Text>
+        </Flex>
+        <Box position="absolute" bottom="0" left="0" right="0" h="40px" overflow="hidden">
+          <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d={trend} fill="none" stroke={isPositive ? "green" : "red"} strokeWidth="1.5" opacity="0.5" />
+          </svg>
+        </Box>
+        </>
+      }
     </Box>
   )
 }
@@ -203,23 +121,15 @@ export const MechanicOverview = () => {
             trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
           />
         </Box>
+        
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
           <MetricCard title="Impressions" value="32.7M" change={-2} trend="M0,5 Q40,10 60,15 T100,20 T150,25 T200,30" />
         </Box>
+
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard title="Total Deals" value="32" change={14} trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0" />
+          <MetricCard title="Bookings" value="32" change={14} trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0" />
         </Box>
-        <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard
-            title="Average Rating"
-            value="4.6"
-            change={0}
-            // suffix={<Icon as={Star} color="yellow.400" ml={1} />}
-          />
-          <Text fontSize="sm" color="gray.500" mt={-4} ml={1}>
-            (300 reviews)
-          </Text>
-        </Box>
+        
       </Flex>
 
       {/* Profile Setup Notification */}
@@ -238,15 +148,12 @@ export const MechanicOverview = () => {
             <Box w={2} h={2} borderRadius="full" bg="white" />
           </Box>
           <Text fontWeight="medium">Complete your profile setup</Text>
-          <IconButton
-            // icon={<X size={16} />}
-            variant="ghost"
-            size="sm"
-            position="absolute"
-            right={2}
-            top={2}
-            aria-label="Close notification"
-          />
+          <dojah-button
+            widgetId="68067151186873a0f4098161"
+            text="Web"
+            textColor="#FFFFFF"
+            backgroundColor="#3977de">
+          </dojah-button>
         </Flex>
         <Box px={6}>
           <Progress value={60} size="sm" colorScheme="blue" borderRadius="full" mb={1} />

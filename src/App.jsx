@@ -24,6 +24,7 @@ import BuyDetail from './pages/marketplace/buy/BuyDetail';
 import MechanicSearchPage from './pages/marketplace/search/MechanicSearch';
 import CarSearchPage from './pages/marketplace/search/CarSearch';
 import MechanicListPage from './pages/marketplace/mechanics/MechanicsListing';
+import ConfirmMechanicBookingPage from './pages/marketplace/mechanics/ConfirmBooking';
 import MechanicDetailPage from './pages/marketplace/mechanics/MechanicDetail';
 import LoginView from './pages/auth/Login';
 import SignupView from './pages/auth/Signup';
@@ -49,7 +50,7 @@ import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing
 import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
 import OrderListAdmin from './pages/dashboard/dealer/orders/OrderList';
 // import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';``
-import DealershipSettings from './pages/dashboard/dealer/Settings';
+import DealershipSettings from './pages/dashboard/dealer/settings/Settings';
 
 // Wallet
 import WalletLayout from './pages/marketplace/wallet/Layout';
@@ -83,7 +84,7 @@ export const GlobalStore = createContext({
   commaInt: undefined,
 });
 
-const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+// const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
 
   
 function App() {
@@ -93,8 +94,8 @@ function App() {
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
-    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
+    // baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
+    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -107,7 +108,7 @@ function App() {
   }
 
   async function logout(){
-    await redirect('/');
+    // await redirect('/');
     return onLogout();
   }
 
@@ -253,6 +254,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/buy/:listingId' element={<BuyDetail />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics' element={<MechanicListPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/mechanics/book/:mechId' element={<ConfirmMechanicBookingPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dealership/:dealerId' element={<DealerProfile />} />
                         
@@ -300,8 +302,6 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<SignupView type={'business'} />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
-                  {/*<Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
-                  <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />*/}
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
                 </Route>      
               )              
