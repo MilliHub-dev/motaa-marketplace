@@ -42,13 +42,14 @@ import {CenteredLayout} from '../../../components';
 
 function WalletDepositPage() {
   const {axios, notify, authUser, commaInt, redirect} = useContext(GlobalStore);
+  const [minDeposit, setMinDeposit] = useState(500)
   const [currency, setCurrency] = useState({
       code: 'NGN',
       symbol: '₦'
   });
   const [showDepositModal, setDepositModalVisibility] = useState(false);
   const [amount, setAmount] = useState(0);
-  const [accept, setAccept] = useState(false);
+  const [accept, setAccept] = useState(true);
   const amountRef = useRef();
 
   const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
@@ -84,7 +85,7 @@ function WalletDepositPage() {
     customizations: {
       title: 'Motaa',
       description: 'Add funds to your wallet',
-      logo: `${window.location.origin}/assets/images/motaa-logo-2.png`,
+      logo: `${window.location.origin}/static/motaa/motaa-logo-1.png`,
     },
     meta: {
       transaction_type: 'wallet:deposit'
@@ -167,15 +168,18 @@ function WalletDepositPage() {
             ></Text>
           </Heading>
 
-          <Button onClick={payUp} isDisabled={amount < 50000 || accept === false } display="block" bg="primary" colorScheme="blue" w="full" flex={1} mt="3rem" size="lg"> PROCEED </Button>
+          {amount < minDeposit && <Text my={2} size="xs" fontSize={'13px'} fontWeight="600" color="red"> minimum allowed amount {currency?.symbol}{minDeposit} </Text>}
+
+          <Button onClick={payUp} isDisabled={amount < minDeposit || accept === false } display="block" bg="primary" colorScheme="blue" w="full" flex={1} mt="3rem" size="lg"> PROCEED </Button>
+          
+          <Alert fontSize={'14px'} mt={'2rem'} colorScheme="blue" color="primary" gap={2} textAlign="left" maxW="550px" borderRadius="lg" border="1px solid" borderColor="primary">
+            <Checkbox borderColor="primary" value={accept} onInput={e => setAccept(!accept)} isChecked={accept} style={{accentColor: 'primary'}} type="checkbox" name="i_accept" />
+            Motaa is not a bank, all banking services are provided by TAJ Bank.
+          </Alert>
         </Box>
 
-        <Alert mt={'2rem'} colorScheme="blue" color="primary" gap={2} textAlign="left" maxW="550px" borderRadius="lg" border="1px solid" borderColor="primary">
-          <Checkbox borderColor="primary" value={accept} onInput={e => setAccept(!accept)} selected={accept} style={{accentColor: 'primary'}} type="checkbox" name="i_accept" />
-          Motaa is not a bank, all banking services are provided by TAJ Bank.
-        </Alert>
       </CenteredLayout>
-
+{/*
       <FlutterwavePaymentModal
        isOpen={showDepositModal}
        payload={{
@@ -197,7 +201,7 @@ function WalletDepositPage() {
         'opration': 'Wallet Deposit'
        }}
        onClose={() => setDepositModalVisibility(false)}
-      />
+      />*/}
     </Box>
   )
 }

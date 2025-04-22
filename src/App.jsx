@@ -28,6 +28,7 @@ import ConfirmMechanicBookingPage from './pages/marketplace/mechanics/ConfirmBoo
 import MechanicDetailPage from './pages/marketplace/mechanics/MechanicDetail';
 import LoginView from './pages/auth/Login';
 import SignupView from './pages/auth/Signup';
+import BusinessSignupView from './pages/auth/BusinessProfile';
 import ChatLayout from './pages/marketplace/chat/Layout';
 import ChatRoom from './pages/marketplace/chat/ChatRoom';
 import CartPage from './pages/marketplace/CartPage';
@@ -141,13 +142,14 @@ function App() {
     return cookie
   }
 
-
   function getAuthUser(){
     const user = localStorage.getItem('motaa-auth-user')
     if (user === null){
     }else{
-      setAuthUser(JSON.parse(user));
-      setAuthState(true)
+      const userData = JSON.parse(user)
+      console.log("Got User:", userData)
+      setAuthUser(userData);
+      // setAuthState(true)
     }
   }
   
@@ -299,7 +301,7 @@ function App() {
                 <Route element={<Layout />}>
                   <Route ErrorBoundary={ErrorBoundary} path='/login' element={<LoginView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup' element={<SignupView />} />
-                  <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<SignupView type={'business'} />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<BusinessSignupView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />

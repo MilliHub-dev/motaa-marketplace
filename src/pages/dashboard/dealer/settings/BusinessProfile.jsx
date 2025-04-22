@@ -30,6 +30,8 @@ export const BusinessProfile = ({  }) => {
     offers_purchase: true,
     offers_drivers: false,
     offers_trade_in: false,
+    contact_email: '',
+    contact_phone: '',
   });
 
   const handleChange = (e) => {
@@ -68,7 +70,7 @@ export const BusinessProfile = ({  }) => {
 
 
     for (let key of keys){
-      if (key === 'logo' && typeof dealership[key] !== String){
+      if (key === 'logo' && typeof dealership[key] !== 'string'){
         const file = dealership['logo'].file;
         payload.append('new-logo', file, file.name)
       }else{
@@ -86,7 +88,10 @@ export const BusinessProfile = ({  }) => {
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
-      console.log("My settings:", data.data)
+      notify({
+        title: 'Settings saved!',
+        color: 'green'
+      })
       setDealership(data.data)
     }
   }
@@ -175,12 +180,12 @@ export const BusinessProfile = ({  }) => {
 
       <FormControl>
         <FormLabel>Email</FormLabel>
-        <Input type="email" name="customer_email" value={dealership.customer_email} onChange={handleChange} />
+        <Input type="email" name="contact_email" value={dealership?.contact_email} onChange={handleChange} />
       </FormControl>
 
       <FormControl>
         <FormLabel>Customer Care Phone Number</FormLabel>
-        <Input type="tel" name="customer_phone" value={dealership.customer_phone} onChange={handleChange} />
+        <Input type="tel" name="contact_phone" value={dealership?.contact_phone} onChange={handleChange} />
       </FormControl>
 
       <Button colorScheme="blue" onClick={handleSubmit}>Save Changes</Button>

@@ -25,7 +25,7 @@ import { useContext, useRef, useState, createContext, useEffect } from "react";
 import { GlobalStore } from "../../App";
 import {motion} from 'framer-motion';
 import { CenteredLayout, OTPField } from "../../components";
-import { redirect, useNavigate, useParams, Link as RLink } from "react-router-dom";
+import { redirect, useNavigate, useSearchParams, useParams, Link as RLink } from "react-router-dom";
 import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
 import { FcSms, FcVoicemail } from "react-icons/fc";
 import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
@@ -38,8 +38,10 @@ import BusinessProfile from './BusinessProfile';
 
 export const SignupContext = createContext({});
 
-export const SignupView = ({ type="personal", ...props }) => {
-    const {onAuthenticated, axios, notify, onError} = useContext(GlobalStore)
+export const SignupView = ({...props }) => {
+    const {redirect, axios, notify, onError} = useContext(GlobalStore)
+    const [params] = useSearchParams();
+    const type = params.get('type') || 'customer'
     const [step, setStepValue] = useState(0);
     const [payload, setPayload] = useState({});
     const [user, setUser] = useState(null);
@@ -47,11 +49,10 @@ export const SignupView = ({ type="personal", ...props }) => {
         profile: false,
         email: false,
         phone_number: true,
-        business: type === 'business' ? false : true
     });
     const [verification, setVerification] = useState('email');
     const [userProvider, setUserProvider] = useState('email'); // email | google | facebook
-    const [user_type, setUserType] = useState('customer');
+    const [user_type, setUserType] = useState(type || 'customer');
 
     const context = {
         nextStep,
@@ -99,34 +100,22 @@ export const SignupView = ({ type="personal", ...props }) => {
 
     const steps = [
         {
-            title: 'Add your Business Info',
-            description: 'Complete and personalise your profile in order to standout from the crowd!',
-            key: 'business',
-            component: <BusinessProfile onSubmit={handleEmailSubmission} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
-        },
-        {
             title: `Create ${type === 'business'? 'a business' : 'your'} account`,
             description: 'Start your 30-day free trial', 
             key: 'signup',
-            component: <EmailStep onSubmit={handleEmailSubmission} signUpWithGoogle={signUpWithGoogle} type={type} />
+            component: <EmailStep type={type} signUpWithGoogle={signUpWithGoogle} />
         },
         {
             title: 'Create your account',
             description: 'Start your 30-day free trial', 
             key: 'profile',
-            component: <SignupStep onSubmit={handleEmailSubmission} skipConfirmation={skipConfirmation} />
+            component: <SignupStep type={type} />
         },
         {
             title: 'Confirm your email',
             description: 'Verify your email to get notifications and updates from Motaa.',
             key: 'email',
-            component: <ConfirmationStep onSubmit={handleEmailSubmission} verification={verification}  />
-        },
-        {
-            title: 'Confirm your phone number',
-            description: 'Verify your email to get notifications and updates from Motaa.',
-            key: 'phone_number',
-            component: <ConfirmationStep onSubmit={handleEmailSubmission} verification={verification} nextStep={() => redirect(`/home?welcome=${payload.first_name}`)} />
+            component: <ConfirmationStep type={type} verification={'email'}  />
         },
     ]
 
@@ -139,9 +128,9 @@ export const SignupView = ({ type="personal", ...props }) => {
     }
     
     function onSubmit(data){
-        if (verification === 'email' && skipConfirmation?.email){
-            return createAccount(data)
-        }
+        // if (verification === 'email' && skipConfirmation?.email){
+        //     return createAccount(data)
+        // }
         setPayload({
             ...payload,
             ...data
@@ -166,7 +155,6 @@ export const SignupView = ({ type="personal", ...props }) => {
                 })
                 return false;
             }
-
         }catch(err){
             notify({
                 title: 'An error occurred!',
@@ -208,8 +196,10 @@ export const SignupView = ({ type="personal", ...props }) => {
 }
 
 
-const EmailStep = ({ signUpWithGoogle, type }) => {
+const EmailStep = ({ signUpWithGoogle }) => {
     const [email, setEmail] = useState('');
+    const [params] = useSearchParams();
+    const type = params.get('type') || 'customer'
     const [password, setPassword] = useState('');
     const {axios, notify, onError} = useContext(GlobalStore);
     const {checkEmail, user_type, addToPayload, setUserType, payload, nextStep} = useContext(SignupContext);
@@ -239,7 +229,6 @@ const EmailStep = ({ signUpWithGoogle, type }) => {
                 color: 'red',
                 body: err.message
             })
-
         }
     }
 
@@ -311,7 +300,7 @@ const EmailStep = ({ signUpWithGoogle, type }) => {
                 </Stack>
 
                 <Divider my={3} />
-                <RLink to={`/signup/${type !== 'business' ? 'business' : ''}`}>
+                <RLink to={`/signup/?type=${type !== 'business' ? 'business' : 'customer'}`}>
                     <Button py={5} rightIcon={<FaArrowRight />} colorScheme="blue" variant="outline" borderWidth={3} borderColor="primary" w={"100%"} rounded="lg"> Create {type === 'business' ? 'Personal' : 'Business'} Account </Button>
                 </RLink>
             </form>
@@ -320,7 +309,7 @@ const EmailStep = ({ signUpWithGoogle, type }) => {
 }
 
 
-const SignupStep = ({ skipEmailConfirmation }) => {
+const SignupStep = ({ type }) => {
     const {axios, notify, onAuthenticated} = useContext(GlobalStore);
     const {payload, addToPayload, nextStep, user_type, gotoStep} = useContext(SignupContext);
     const [first_name, setFirstName] = useState(payload?.first_name);
@@ -351,15 +340,18 @@ const SignupStep = ({ skipEmailConfirmation }) => {
             const data = objectifyJSON(res.data)
 
             if (res.status === 201){
-                localStorage.setItem('motaa-auth-user', jsonifyObject(data));
+                localStorage.setItem('motaa-auth-user', jsonifyObject(data.data));
                 notify({
                     title: 'Success',
                     body: "Successfully created your account"
                 });
 
-                if (skipEmailConfirmation){
-                    // gotoStep(3); // no phone number verification
-                    return redirect('/');
+                if (payload.provider === 'google'){ // skip email confirmation
+                    if(type === 'business'){
+                        return redirect('/signup/business/');
+                    }else{
+                        return redirect('/');
+                    }
                 }else{
                     return nextStep();
                 }
@@ -378,7 +370,6 @@ const SignupStep = ({ skipEmailConfirmation }) => {
                 body: error.message,
             })
         }
-
     }
 
     return(
@@ -422,7 +413,7 @@ const SignupStep = ({ skipEmailConfirmation }) => {
 }
 
 
-const ConfirmationStep = ({ verification }) => {
+const ConfirmationStep = ({ verification, type }) => {
     const {axios, notify, onAuthenticated} = useContext(GlobalStore);
     const {nextStep, payload} = useContext(SignupContext);
     const [otp, setOTP] = useState('');
@@ -452,7 +443,7 @@ const ConfirmationStep = ({ verification }) => {
             email: payload.email,
         }), {
             headers: {
-                'User-Agent': `${document.location.hostname}`,
+                // 'User-Agent': `${document.location.hostname}`,
                 'Authorization': `Token ${token}`
             }
         })
@@ -461,7 +452,6 @@ const ConfirmationStep = ({ verification }) => {
     async function verifyCode(){
         const auth = objectifyJSON(localStorage.getItem('motaa-auth-user'));
         const token = auth.token
-        console.log("OTP:", otp);
         timer.current.focus()
         
         if (verification === 'email'){
@@ -481,6 +471,10 @@ const ConfirmationStep = ({ verification }) => {
                     title: "Success",
                     body: "Your email has been verified"
                 });
+
+                if (type === 'business'){
+                    return redirect('/signup/business/')
+                }
                 onAuthenticated({ ...auth })
                 redirect('/home');
             }
@@ -520,6 +514,7 @@ const ConfirmationStep = ({ verification }) => {
         </Box>
     )
 }
+
 
 const PhoneConfirmationStep = ({ nextStep, payload }) => {
     const [otp, setOTP] = useState('');

@@ -148,13 +148,11 @@ function Dashboard({ }) {
         <Text size="md" className="text" fontWeight="600">Dashboard</Text>
         <Text size="xs" className="small">Welcome back, {authUser?.first_name}👋</Text>
 
-       {/* <Button as="dojah-button"
+        {/*<Button as="dojah-button"
           widgetId="67d7e86d69ff1ab7238494d8"
-          // text="Web"
-          // textColor="#FFFFFF"
+          text="Verify your business now!"
           colorScheme="blue"
-          backgroundColor="primary"> Verify your account now!
-        </Button>*/}
+          backgroundColor="primary"></Button>*/}
       </Box>
 
       <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>

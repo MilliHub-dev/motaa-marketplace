@@ -96,36 +96,40 @@ function WalletHomePage() {
             <TrendingUp size={16} />
             <Text>+26% vs last month</Text>
           </HStack>
-          <HStack spacing={2}>
-            <Button
-             flex={1}
-             as={Link}
-             to='/wallet/deposit/'
-             leftIcon={<PiHandDepositBold />}
-             colorScheme="blue"
-             bgColor="primary"
-             onClick={() => setDepositModalVisibility(true)}
-            >
-              Deposit
-            </Button>
-            <Button
-             flex={1}
-             as={Link}
-             to='/wallet/withdraw/'
-             leftIcon={<PiHandWithdrawBold />}
-             colorScheme="blue"
-             bgColor="primary">
-              Withdraw
-            </Button>
-            <Button
-             flex={1}
-             as={Link}
-             to='/wallet/savings/'
-             leftIcon={<RiCoinsFill />}
-             colorScheme="blue"
-             bgColor="primary">
-              Save
-            </Button>
+          <HStack as={Flex} flexDirection={{ base: 'column', sm: 'row'}} flexWrap={'wrap'} spacing={2}>
+            
+            <Box as={Link} to='/wallet/deposit/' w={{base: '100%', sm: 'max-content'}}>
+              <Button
+               w={'100%'}
+               leftIcon={<PiHandDepositBold />}
+               colorScheme="blue"
+               bgColor="primary"
+              >
+                Deposit
+              </Button>
+            </Box>
+
+            <Box as={Link} to='/wallet/withdraw/' w={{base: '100%', sm: 'max-content'}}>
+              <Button
+               w={'100%'}
+               leftIcon={<PiHandWithdrawBold />}
+               colorScheme="blue"
+               bgColor="primary"
+              >
+                  Withdraw
+                </Button>
+              </Box>
+
+            <Box as={Link} to='/wallet/savings/' w={{base: '100%', sm: 'max-content'}}>
+              <Button
+               w={'100%'}
+               leftIcon={<RiCoinsFill />}
+               colorScheme="blue"
+               bgColor="primary"
+              >
+                  Save
+                </Button>
+              </Box>
           </HStack>
         </Box>
 

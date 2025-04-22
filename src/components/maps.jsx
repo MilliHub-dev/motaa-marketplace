@@ -54,7 +54,7 @@ export const MapComponent = ({ location, style, ref, ...props }) => {
 
 
 
-export const CustomPlacesAutocomplete = ({ onPlaceChange, ...props }) => {
+export const CustomPlacesAutocomplete = ({ onPlaceChange, inputProps, ...props }) => {
   const [inputValue, setInputValue] = useState("");
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -119,8 +119,7 @@ export const CustomPlacesAutocomplete = ({ onPlaceChange, ...props }) => {
               state: state.short_name,
               city: city.long_name,
               formatted_address: location.formatted_address,
-              postal_code: postal_code.long_name,
-
+              zip_code: postal_code.long_name,
             })
           } else {
             setSelectedAddress("Address not found");
@@ -141,6 +140,7 @@ export const CustomPlacesAutocomplete = ({ onPlaceChange, ...props }) => {
           setInputValue(e.target.value);
           fetchPredictions(e.target.value);
         }}
+        {...inputProps}
       />
 
       {loading && <Spinner size="sm" mt={2} />}

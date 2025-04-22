@@ -36,7 +36,8 @@ import { GlobalStore } from "../../App";
 import { SignupContext } from "./Signup";
 import {motion} from 'framer-motion';
 import { CenteredLayout, OTPField } from "../../components";
-import { redirect, useNavigate, useParams, Link as RLink } from "react-router-dom";
+import { CustomPlacesAutocomplete } from "../../components/maps";
+import { redirect, useNavigate, useParams, useSearchParams, Link as RLink } from "react-router-dom";
 import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
 import { FcSms, FcVoicemail } from "react-icons/fc";
 import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
@@ -46,16 +47,25 @@ import { auth } from "../../firebase";
 import firebase from 'firebase/compat/app';
 
 
+
 function BusinessProfile({onSubmit, ...props }) {
   const {payload} = useContext(SignupContext);
+  const {onAuthenticated, axios, logout} = useContext(GlobalStore);
   const [logoPreview, setLogoPreview] = useState('')
+  const [params] = useSearchParams();
+  const user_type = params.get('user_type') || 'dealer'
   const [businessProfile, setBusinessProfile] = useState({
     logo: null,
     business_name: '',
     services: [],
-    location: null,
+    location: {
+      street_address: '',
+    },
     business_type: '',
     about: '',
+    headline: '',
+    contact_phone: '',
+    contact_email: '',
   });
 
   let mechServices = [
@@ -87,22 +97,45 @@ function BusinessProfile({onSubmit, ...props }) {
     changeValue('services', [...oldValue])
   }
 
-  async function setupBusinessProfile(){
+  async function setupBusinessProfile(e){
+    e.preventDefault();
+
+    const authUser = objectifyJSON(localStorage.getItem('motaa-auth-user'));
     const payload = new FormData();
-    payload.append('logo', businessProfile.logo?.file, businessProfile.logo?.file?.name)
+    payload.append('action', 'setup-business-profile')
+    payload.append('user_type', user_type)
+    payload.append('logo', businessProfile?.logo, businessProfile.logo?.name)
     payload.append('business_type', businessProfile.business_type)
+    payload.append('about', businessProfile.about)
+    payload.append('headline', businessProfile.headline)
     payload.append('business_name', businessProfile.business_name)
+    payload.append('contact_phone', businessProfile.contact_phone)
+    payload.append('contact_email', businessProfile.contact_email)
     payload.append('services', businessProfile.services)
-    const res = await axios.post('/signup/business/', payload, {
+    payload.append('location', JSON.stringify(businessProfile.location))
+    const res = await axios.post('/accounts/register/', payload, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Token ${authUser?.token}`
       }
     })
+    const data = objectifyJSON(res.data);
+
+    if (res.status === 200){
+      console.log("New business data:", data);
+      localStorage.removeItem('motaa-auth-user');
+      redirect('/login', 200)
+      // setTimeout(() => notify({
+      //   title: 'Success',
+      //   body: "Welcome to Motaa."
+      // }), 700)
+    }
   }
 
   return (
     <Box minH="100vh" bg="white">
       <Container maxW="3xl" py={8} px={4}>
+      <form method="post" onSubmit={setupBusinessProfile} encType="multipart/form-data">
         {/* Profile Image */}
         <Box bg="white" border="1px solid" borderColor="#d0d5dd" borderRadius="xl" p={6} mb={6}>
           <VStack>
@@ -124,69 +157,56 @@ function BusinessProfile({onSubmit, ...props }) {
               Upload your logo
             </Button>
             
-            <input
+            <Input
              hidden
              ref={imageRef}
              type="file"
              allow="image/*"
+             isRequired
              onInput={(e) => {
               const file = e.target.files[0];
               changeValue('logo', file);
-              console.log('logo', file);
               setLogoPreview(URL.createObjectURL(businessProfile?.logo))
              }}
             />
 
             <VStack mt={4} w="80%" maxW={"500px"} spacing={4}>
+            <FormControl isRequired>
+              <FormLabel> Business Name </FormLabel>
               <Input
                type="text" w="100%"
                value={businessProfile.business_name}
                placeholder="Business Name"
                onInput={e => changeValue('business_name', e.target.value)}
               />
-
+            </FormControl>
+            
+            <FormControl isRequired>
+              <FormLabel> Business Headline or Motto </FormLabel>
               <Input
                type="address" w="100%"
-               value={businessProfile.location}
-               placeholder="Business Address"
-               onInput={e => changeValue('location', e.target.value)}
+               value={businessProfile.headline}
+               placeholder="Business Headline / Motto"
+               onInput={e => changeValue('headline', e.target.value)}
               />
+            </FormControl>
+
             </VStack>
           </VStack>
         </Box>
 
-        {/* Opening Times */}
-        {/*<Box mb={6}>
-          <FormLabel fontWeight="medium" mb={2}>
-            Opening times
-          </FormLabel>
-          <HStack spacing={4}>
-            <Select defaultValue="10:00am" flex={1}>
-              <option value="9:00am">9:00am</option>
-              <option value="10:00am">10:00am</option>
-              <option value="11:00am">11:00am</option>
-            </Select>
-            <Flex alignItems="center" justifyContent="center">
-              <HStack spacing={1}>
-                <Box h={1} w={1} borderRadius="full" bg="#d0d5dd"></Box>
-                <Box h={1} w={1} borderRadius="full" bg="#d0d5dd"></Box>
-                <Box h={1} w={1} borderRadius="full" bg="#d0d5dd"></Box>
-              </HStack>
-            </Flex>
-            <Select defaultValue="12:00pm" flex={1}>
-              <option value="12:00pm">12:00pm</option>
-              <option value="1:00pm">1:00pm</option>
-              <option value="2:00pm">2:00pm</option>
-            </Select>
-          </HStack>
-        </Box>*/}
 
         {/* About Your Business */}
         <Box mb={6}>
           <FormLabel fontWeight="medium" mb={2}>
             About your Business
           </FormLabel>
-          <Textarea placeholder="Enter a brief description of your business. Minimum of 100 characters..." minH="100px" borderColor="#d0d5dd" />
+          <Textarea
+            onInput={(e) => changeValue('about', e.target.value)}
+           placeholder="Enter a brief description of your business. Minimum of 50 characters..."
+           minH="100px"
+           borderColor="#d0d5dd"
+          />
         </Box>
 
         {/* Choose Services */}
@@ -256,14 +276,16 @@ function BusinessProfile({onSubmit, ...props }) {
             This would be shown on inspection slips and transaction receipts.
           </Text>
 
-          <FormControl mb={4}>
+          <FormControl isRequired mb={4}>
             <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
               Email
             </FormLabel>
-            <Input type="email" placeholder="info@company.com" borderColor="#d0d5dd" />
+            <Input type="email" placeholder="info@company.com" borderColor="#d0d5dd"
+                onInput={(e) => changeValue('contact_email', e.target.value)}
+             />
           </FormControl>
 
-          <FormControl isInvalid={true}>
+          <FormControl isRequired isInvalid={true}>
             <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
               Phone Number
             </FormLabel>
@@ -285,82 +307,37 @@ function BusinessProfile({onSubmit, ...props }) {
               />
               <Input
                 type="tel"
-                placeholder="+234 123 456 7890"
-                defaultValue="+234 123 456 7890"
-                borderColor="#cb1a14"
-                borderLeftRadius={0}
+                placeholder="+2341234567890"
+                value={businessProfile.contact_phone}
+                onInput={(e) => changeValue('contact_phone', e.target.value)}
               />
             </InputGroup>
-            <FormErrorMessage color="#cb1a14" fontSize="xs" mt={1}>
-              Please enter a correct phone number!
-            </FormErrorMessage>
           </FormControl>
         </Box>
 
-        {/* Upload Workshop Images */}
-{/*        <Box mb={6}>
-          <FormLabel fontWeight="medium" mb={1}>
-            Upload 5 images of your workshop
+        <FormControl isRequired mb={4}>
+          <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
+            Street Address
           </FormLabel>
-          <Flex alignItems="center" gap={1} mb={4}>
-            <Button variant="link" fontSize="sm" color="#0460cc" rightIcon={<ArrowRight size={12} />}>
-              See image upload guidelines
-            </Button>
-          </Flex>
+          <Input type="address" placeholder="e.g Suite 4. Acura Plaza" borderColor="#d0d5dd"
+              onInput={(e) => changeValue('location', {...businessProfile.location, street_address: e.target.value})}
+           />
+        </FormControl>
 
-          <Box border="1px dashed" borderColor="#d0d5dd" borderRadius="lg" p={8} mb={4}>
-            <VStack>
-              <Flex w={10} h={10} borderRadius="full" bg="#f2f4f7" alignItems="center" justifyContent="center" mb={4}>
-                <CloudUpload size={20} color="#667085" />
-              </Flex>
-              <Button onClick={() => imagesRef.current.click()} variant="link" color="#0460cc" fontWeight="medium" mb={1}>
-                Click to upload
-              </Button>
-              <Text fontSize="sm" color="#667085">
-                or drag and drop
-              </Text>
-              <Text fontSize="xs" color="#667085" mt={1}>
-                SVG, PNG, JPG or GIF (max. 800x400px)
-              </Text>
+        <FormControl isRequired mb={4}>
+          <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
+            Physical Location <small> Select a Location on Google </small>
+          </FormLabel>
+          <CustomPlacesAutocomplete onPlaceChange={(data) => changeValue('location', {...businessProfile.location, ...data})} />
+        </FormControl>
 
-              <input hidden ref={imagesRef} multiple={true} type="file" allow="image/*" />
-            </VStack>
-          </Box>
-
-          <Flex gap={2}>
-            <Box position="relative" borderRadius="lg" overflow="hidden">
-              <Image
-                src="https://via.placeholder.com/150x100"
-                alt="Workshop image 1"
-                objectFit="cover"
-                w="full"
-                h="80px"
-              />
-              <Flex
-                position="absolute"
-                top={1}
-                left={1}
-                bg="blackAlpha.600"
-                color="white"
-                w={5}
-                h={5}
-                borderRadius="full"
-                alignItems="center"
-                justifyContent="center"
-                fontSize="xs"
-              >
-                1
-              </Flex>
-            </Box>
-          </Flex>
-        </Box>
-*/}
         {/* Submit Button */}
         <Box mt={8}>
-          <Button w="full" bg="#0460cc" color="white" _hover={{ bg: "#0354b4" }}>
-            Save
+          <Button type="submit" w="full" bg="#0460cc" color="white" _hover={{ bg: "#0354b4" }}>
+            Create your Profile
           </Button>
         </Box>
+      </form>
       </Container>
     </Box>
   )

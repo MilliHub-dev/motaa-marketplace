@@ -20,7 +20,7 @@ let mechServices = [
 ]
 
 export const BusinessProfile = ({  }) => {
-  const {axios, notify, authUser} = useContext(GlobalStore);
+  const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const imageRef = useRef();
   const [mechanic, setMechanic] = useState({
     logo: "", // Placeholder for logo
@@ -66,12 +66,11 @@ export const BusinessProfile = ({  }) => {
     setMechanic({ ...mechanic, logo: {file, preview}});
   }
 
-  async function getDealership() {
-    const res = await axios.get('/admin/mechanic/settings/');
+  async function getMechanicSettings() {
+    const res = await axios.get('/admin/mechanics/settings/');
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
-      console.log("My settings:", data.data);
       setMechanic(data.data)
     }
   }
@@ -83,7 +82,7 @@ export const BusinessProfile = ({  }) => {
 
 
     for (let key of keys){
-      if (key === 'logo' && typeof mechanic[key] !== String){
+      if (key === 'logo' && typeof mechanic['logo'] !== 'string'){
         const file = mechanic['logo'].file;
         payload.append('new-logo', file, file.name)
       }else{
@@ -92,7 +91,6 @@ export const BusinessProfile = ({  }) => {
       }
     }
 
-    console.log("Payload", payload)
     const res = await axios.post('/admin/mechanics/settings/', payload, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -101,7 +99,7 @@ export const BusinessProfile = ({  }) => {
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
-      console.log("My settings:", data.data)
+      console.log("My new settings:", data.data)
       setMechanic(data.data)
     }
   }
@@ -109,7 +107,7 @@ export const BusinessProfile = ({  }) => {
 
 
   useEffect(() => {
-    getDealership();
+    getMechanicSettings();
   }, [])
 
   return (
@@ -137,9 +135,9 @@ export const BusinessProfile = ({  }) => {
               {mechanic?.location}
             </Text>
             <HStack mt={2} fontSize="sm" color="#667085">
-              <Text>{mechanic?.owner?.email}</Text>
+              <Text>{mechanic?.contact_email}</Text>
               <Text>•</Text>
-              <Text>{mechanic?.owner?.phone_number}</Text>
+              <Text>{mechanic?.contact_phone}</Text>
             </HStack>
           </VStack>
         </VStack>
@@ -154,22 +152,22 @@ export const BusinessProfile = ({  }) => {
       
       <FormControl>
         <FormLabel>Headline</FormLabel>
-        <Input name="headline" value={mechanic?.headline} onChange={handleChange} />
+        <Input name="headline" value={mechanic?.headline} onInput={handleChange} />
       </FormControl>
 
       <FormControl>
         <FormLabel>About</FormLabel>
-        <Textarea name="about" value={mechanic?.about} onChange={handleChange} maxLength={400} />
+        <Textarea name="about" value={mechanic?.about} onInput={handleChange} maxLength={400} />
       </FormControl>
 
       <FormControl>
         <FormLabel>CAC Number</FormLabel>
-        <Input name="cac_number" disabled value={mechanic?.cac_number} onChange={handleChange} />
+        <Input name="cac_number" disabled value={mechanic?.cac_number}/>
       </FormControl>
 
       <FormControl>
         <FormLabel>TIN Number</FormLabel>
-        <Input name="tin_number" disabled value={mechanic?.tin_number} onChange={handleChange} />
+        <Input name="tin_number" disabled value={mechanic?.tin_number}/>
       </FormControl>
 
       {/* Choose Services */}
@@ -196,7 +194,7 @@ export const BusinessProfile = ({  }) => {
                     _hover={{ bg: selected ? "#e4e7ec" : "gray.50" }}
                     onClick={() => changeValue('services', [...mechanic?.services, service])}
                   >
-                    {service}
+                    {service?.service}
                   </Tag>
                 )
               }
@@ -220,7 +218,7 @@ export const BusinessProfile = ({  }) => {
                     _hover={{ bg: "#0354b4"}}
                     onClick={() => removeService(service)}
                   >
-                    {service}
+                    {service?.service} @ {commaInt(service?.charge)}
                   </Tag>
                 )
               }
@@ -233,16 +231,17 @@ export const BusinessProfile = ({  }) => {
       <Divider my={4} />
 
       {/* Customer Care Details */}
-      <Heading size="md"> Contact Details </Heading>
+      <Heading size="md" pb={0} mb={0}> Contact Details </Heading>
+      <Text as="small"> Customer care contact details  </Text>
 
       <FormControl>
         <FormLabel>Email</FormLabel>
-        <Input type="email" name="contact_email" value={mechanic?.contact_email} onChange={handleChange} />
+        <Input type="email" name="contact_email" value={mechanic?.contact_email} onInput={handleChange} />
       </FormControl>
 
       <FormControl>
-        <FormLabel>Customer Care Phone Number</FormLabel>
-        <Input type="tel" name="contact_phone" value={mechanic?.contact_phone} onChange={handleChange} />
+        <FormLabel> Phone Number</FormLabel>
+        <Input type="tel" name="contact_phone" value={mechanic?.contact_phone} onInput={handleChange} />
       </FormControl>
 
       <Button colorScheme="blue" onClick={handleSubmit}>Save Changes</Button>

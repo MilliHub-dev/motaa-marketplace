@@ -509,16 +509,16 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
               icon={<FaUser size={18} />}
               variant="ghost"
               size="sm"
-              aria-label="Share"
+              aria-label="Profile"
             />
 
             <MenuList py={3} px={3} zIndex={'2 !important'}>
               <Box placeItems="center" placeContent="center" p={3}>
                 <Avatar 
                  size="lg"
-                 name={`${authUser?.first_name} ${authUser?.first_name}`}
+                 name={`${authUser?.first_name} ${authUser?.last_name}`}
                  />
-                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.first_name}`} </Heading>
+                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.last_name}`} </Heading>
                 <Text> {authUser?.email} </Text>
               </Box>
               <Divider my={2} />
@@ -709,7 +709,7 @@ export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarStat
 export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
   const [navIsOpen, setNavState] = useState(false);
   const [searchIsOpen, setSearchState] = useState(false);
-  const {authUser, onLogout} = useContext(GlobalStore);
+  const {authUser, onLogout, logout} = useContext(GlobalStore);
   const [isMobile] = useMediaQuery('(max-width: 768px)');
   const isLoggedIn = Boolean(authUser);
 
@@ -798,7 +798,29 @@ export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
           }
           <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
           <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
+          <Menu zIndex={2} display="block">
+            <MenuButton
+              as={IconButton}
+              icon={<FaUser size={18} />}
+              variant="ghost"
+              size="sm"
+              aria-label="Profile"
+            />
 
+            <MenuList py={3} px={3} zIndex={'2 !important'}>
+              <Box placeItems="center" placeContent="center" p={3}>
+                <Avatar 
+                 size="lg"
+                 name={`${authUser?.first_name} ${authUser?.last_name}`}
+                 />
+                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.last_name}`} </Heading>
+                <Text> {authUser?.email} </Text>
+              </Box>
+              <Divider my={2} />
+              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
+              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
+            </MenuList>
+          </Menu>
           {(isMobile || props.hideSidebar) &&
             <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
               <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
@@ -845,29 +867,6 @@ export const MechanicDashboardSideBar = ({ mechanic, sidebarOpen, setSidebarStat
             <Text fontWeight="medium">{`${mechanic?.business_name}`}</Text>
             <Text fontSize="sm" color="gray.500">@{mechanic?.slug}</Text>
           </Box>
-          <Menu zIndex={2} display="block">
-            <MenuButton
-              as={IconButton}
-              icon={<MoreVertical size={18} />}
-              variant="ghost"
-              size="sm"
-              aria-label="Share"
-            />
-
-            <MenuList py={3} px={3} zIndex={'2 !important'}>
-              <Box placeItems="center" placeContent="center" p={3}>
-                <Avatar 
-                 size="lg"
-                 name={`${authUser?.first_name} ${authUser?.first_name}`}
-                 />
-                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.first_name}`} </Heading>
-                <Text> {authUser?.email} </Text>
-              </Box>
-              <Divider my={2} />
-              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
-              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
-            </MenuList>
-          </Menu>
         </HStack>
 
         <VStack align="stretch" spacing={2}>

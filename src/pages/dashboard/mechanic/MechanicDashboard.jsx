@@ -32,6 +32,8 @@ import {
 // import { ChevronDownIcon, ChevronRightIcon, ClockIcon, Filter, MapPin, MoreVertical, Search, Star, User, X } from "react-feather"
 import {useState, useEffect, useContext} from 'react';
 import {GlobalStore} from '../../../App';
+import { Link } from 'react-router-dom';
+import {objectifyJSON, jsonifyObject} from '../../../utils';
 
 
 // Metric Card Component
@@ -55,7 +57,7 @@ const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
       </Flex>
 
       {
-        changeText &&
+        change &&
         <>
         <Flex align="center">
           <Text fontSize="sm" color={trendColor} fontWeight="medium">
@@ -97,6 +99,35 @@ const ClientInfo = ({ name, location, hasAvatar }) => (
 
 export const MechanicOverview = () => {
   const {authUser, axios} = useContext(GlobalStore);
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState();
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [bookingHistory, setBookingHistory] = useState([]);
+
+  async function getData(){
+    const res = await axios.get('/admin/mechanics/dashboard/');
+    const data = objectifyJSON(res.data);
+
+    if (res.status === 200){
+      setDashboardData(data.data)
+      setPendingRequests(data.data.pending_requests)
+      setBookingHistory(data.data.booking_history)
+    }
+  }
+
+  function init(){
+    setLoading(true);
+    getData();
+    setTimeout(() => setLoading(false), 2000);
+  }
+
+  useEffect(() => {
+    init()
+  }, [])
+
+  if (loading){
+    return null
+  }
 
   return (
     <Box p={4} maxW="1200px" mx="auto">
@@ -116,56 +147,50 @@ export const MechanicOverview = () => {
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
           <MetricCard
             title="Total Revenue"
-            value="₦743,678.12"
-            change={10}
-            trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
+            value={`₦${parseInt(dashboardData?.total_revenue).toFixed(2)}`}
+            // change={10}
+            // trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
           />
         </Box>
         
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard title="Impressions" value="32.7M" change={-2} trend="M0,5 Q40,10 60,15 T100,20 T150,25 T200,30" />
+          <MetricCard
+           title="Impressions"
+           value={parseInt(dashboardData?.total_impressions)}
+           // change={-2} 
+           // trend="M0,5 Q40,10 60,15 T100,20 T150,25 T200,30"
+          />
         </Box>
 
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard title="Bookings" value="32" change={14} trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0" />
+          <MetricCard
+           title="Bookings"
+           value={`${parseInt(dashboardData?.total_bookings)}`}
+           // change={14}
+           // trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
+          />
         </Box>
         
       </Flex>
 
       {/* Profile Setup Notification */}
       <Box borderWidth="1px" borderColor="blue.100" borderRadius="md" p={4} mb={6} bg="white" position="relative">
-        <Flex align="center" mb={2}>
-          <Box
-            w={4}
-            h={4}
-            borderRadius="full"
-            bg="blue.500"
-            mr={2}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Box w={2} h={2} borderRadius="full" bg="white" />
-          </Box>
+        <Box align="center" mb={2}>
           <Text fontWeight="medium">Complete your profile setup</Text>
-          <dojah-button
+          <Button colorScheme="blue" as={"dojah-button"}
             widgetId="68067151186873a0f4098161"
             text="Web"
             textColor="#FFFFFF"
-            backgroundColor="#3977de">
-          </dojah-button>
-        </Flex>
-        <Box px={6}>
-          <Progress value={60} size="sm" colorScheme="blue" borderRadius="full" mb={1} />
-          <Text fontSize="sm" color="gray.600" textAlign="right">
-            3/5 steps completed.
-          </Text>
+            backgroundColor="#3977de"> Verify your Business
+          </Button>
         </Box>
       </Box>
 
       {/* Action Buttons */}
       <Flex gap={4} mb={8} flexDir={{ base: "column", sm: "row" }}>
         <Button
+         as={Link}
+         to="/bookings"
          // leftIcon={<Icon as={Clock} />}
          colorScheme="blue" size="lg" flex={1}>
           View Bookings
@@ -182,6 +207,8 @@ export const MechanicOverview = () => {
               />
             </svg>
           }
+          as={Link}
+          to={'/chat'}
           colorScheme="blue"
           variant="outline"
           size="lg"
