@@ -149,7 +149,7 @@ function App() {
       const userData = JSON.parse(user)
       console.log("Got User:", userData)
       setAuthUser(userData);
-      // setAuthState(true)
+      setAuthState(true)
     }
   }
   
