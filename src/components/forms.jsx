@@ -615,9 +615,8 @@ export function CreateRentalForm({ formData, setFormData }) {
 }
 
 
-
 // Car Details Form Component
-export function EditRentalForm({ formData, setFormData }) {
+export function EditListingForm({ formData, setFormData }) {
 
   return (
     <VStack spacing={6} align="stretch" w="full">
@@ -674,20 +673,23 @@ export function EditRentalForm({ formData, setFormData }) {
           </InputGroup>
         </FormControl>
 
-        <FormControl isRequired>
-          <FormLabel>Payment Cycle</FormLabel>
-          <Select
-           name="payment-cycle"
-           isRequired
-           value={formData.payment_cycle}
-           onChange={(e) => setFormData({ ...formData, payment_cycle: e.target.value })}
-          >
-            <option value='day'>Daily</option>
-            <option value='week'>Weekly</option>
-            <option value='month'>Monthly</option>
-            <option value='year'>Annually</option>
-          </Select>
-        </FormControl>
+        {
+          formData?.listing_type === 'rental' &&
+          <FormControl isRequired>
+            <FormLabel>Payment Cycle</FormLabel>
+            <Select
+             name="payment-cycle"
+             isRequired
+             value={formData.payment_cycle}
+             onChange={(e) => setFormData({ ...formData, payment_cycle: e.target.value })}
+            >
+              <option value='day'>Daily</option>
+              <option value='week'>Weekly</option>
+              <option value='month'>Monthly</option>
+              <option value='year'>Annually</option>
+            </Select>
+          </FormControl>
+        }
         
         <FormControl isRequired>
           <FormLabel>Condition</FormLabel>
@@ -878,8 +880,6 @@ export function EditRentalForm({ formData, setFormData }) {
     </VStack>
   )
 }
-
-
 
 // Car Details Form Component
 export function CreateSaleForm({ formData, setFormData }) {
