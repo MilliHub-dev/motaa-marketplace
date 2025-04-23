@@ -126,7 +126,7 @@ export const BusinessProfile = ({  }) => {
             <Text fontSize="xs" color="#667085">
               {dealership?.location}
             </Text>
-            <HStack mt={2} fontSize="sm" color="#667085">
+            <HStack flexWrap={{base: 'wrap', md: 'nowrap'}} justifyContent="center" mt={2} fontSize="sm" color="#667085">
               <Text>{dealership?.owner?.email}</Text>
               <Text>•</Text>
               <Text>{dealership?.owner?.phone_number}</Text>

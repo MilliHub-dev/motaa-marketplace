@@ -100,42 +100,60 @@ function BusinessProfile({onSubmit, ...props }) {
   async function setupBusinessProfile(e){
     e.preventDefault();
 
-    const authUser = objectifyJSON(localStorage.getItem('motaa-auth-user'));
-    const payload = new FormData();
-    payload.append('action', 'setup-business-profile')
-    payload.append('user_type', user_type)
-    payload.append('logo', businessProfile?.logo, businessProfile.logo?.name)
-    payload.append('business_type', businessProfile.business_type)
-    payload.append('about', businessProfile.about)
-    payload.append('headline', businessProfile.headline)
-    payload.append('business_name', businessProfile.business_name)
-    payload.append('contact_phone', businessProfile.contact_phone)
-    payload.append('contact_email', businessProfile.contact_email)
-    payload.append('services', businessProfile.services)
-    payload.append('location', JSON.stringify(businessProfile.location))
-    const res = await axios.post('/accounts/register/', payload, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Token ${authUser?.token}`
-      }
-    })
-    const data = objectifyJSON(res.data);
+    try{
 
-    if (res.status === 200){
-      console.log("New business data:", data);
-      localStorage.removeItem('motaa-auth-user');
-      redirect('/login', 200)
-      // setTimeout(() => notify({
-      //   title: 'Success',
-      //   body: "Welcome to Motaa."
-      // }), 700)
+      const authUser = objectifyJSON(localStorage.getItem('motaa-auth-user'));
+      const payload = new FormData();
+      payload.append('action', 'setup-business-profile')
+      payload.append('user_type', user_type)
+      payload.append('logo', businessProfile?.logo, businessProfile.logo?.name)
+      payload.append('business_type', businessProfile.business_type)
+      payload.append('about', businessProfile.about)
+      payload.append('headline', businessProfile.headline)
+      payload.append('business_name', businessProfile.business_name)
+      payload.append('contact_phone', businessProfile.contact_phone)
+      payload.append('contact_email', businessProfile.contact_email)
+      payload.append('services', businessProfile.services)
+      payload.append('location', JSON.stringify(businessProfile.location))
+      const res = await axios.post('/accounts/register/', payload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Token ${authUser?.token}`
+        }
+      })
+      const data = objectifyJSON(res.data);
+
+      if (res.status === 200){
+        console.log("New business data:", data);
+        localStorage.removeItem('motaa-auth-user');
+        redirect('/login', 200)
+        // setTimeout(() => notify({
+        //   title: 'Success',
+        //   body: "Welcome to Motaa."
+        // }), 700)
+      }else{
+        notify({
+          title: 'Error',
+          timeout: 5000,
+          body: data.message,
+          color: 'red'
+        })
+      }
+    }catch(error){
+        notify({
+          title: 'Error',
+          timeout: 5000,
+          body: error.message,
+          color: 'red'
+        })
+
     }
   }
 
   return (
     <Box minH="100vh" bg="white">
       <Container maxW="3xl" py={8} px={4}>
-      <form method="post" onSubmit={setupBusinessProfile} encType="multipart/form-data">
+      <form id="profileForm" method="post" onSubmit={setupBusinessProfile} encType="multipart/form-data">
         {/* Profile Image */}
         <Box bg="white" border="1px solid" borderColor="#d0d5dd" borderRadius="xl" p={6} mb={6}>
           <VStack>
@@ -333,7 +351,7 @@ function BusinessProfile({onSubmit, ...props }) {
 
         {/* Submit Button */}
         <Box mt={8}>
-          <Button type="submit" w="full" bg="#0460cc" color="white" _hover={{ bg: "#0354b4" }}>
+          <Button form="profileForm" type="submit" w="full" bg="#0460cc" color="white" _hover={{ bg: "#0354b4" }}>
             Create your Profile
           </Button>
         </Box>
