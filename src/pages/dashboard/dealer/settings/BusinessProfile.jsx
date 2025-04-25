@@ -75,8 +75,10 @@ export const BusinessProfile = ({  }) => {
 
     for (let key of keys){
       if (key === 'logo' && typeof dealership[key] !== 'string'){
-        const file = dealership['logo'].file;
-        payload.append('new-logo', file, file.name)
+        const logo = dealership['logo'];
+        if(logo){
+          payload.append('new-logo', file, file.name)
+        }
       }else{
         console.log("New setting")
         payload.append(key, dealership[key])
