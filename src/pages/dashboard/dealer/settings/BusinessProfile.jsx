@@ -43,7 +43,11 @@ export const BusinessProfile = ({  }) => {
   };
 
   const slugify = (text) => {
-    return text.toLocaleLowerCase().replace(/['#@*()!"$%&]*/g, '').replaceAll(' ', '-')
+    if (text){
+      return text.toLocaleLowerCase().replace(/['#@*()!"$%&]*/g, '').replaceAll(' ', '-')
+    }else{
+      return ''
+    }
   }
 
 
