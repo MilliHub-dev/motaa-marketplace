@@ -466,7 +466,7 @@ export function CalendarPicker({
 
   return (
     <Box p={3} {...props}>
-      <Flex justifyContent="space-between" alignItems="center" mb={4}>
+      <Flex justifyContent={{base: 'center', md: "space-between"}} flexWrap="wrap-reverse" alignItems="center" mb={4}>
         <Flex alignItems="center">
           <Select value={format(month, "MMMM")} onChange={handleMonthChange} size="sm" width="120px" mr={2}>
             {months.map((monthName) => (
@@ -483,6 +483,7 @@ export function CalendarPicker({
             ))}
           </Select>
         </Flex>
+
         <Flex alignItems="center">
           <Button
             variant="outline"
@@ -942,18 +943,18 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         position={'relative'}
                     >
                         <NavLink to={`/${type}/${listing?.uuid}`}>
-                            <LinkBox
-                                flex={1} w={'100%'} height={'200px'}
-                                position={'relative'}
-                                sx={{
-                                    backgroundImage: `url(${image?.url})`,
-                                    borderRadius: '10px',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundSize: 'cover',
-                                    backgroundPositionX: '70%',
-                                    backgroundPositionY: '37.5%',
-                                }}
-                            />
+                          <LinkBox
+                            flex={1} w={'100%'} height={'200px'}
+                            position={'relative'}
+                            sx={{
+                              backgroundImage: `url(${image?.url})`,
+                              borderRadius: '10px',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: 'cover',
+                              backgroundPositionX: '70%',
+                              backgroundPositionY: '37.5%',
+                            }}
+                          />
                         </NavLink>
                         {
                             vehicle?.images?.length > 1 &&

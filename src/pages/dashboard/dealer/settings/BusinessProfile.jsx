@@ -80,7 +80,6 @@ export const BusinessProfile = ({  }) => {
           payload.append('new-logo', file, file.name)
         }
       }else{
-        console.log("New setting")
         payload.append(key, dealership[key])
       }
     }

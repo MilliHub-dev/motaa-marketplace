@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { useState, useEffect, useContext } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {CalendarPicker, TimePicker} from '../../../components';
 import {jsonifyObject, objectifyJSON} from '../../../utils';
 import {GlobalStore} from '../../../App';
@@ -21,7 +21,8 @@ import {GlobalStore} from '../../../App';
 function CheckoutInspection() {
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState();
-  const {axios, notify, redirect} = useContext(GlobalStore);
+  const {axios, notify} = useContext(GlobalStore);
+  const redirect = useNavigate();
   const [params] = useSearchParams();
   const listing_id = params.get('listingId');
 
@@ -39,14 +40,22 @@ function CheckoutInspection() {
       time,
     }));
 
+    const data = objectifyJSON(res.data)
+
     if (res.status === 200){
       setTimeout(() => notify({
         title: 'Success',
         body: `Inspection scheduled for ${date}`,
         level: 'green'
       }), 1000)
-      return redirect('/cart', 300)
+      return redirect('/checkout/docs/?docType=inspection-slip')
     }
+
+    notify({
+      title: 'Error',
+      body: data.message,
+      color: 'red',
+    })
 
   }
 

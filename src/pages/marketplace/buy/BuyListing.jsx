@@ -46,6 +46,7 @@ const BuyListing = ({ }) => {
 
     function gotoPage(pageNum){
         console.log("Page:", pageNum)
+        getData(`/listings/buy/?offset${pageNum*25}`)
         // const res = await axios.get(`/listings/buy/`,);
         // let data = objectifyJSON(res.data);
     }
@@ -316,10 +317,10 @@ function BannerCarousel({ images }) {
             />
             ))}
         </HStack>
-        </Box>
-
+    </Box>
   )
 }
+
 
 
 

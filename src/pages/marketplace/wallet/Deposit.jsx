@@ -37,6 +37,7 @@ import { GiHomeGarage } from "react-icons/gi";
 import { AiOutlineTransaction } from "react-icons/ai";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
 import {FlutterwavePaymentModal} from '../../../components/wallet';
+import { usePaystackPayment } from 'react-paystack';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import {CenteredLayout} from '../../../components';
 
@@ -48,6 +49,7 @@ function WalletDepositPage() {
       symbol: '₦'
   });
   const [showDepositModal, setDepositModalVisibility] = useState(false);
+  const [loading, setLoadingState] = useState(true);
   const [amount, setAmount] = useState(0);
   const [accept, setAccept] = useState(true);
   const amountRef = useRef();
@@ -60,6 +62,15 @@ function WalletDepositPage() {
 
     if (res.status === 200){
       redirect('/wallet/', 500);
+      notify({
+        title: 'Deposit received!',
+        color: 'blue'
+      })
+    }else{
+      notify({
+        title: data.message,
+        color: 'red'
+      })
     }
   }
 
@@ -71,43 +82,77 @@ function WalletDepositPage() {
     setTimeout(() => setLoadingState(false), 2000);
   }
 
+  // const config = {
+  //   public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
+  //   tx_ref: `${authUser?.token.substr(0, 7)}${Date.now()}${authUser?.token.substr(5, 3)}`,
+  //   amount: DEBUG ? (amount > 500000 ? 500000 : amount) : amount,
+  //   currency: currency?.code,
+  //   payment_options: 'card,ussd,transfer',
+  //   customer: {
+  //     email: authUser?.email,
+  //     phone_number: authUser?.phone_number,
+  //     name: `${authUser?.first_name} ${authUser?.last_name}`,
+  //   },
+  //   customizations: {
+  //     title: 'Motaa',
+  //     description: 'Add funds to your wallet',
+  //     logo: `${window.location.origin}/static/motaa/motaa-logo-1.png`,
+  //   },
+  //   meta: {
+  //     transaction_type: 'wallet:deposit'
+  //   }
+  // };
+  // const handleFlutterPayment = useFlutterwave(config);
+
+  const getFinalAmount = (amt) => {
+    return (amt * 100)
+  }
+  
+  const PAYSTACK_LIVE_KEY = (import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY);
+
   const config = {
-    public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
-    tx_ref: `${authUser?.token.substr(0, 7)}${Date.now()}${authUser?.token.substr(5, 3)}`,
-    amount: DEBUG ? (amount > 500000 ? 500000 : amount) : amount,
-    currency: currency?.code,
-    payment_options: 'card,ussd,transfer',
-    customer: {
-      email: authUser?.email,
-      phone_number: authUser?.phone_number,
-      name: `${authUser?.first_name} ${authUser?.last_name}`,
-    },
-    customizations: {
-      title: 'Motaa',
-      description: 'Add funds to your wallet',
-      logo: `${window.location.origin}/static/motaa/motaa-logo-1.png`,
-    },
-    meta: {
-      transaction_type: 'wallet:deposit'
-    }
+    publicKey: PAYSTACK_LIVE_KEY,
+    reference: (new Date()).getTime().toString(),
+    amount: getFinalAmount(amount),
+    email: authUser?.email,
   };
-  const handleFlutterPayment = useFlutterwave(config);
+
+  const handlePayment = usePaystackPayment(config);
 
   function payUp(){
     try{
-      handleFlutterPayment({
-        callback: (response) => {
-          processDeposit(response);
-          closePaymentModal();
-        },
-        onClose: () => {
-          closePaymentModal();
-        },
-      });
+      handlePayment(onPaymentComplete, onModalClose);
     }catch(err){
       console.log("error paying up:", err)
     }
   }
+
+  function onPaymentComplete(response){
+    console.log(response);
+    return processDeposit(response)
+  }
+
+  function onModalClose(){
+  // user cancelled the payment flow
+    console.log("User cancelled the transaction")
+  }
+
+
+  // function payUp(){
+  //   try{
+  //     handleFlutterPayment({
+  //       callback: (response) => {
+  //         processDeposit(response);
+  //         closePaymentModal();
+  //       },
+  //       onClose: () => {
+  //         closePaymentModal();
+  //       },
+  //     });
+  //   }catch(err){
+  //     console.log("error paying up:", err)
+  //   }
+  // }
 
   useEffect(() => {
     init();
@@ -179,29 +224,6 @@ function WalletDepositPage() {
         </Box>
 
       </CenteredLayout>
-{/*
-      <FlutterwavePaymentModal
-       isOpen={showDepositModal}
-       payload={{
-        amount: 20000,
-        currency: 'NGN',
-        payment_option: 'card,bank',
-        email: authUser?.email,
-        phone_number: authUser?.phone_number,
-        first_name: authUser?.first_name,
-        last_name: authUser?.last_name,
-       }}
-       onSuccess={console.log}
-       customizations={{
-        title: 'Deposit',
-        description: 'Deposit money to your Motaa wallet',
-        logo: '/assets/images/motaa-logo-2.png',
-       }}
-       meta={{
-        'opration': 'Wallet Deposit'
-       }}
-       onClose={() => setDepositModalVisibility(false)}
-      />*/}
     </Box>
   )
 }

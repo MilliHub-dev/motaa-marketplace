@@ -5,6 +5,7 @@ import { Axios, } from 'axios';
 import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
+import {AppLoadingScreen} from './components/loaders';
 import {APIProvider} from '@vis.gl/react-google-maps';
 import {Autocomplete, LoadScript} from "@react-google-maps/api";
 
@@ -34,6 +35,7 @@ import ChatRoom from './pages/marketplace/chat/ChatRoom';
 import CartPage from './pages/marketplace/CartPage';
 import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
 import CheckoutWithInspection from './pages/marketplace/checkout/CheckoutInspection';
+import DocumentSigningPage from './pages/marketplace/checkout/DocumentSigningPage';
 import NotificationsPage from './pages/marketplace/Notifications';
 
 // Mechanic Dashboard
@@ -75,8 +77,7 @@ export const GlobalStore = createContext({
   notify: undefined,
   loading: undefined,
   authUser: undefined,
-  // apiUrl: 'http://localhost:8000/api/v1',
-  // apiUrl: 'https://motaadev.pythonanywhere.com/api/v1',
+  apiUrl: '',
   getCookie: undefined,
   setCookie: undefined,
   axios: Axios,
@@ -95,8 +96,8 @@ function App() {
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
-    baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
+     baseURL: 'https://server.motaa.net/api/v1',
+//    baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
@@ -109,7 +110,6 @@ function App() {
   }
 
   async function logout(){
-    // await redirect('/');
     return onLogout();
   }
 
@@ -147,7 +147,6 @@ function App() {
     if (user === null){
     }else{
       const userData = JSON.parse(user)
-      console.log("Got User:", userData)
       setAuthUser(userData);
       setAuthState(true)
     }
@@ -158,7 +157,7 @@ function App() {
     getAuthUser();
 
     // show loading screen for 3.5 seconds
-    setTimeout(() => setLoading(false), 1500);
+    setTimeout(() => setLoading(false), 5000);
 
     // TODO: try to refresh the auth token if expired - for jwt
   }
@@ -205,12 +204,12 @@ function App() {
 
   useEffect(() => {
     init();
-
   }, [isAuthenticated,])
 
 
   if (loading){
     return null
+    // return <ErrorBoundary> <AppLoadingScreen /> </ErrorBoundary>
   }  
   
   return (
@@ -262,7 +261,7 @@ function App() {
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
-                        <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<CheckoutPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<DocumentSigningPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/inspection' element={<CheckoutWithInspection />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/' element={<CheckoutPage />} />
                         

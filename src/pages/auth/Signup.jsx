@@ -111,12 +111,12 @@ export const SignupView = ({...props }) => {
             key: 'profile',
             component: <SignupStep type={type} />
         },
-        {
-            title: 'Confirm your email',
-            description: 'Verify your email to get notifications and updates from Motaa.',
-            key: 'email',
-            component: <ConfirmationStep type={type} verification={'email'}  />
-        },
+        // {
+        //     title: 'Confirm your email',
+        //     description: 'Verify your email to get notifications and updates from Motaa.',
+        //     key: 'email',
+        //     component: <ConfirmationStep type={type} verification={'email'}  />
+        // },
     ]
 
     function nextStep(){
@@ -346,15 +346,23 @@ const SignupStep = ({ type }) => {
                     body: "Successfully created your account"
                 });
 
-                if (payload.provider === 'google'){ // skip email confirmation
-                    if(type === 'business'){
-                        return redirect('/signup/business/');
-                    }else{
-                        return redirect('/');
-                    }
-                }else{
-                    return nextStep();
+                if (type === 'business'){
+                    return redirect('/signup/business/')
                 }
+                onAuthenticated({ ...auth })
+                redirect('/home');
+
+                // REMOVED BECAUSE OTP BREAKS
+
+                // if (payload.provider === 'google'){ // skip email confirmation
+                //     if(type === 'business'){
+                //         return redirect('/signup/business/');
+                //     }else{
+                //         return redirect('/');
+                //     }
+                // }else{
+                //     return nextStep();
+                // }
             }else{
                 console.log("Signup Error", data)
                 notify({

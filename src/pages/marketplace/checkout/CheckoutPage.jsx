@@ -50,14 +50,30 @@ import { RiGasStationLine } from 'react-icons/ri';
 import { TbManualGearbox } from 'react-icons/tb';
 import { BsFillPatchCheckFill } from 'react-icons/bs';
 import { Country, State, City }  from 'country-state-city';
-import {FlutterwavePaymentModal, WalletPaymentModal} from '../../../components/wallet';
+import {
+  FlutterwavePaymentModal,
+  WalletPaymentModal,
+  PaystackPaymentModal,
+} from '../../../components/wallet';
+import {
+  CashMoneyIcon,
+  CarFinancingIcon,
+  CarParkingIcon,
+  PayOnlineIcon,
+  EmptyWalletIcon
+} from '../../../components/icons';
+import {CalendarPicker} from '../../../components';
+import {CustomPlacesAutocomplete} from '../../../components/maps';
+
+
+
 
 const PaymentOptions = [
-  { icon: Wallet, label: 'Pay with Wallet', value: 'wallet' },
-  { icon: CreditCard, label: 'Pay Online', value: 'online-payment' },
-  { icon: BanknoteIcon, label: 'Pay After Inspection', value: 'pay-after-inspection' },
-  { icon: Warehouse, label: 'Reserve Vehicle', disabled: true, value: 'reserve-vehicle' },
-  { icon: PiggyBank, label: 'Car Financing', disabled: true, value: 'finance-aid' },
+  { icon: EmptyWalletIcon, label: 'Pay with Wallet', value: 'wallet' },
+  { icon: PayOnlineIcon, label: 'Pay Online', value: 'online-payment' },
+  { icon: CashMoneyIcon, label: 'Pay After Inspection', value: 'pay-after-inspection' },
+  { icon: CarParkingIcon, label: 'Reserve Vehicle', disabled: true, value: 'reserve-vehicle' },
+  { icon: CarFinancingIcon, label: 'Car Financing', disabled: true, value: 'finance-aid' },
 ]
 
 
@@ -72,8 +88,9 @@ const RadioCard = ({ option, onInput, ...props }) => {
       <Box
         p={4} {...checkbox}
         isDisabled={option.disabled ? true : false}
-        borderWidth={1}
+        borderWidth={4}
         borderRadius="20px"
+        opacity={option?.disabled && 0.7}
         spacing={2}
         cursor={option.disabled ? 'not-allowed' : 'pointer'}
         position="relative"
@@ -81,17 +98,17 @@ const RadioCard = ({ option, onInput, ...props }) => {
         height={'120px'}
         display="flex"
         alignItems="center"
+        // isChecked={checkoutPayload?.payment_option === option?.value}
         justifyContent="center"
         _checked={{
-          bg: 'primary',
+          borderColor: 'primary',
           color: 'white',
-          borderColor: 'grey.600',
         }}
         _focus={{
           boxShadow: 'outline',
         }}
       >
-      <option.icon size={40} />
+      <option.icon width={'40px'} height="40px" viewBox="0 0 50 55" />
       {option.disabled && (
         <Text
          color="white"
@@ -135,12 +152,19 @@ function CheckoutPage({ props }) {
     email: authUser?.email || '',
     phone_number: authUser?.phone_number || '',
     currency: 'NGN',
-    country: '', // get from phone number extension
-    state: '',
-    city: '', // also used as lga
-    lga: '', // also used as lga
-    address: '',
-    zip_code: '',
+    location:{
+      country: '', // get from phone number extension
+      state: '',
+      city: '', // also used as lga
+      lga: '', // also used as lga
+      lat: '',
+      lng: '',
+      address: '',
+      zip_code: '',
+      street_address: '',
+      formatted_address: '',
+      place_id: '',
+    },
     payment_option: 'online-payment',
     amount: 0.0,
   });
@@ -181,6 +205,10 @@ function CheckoutPage({ props }) {
       changeValue({amount: parseInt(data.listing.price)})
     }
     setOrder(data.fees);
+  }
+
+  function onLocationChanged({ lat, lng, ...location }){
+    console.log('Location', {lat, lng, ...location});
   }
   
   function proceedToCheckout(e){
@@ -247,7 +275,9 @@ function CheckoutPage({ props }) {
       <Box bg="blue.600" py={8} mb={8}>
         <Container maxW="container.xl" textAlign="center">
           <Heading color="white" size="lg" className="subtitle" fontWeight="400">Checkout</Heading>
-          <Text color="whiteAlpha.900" mt={2}>Get Ready to own a Car!</Text>
+          <Text color="whiteAlpha.900" mt={2}>
+            {listing?.listing_type === 'sale' ? 'Get Ready to own a Car!' : 'Setup Your Rental'}
+          </Text>
         </Container>
       </Box>
 
@@ -258,19 +288,19 @@ function CheckoutPage({ props }) {
             <Text className="bold" fontSize="22px" mb={6}>Confirm your details</Text>
             <VStack spacing={6} align="stretch">
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl flex={1}>
+                <FormControl isDisabled flex={1}>
                   <FormLabel>First name</FormLabel>
                   <Input onInput={(e) => changeValue({ first_name: e.target.value})} defaultValue={checkoutPayload?.first_name} px={4} py={5} />
                 </FormControl>
 
-                <FormControl flex={1}>
+                <FormControl isDisabled flex={1}>
                   <FormLabel>Last name</FormLabel>
                   <Input onInput={(e) => changeValue({ last_name: e.target.value})} defaultValue={checkoutPayload?.last_name} px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
 
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl>
+                <FormControl isRequired={!authUser?.phone_number} isDisabled={authUser?.phone_number}>
                   <FormLabel>Phone Number</FormLabel>
                   <InputGroup>
                     <InputLeftAddon px={0} w="70px">
@@ -296,53 +326,53 @@ function CheckoutPage({ props }) {
                   </InputGroup>
                 </FormControl>
 
-                <FormControl>
+                <FormControl isDisabled>
                   <FormLabel>Email</FormLabel>
                   <Input onInput={(e) => changeValue({ email: e.target.value})} defaultValue={checkoutPayload?.email} type="email" px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
 
-              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl>
-                  <FormLabel>State of Residency</FormLabel>
-                  <Select
-                    onChange={(e) => {
-                      const selectedState = stateList.find(s => s.name === e.target.value);
-                      setCheckoutPayload({ ...checkoutPayload, state: e.target.value, city: '' });
-                      setCityList(selectedState ? City.getCitiesOfState(selectedState.countryCode, selectedState.isoCode) : []);
-                    }}
-                  >
-                    {stateList.map((place) => (
-                      <option key={place.isoCode} value={place.name}>{place.name}</option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>City</FormLabel>
-                  <Input
-                    value={checkoutPayload.city}
-                    name="city"
-                    onInput={(e) => setCheckoutPayload({ ...checkoutPayload, city: e.target.value })}
-                  />
-                </FormControl>
-              </SimpleGrid>
-
-              <FormControl>
-                <FormLabel>Current Address</FormLabel>
-                <Input as={motion.textarea} minH="70px" onInput={(e) => changeValue({ address: e.target.value})} defaultValue={checkoutPayload?.address} px={4} py={5} />
+              <FormControl isRequired>
+                <FormLabel>Delivery Location</FormLabel>
+                <CustomPlacesAutocomplete
+                  value={checkoutPayload?.location?.formatted_address}
+                  onPlaceChange={onLocationChanged}
+                  inputProps={{border: '1px solid lavender', name: 'address', type: 'address'}}
+                />
               </FormControl>
 
               <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl>
-                  <FormLabel>Date of Birth</FormLabel>
-                  <Input type="date" defaultValue={new Date().toLocaleDateString()} px={4} py={5} />
+                <FormControl isRequired>
+                  <FormLabel>Street Address</FormLabel>
+                  <Input name="street-address" px={4} py={5} />
                 </FormControl>
+
                 <FormControl>
                   <FormLabel>Postal Code (optional)</FormLabel>
                   <Input name="postal-code" px={4} py={5} />
                 </FormControl>
               </SimpleGrid>
+
+              {
+                listing?.listing_type === 'rental' &&
+                <Box>
+                  <FormControl>
+                    <FormLabel>Rental Period</FormLabel>
+                    <CalendarPicker
+                     defaultValue={null}
+                     onSelect={(val) => {
+                      console.log("Rental Range", val)
+                      changeValue({ start_date: val })
+                     }}
+                     mode='range'
+                     border={'1px solid lavender'}
+                     rounded="md"
+                     // fromDate={''} // get from url params
+                     // toDate={''}
+                    />
+                  </FormControl>
+                </Box>
+              }
 
               <Divider my={4} />
 
@@ -375,7 +405,6 @@ function CheckoutPage({ props }) {
                 <Flex flexWrap="nowrap" w="100%" overflowX="auto" py={2} px={2} flexDirection="row" className="hidden-scroll" gap={4}>
                   {PaymentOptions.map((option, index) => {
                     const radio = getRadioProps({ value: option.value, isDisabled: option.disabled });
-
                     return (
                       <RadioCard key={index} option={option} value={option.value} {...radio} />
                     )}
@@ -471,7 +500,7 @@ function CheckoutPage({ props }) {
             checkoutPayload?.payment_option === 'pay-after-inspection' 
             )
           ) ? ( isOpen &&
-            <FlutterwavePaymentModal
+            <PaystackPaymentModal
              isOpen={isOpen}
              onClose={onClose}
              onSuccess={onSuccess}

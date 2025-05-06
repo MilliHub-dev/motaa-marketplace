@@ -54,8 +54,8 @@ export const MapComponent = ({ location, style, ref, ...props }) => {
 
 
 
-export const CustomPlacesAutocomplete = ({ onPlaceChange, inputProps, ...props }) => {
-  const [inputValue, setInputValue] = useState("");
+export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...props }) => {
+  const [inputValue, setInputValue] = useState(value);
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -120,6 +120,8 @@ export const CustomPlacesAutocomplete = ({ onPlaceChange, inputProps, ...props }
               city: city.long_name,
               formatted_address: location.formatted_address,
               zip_code: postal_code.long_name,
+              lat,
+              lng,
             })
           } else {
             setSelectedAddress("Address not found");
@@ -134,8 +136,10 @@ export const CustomPlacesAutocomplete = ({ onPlaceChange, inputProps, ...props }
       <Box ref={mapRef} style={{ display: "none" }} />
 
       <Input
-        placeholder="Search a place"
+        placeholder={props?.placeholder || "Search a place"}
         value={inputValue}
+        borderWidth={0}
+        outline="none"
         onChange={(e) => {
           setInputValue(e.target.value);
           fetchPredictions(e.target.value);

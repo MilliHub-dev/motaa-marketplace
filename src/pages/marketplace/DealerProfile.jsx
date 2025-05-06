@@ -224,8 +224,8 @@ export default function DealerProfile() {
 
             {/* Stats */}
             <HStack spacing={8} mb={6}>
-              <Stats number={dealer?.listings.length} label="Listings" />
-              <Stats number={dealer?.listings.length} label="Deals" />
+              <Stats number={dealer?.listings?.length} label="Listings" />
+              <Stats number={dealer?.listings?.length} label="Deals" />
               {/*<Stats number="180.2K" label="Followers" />
               <Stats number="78" label="Following" />*/}
             </HStack>

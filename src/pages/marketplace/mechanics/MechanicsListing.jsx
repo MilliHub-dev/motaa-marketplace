@@ -13,6 +13,7 @@ import {
     Badge,
     Card,
     CardBody,
+    Alert,
     Icon,
     VStack,
     HStack,
@@ -33,15 +34,16 @@ import {BiBuildings} from 'react-icons/bi';
 import {GrLocation} from 'react-icons/gr';
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
+import { TopRatedBadgeIcon } from "../../../components/icons";
 import { 
-  LocationFilter,
+  ServiceFilter
 } from "../../../components/filters";
 import { Paginator } from "../../../components/nav";
 
 
 
 export const MechanicListPage = ({ props }) => {
-  const [serching, setSearching] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [autocomplete, setAutocomplete] = useState(null);
   const [locationName, setLocationName] = useState("Current Location");
   const [inputValue, setInputValue] = useState("Your Current Location");
@@ -92,7 +94,9 @@ export const MechanicListPage = ({ props }) => {
     if (control) control.click();
   }
 
-  const filters = [<LocationFilter onChange={console.log} />];
+  const filters = [
+    <ServiceFilter onChange={console.log} />
+  ];
 
   async function getData() {
     try {
@@ -119,6 +123,12 @@ export const MechanicListPage = ({ props }) => {
     }
   }
 
+  function cancelSearch(){
+    setSearching(false);
+    setQuery("");
+    getData();
+  }
+
   useEffect(() => {
     getData();
     setTimeout(() => setLoading(false), 2500);
@@ -138,7 +148,7 @@ export const MechanicListPage = ({ props }) => {
                 <InputLeftElement>
                   <SearchIcon className="w-5 h-5 text-gray-400" />
                 </InputLeftElement>
-                <Input placeholder="Engine Service" bg={bgColor} onInput={e => setQuery(e.target.value)} />
+                <Input value={query} placeholder="Engine Service" bg={bgColor} onInput={e => setQuery(e.target.value)} />
               </InputGroup>
 
               <Button onClick={performSearch} isDisabled={!query.trim()} borderRadius={5} size="lg" bg="primary" colorScheme="primary" >
@@ -154,6 +164,14 @@ export const MechanicListPage = ({ props }) => {
             </Button>
             {filters.map((filter, idx) => <Fragment key={idx}>{filter}</Fragment>)}
           </Flex>
+
+          {
+            searching &&
+            <Alert colorScheme="yellow" w="100%" gap={3} my={3} rounded="md" display={'flex'}>
+              <Text flex={1}> Showing results for "{query}" </Text>
+              <Button onClick={cancelSearch} colorScheme="yellow"> Cancel </Button>
+            </Alert>
+          }
 
           {/* Results Count */}
           <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" mb={6}>
@@ -174,17 +192,17 @@ export const MechanicListPage = ({ props }) => {
                       <Flex justify="space-between" align="start">
                         <Box>
                           <Link to={`/mechanics/${mechanic?.uuid}`}>
-                            <Heading size="sm" mb={1}>
+                            <Heading size="md" fontWeight="600" mb={1}>
                               {mechanic?.business_name || mechanic?.user?.name}
                               {mechanic?.mechanic_type === "business" && <Icon> <BiBuildings size={25} /> </Icon>}
                             </Heading>
                           </Link>
-                          <Text color="gray.800" fontWeight="md" fontSize="lg">
+                          <Text color="gray.800" fontWeight="md" fontSize="sm">
                             {mechanic?.headline}
                           </Text>
                         </Box>
-                        <Badge colorScheme="blue" fontSize="xs">
-                          TOP RATED
+                        <Badge colorScheme="blue" fontSize="xs" p={'5px'} display="flex" align="center" rounded="lg">
+                          <TopRatedBadgeIcon viewBox="0 0 27 28" w="20px" h="20px" /> {mechanic?.level}
                         </Badge>
                       </Flex>
 
@@ -192,7 +210,7 @@ export const MechanicListPage = ({ props }) => {
                         <GrLocation />
                         <Text fontSize="md">{mechanic?.location}</Text>
                         <Text fontSize="md" color="gray.700">
-                          • {mechanic.distance || "> 2km away"}
+                          • {mechanic?.distance || "> 2km away"}
                         </Text>
                       </Flex>
 
@@ -217,7 +235,7 @@ export const MechanicListPage = ({ props }) => {
                       <Flex justify="flex-start" columnGap={5} flexWrap="wrap" align="center">
                         <Flex align="center" gap={1}>
                           <Text color="gray.600">Services start from:</Text>
-                          <Text fontSize="lg" fontWeight="bold">{mechanic?.startingPrice}</Text>
+                          <Text fontSize="lg" fontWeight="bold">{parseInt(mechanic?.price_start).toLocaleString()}</Text>
                         </Flex>
 
                         <Flex align="center" gap={1}>

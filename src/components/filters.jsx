@@ -14,6 +14,80 @@ import {
 import {ChevronDownIcon} from '@chakra-ui/icons';
 
 
+export const ServiceFilter = ({ onChange, onClose }) => {
+    const services = [
+        'Oil Change', 'Tire Alignment/Rotation', 'Body Work'
+    ]
+    const [isOpen, setOpenState] = useState(false);
+    const [value, setValue] = useState([]);
+
+    function addOrRemoveService(e){
+        const service = e.target.value;
+        let _value = value;
+
+        if (_value.includes(service)){
+            _value.splice(_value.indexOf(service), 1);
+        }else{
+            _value.push(service)
+        }
+        setValue([..._value]);
+    }
+
+    function onClose(){
+        setOpenState(false)
+    }
+
+    function onOpen(){
+        setOpenState(true)
+    }
+
+    function applyFilter(){
+        onClose();
+        onChange({
+            'filter': 'services',
+            'value': ''.concat(value)
+        });
+    }
+
+    return(
+        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
+            <MenuButton
+             minW={'max-content'}
+             size={'md'} borderRadius={'10px'}
+             isActive={isOpen}
+             as={Button}
+             onClick={isOpen ? onClose : onOpen}
+             bgColor="gray.100"
+             rightIcon={<ChevronDownIcon />}
+            > Services </MenuButton>
+            <MenuList maxH="300px" overflowY="auto">
+                <Box>
+                    <Text p={3} size="md"> Select Make </Text>
+                    {
+                        services.map((service) => 
+                            <MenuItem
+                             key={service}
+                             selected={value.includes(service)}
+                             value={service}
+                             onInput={addOrRemoveService}
+                             as={Checkbox}
+                            > {service} </MenuItem>
+                    )}
+                </Box>
+                <Box px={2} display={'block'} mt={2}>
+                    <Button
+                     onClick={applyFilter}
+                     colorScheme="blue"
+                     bgColor="primary"
+                     w={'100%'}
+                    > Confirm </Button>
+                </Box>
+            </MenuList>
+        </Menu>
+    )
+}
+
+
 export const CarBrandFilter = ({ onChange, onClose }) => {
     const brands = [
         'BMW', 'Audi', 'Toyota', 'Mercedis', 'Nissan', 'Mazda', 'Honda',
