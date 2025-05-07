@@ -59,6 +59,13 @@ function BusinessProfile({onSubmit, ...props }) {
     business_name: '',
     services: [],
     location: {
+      lat: '',
+      lng: '',
+      country: '',
+      state: '',
+      city: '',
+      zip_code: '',
+      place_id: '',
       street_address: '',
     },
     business_type: '',
@@ -100,8 +107,23 @@ function BusinessProfile({onSubmit, ...props }) {
   async function setupBusinessProfile(e){
     e.preventDefault();
 
-    try{
+    if (!businessProfile.logo){
+      return notify({
+        color: 'red',
+        title: 'Please Upload your Logo'
+      })
+    }
+    
+    // images must be < 2mb
+    if (businessProfile.logo && businessProfile.logo.file.size/10**6 > 2.048){
+      return notify({
+        color: 'red',
+        title: 'Your Logo file size exceeds 2mb',
+        timeout: 4500,
+      })
+    }
 
+    try{
       const authUser = objectifyJSON(localStorage.getItem('motaa-auth-user'));
       const payload = new FormData();
       payload.append('action', 'setup-business-profile')
@@ -127,10 +149,10 @@ function BusinessProfile({onSubmit, ...props }) {
         console.log("New business data:", data);
         localStorage.removeItem('motaa-auth-user');
         redirect('/login', 200)
-        // setTimeout(() => notify({
-        //   title: 'Success',
-        //   body: "Welcome to Motaa."
-        // }), 700)
+        setTimeout(() => notify({
+          title: 'Success',
+          body: "Welcome to Motaa, Please log in to continue."
+        }), 1200)
       }else{
         notify({
           title: 'Error',
@@ -346,7 +368,7 @@ function BusinessProfile({onSubmit, ...props }) {
           <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
             Physical Location <small> Select a Location on Google </small>
           </FormLabel>
-          <CustomPlacesAutocomplete onPlaceChange={(data) => changeValue('location', {...businessProfile.location, ...data})} />
+          <CustomPlacesAutocomplete onPlaceChange={(data) => setupBusinessProfile({...businessProfile, location: {...businessProfile.location, ...data}})} />
         </FormControl>
 
         {/* Submit Button */}
