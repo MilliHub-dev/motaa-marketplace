@@ -203,6 +203,7 @@ function BusinessProfile({onSubmit, ...props }) {
              type="file"
              allow="image/*"
              isRequired
+             name="logo"
              onInput={(e) => {
               const file = e.target.files[0];
               changeValue('logo', file);
