@@ -369,7 +369,7 @@ function BusinessProfile({onSubmit, ...props }) {
           <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
             Physical Location <small> Select a Location on Google </small>
           </FormLabel>
-          <CustomPlacesAutocomplete onPlaceChange={(data) => setupBusinessProfile({...businessProfile, location: {...businessProfile.location, ...data}})} />
+          <CustomPlacesAutocomplete onPlaceChange={({...data}) => changeValue('location', {...businessProfile.location, ...data} />
         </FormControl>
 
         {/* Submit Button */}
