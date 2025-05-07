@@ -113,16 +113,19 @@ export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...
             const country = location.address_components.find(comp => comp.types.includes('country'))
             const city = location.address_components.find(comp => comp.types.includes('administrative_area_level_2'))
             const state = location.address_components.find(comp => comp.types.includes('administrative_area_level_1'))
-            onPlaceChange({
+            const coords = {
               place_id: place.place_id,
               country: country.short_name,
               state: state.short_name,
               city: city.long_name,
               formatted_address: location.formatted_address,
-              zip_code: postal_code.long_name,
+              zip_code: postal_code?.long_name,
               lat,
               lng,
-            })
+            }
+            console.log("Coords:", coords)
+            console.log("Postal code:", postal_code)
+            onPlaceChange(coords)
           } else {
             setSelectedAddress("Address not found");
           }

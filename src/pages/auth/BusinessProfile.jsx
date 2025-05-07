@@ -50,7 +50,7 @@ import firebase from 'firebase/compat/app';
 
 function BusinessProfile({onSubmit, ...props }) {
   const {payload} = useContext(SignupContext);
-  const {onAuthenticated, axios, logout} = useContext(GlobalStore);
+  const {onAuthenticated, axios, logout, notify} = useContext(GlobalStore);
   const [logoPreview, setLogoPreview] = useState('')
   const [params] = useSearchParams();
   const user_type = params.get('user_type') || 'dealer'
