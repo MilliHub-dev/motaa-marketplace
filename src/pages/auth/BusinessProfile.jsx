@@ -115,7 +115,7 @@ function BusinessProfile({onSubmit, ...props }) {
     }
     
     // images must be < 2mb
-    if (businessProfile.logo && businessProfile.logo.file.size/10**6 > 2.048){
+    if (businessProfile.logo && businessProfile.logo.size/10**6 > 2.048){
       return notify({
         color: 'red',
         title: 'Your Logo file size exceeds 2mb',
