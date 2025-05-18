@@ -199,7 +199,7 @@ export const VerificationNotice = ({ businessType, user, onVerification, ...prop
             appId={"6790a5a3a5a0229a0a5c0839"}
             type="custom"
             config={{
-              widget_id: JSON.parse(import.meta.env.VITE_DOJAH_BIZ_DEALER_WIDGET_ID)
+              widget_id: import.meta.env.VITE_DOJAH_BIZ_DEALER_WIDGET_ID,
             }}
           />
         }
