@@ -467,13 +467,13 @@ export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
          gap={isMobile ? 3 : 5}
          alignItems={'center'}
         >
-          {isMobile ? 
+          {/*{isMobile ? 
             <Button px={0} onClick={toggleSearch} variant="unstyled">
               <Icon className='icon'><TbSearch /></Icon>
             </Button>
             :
             <DashboardSearchBar flex={1} />
-          }
+          }*/}
           {isMobile ? (
               <Button
                as={RLink}

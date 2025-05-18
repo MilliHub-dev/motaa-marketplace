@@ -3,7 +3,7 @@ import {
   Input, Stack, Switch, Textarea, VStack, Heading,
   Image, Tabs, TabList, TabPanels, Tab, TabPanel,
   IconButton, Select, Avatar, Flex, HStack, Text,
-  Divider,
+  Divider, Tag,
 } from "@chakra-ui/react";
 import { useState, useEffect, useContext, useRef } from "react";
 import { FaUpload } from "react-icons/fa";
@@ -62,7 +62,7 @@ export const BusinessProfile = ({  }) => {
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
-      console.log("My settings:", data.data);
+      // console.log("My settings:", data.data);
       setDealership(data.data)
     }
   }
@@ -101,6 +101,12 @@ export const BusinessProfile = ({  }) => {
     }
   }
 
+
+  let dealerServices = [
+    'Car Leasing',
+    'Car Sale',
+    'Drivers',
+  ]
 
 
   useEffect(() => {
@@ -168,15 +174,69 @@ export const BusinessProfile = ({  }) => {
       </FormControl>
 
       {/* Services List Selector */}
-      <FormControl>
-        <FormLabel>Choose Services</FormLabel>
-        <Select multiple name="services" value={dealership?.services} onChange={handleChange}>
-          <option value="Car Sale">Car Sale</option>
-          <option value="Car Dealership">Car Dealership</option>
-          <option value="Car Finance Agent">Car Finance Agent</option>
-          <option value="Car Leasing">Car Leasing</option>
-        </Select>
-      </FormControl>
+      <Box border="1px solid" borderColor="#d0d5dd" borderRadius="lg" overflow="hidden">
+        <Box p={3} borderBottom="1px solid" borderColor="#d0d5dd">
+          <FormLabel fontWeight="medium" mb={2}> Choose services </FormLabel>
+          <Flex flexWrap="wrap" gap={2}>
+          {
+            dealerServices?.map((service) => {
+              const selected = dealership?.services?.includes(service);
+              if (selected) return null;
+              return (
+                <Tag
+                  variant={selected ? "solid" : "outline"}
+                  size="lg"
+                  cursor="pointer"
+                  borderRadius="full"
+                  fontSize="sm"
+                  bg={selected ? "#f2f4f7" : "white"}
+                  color={selected ? "#101828" : "#667085"}
+                  borderColor="#d0d5dd"
+                  _hover={{ bg: selected ? "#e4e7ec" : "gray.50" }}
+                  onClick={() => 
+                    setDealership({
+                      ...dealership,
+                      services: [...dealership?.services, service]
+                    })
+                  }
+                >
+                  {service}
+                </Tag>
+              )
+            }
+          )}
+          </Flex>
+        </Box>
+
+        <Box p={3}>
+          <Flex flexWrap="wrap" gap={2}>
+            {
+              dealership?.services?.map((service) => 
+                <Tag
+                  variant={"solid"}
+                  cursor="pointer"
+                  size="lg"
+                  borderRadius="full"
+                  fontSize="sm"
+                  bg={"#0460cc"}
+                  color={"white"}
+                  borderColor={"#0460cc"}
+                  _hover={{ bg: "#0354b4"}}
+                  // onClick={() => removeService(service)}
+                  onClick={() => {
+                    const deals = dealership.services;
+                    deals.splice(deals.indexOf(service), 1);
+                    setDealership({ ...dealership, services:[...deals] })
+                  }}
+                >
+                  {service}
+                </Tag>
+              )
+            }
+            {dealership?.services.length < 1 && <Text> Select at least one service you offer </Text>}
+          </Flex>
+        </Box>
+      </Box>
 
       <Divider my={4} />
 

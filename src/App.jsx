@@ -52,7 +52,7 @@ import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
 import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
 import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
 import OrderListAdmin from './pages/dashboard/dealer/orders/OrderList';
-// import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';``
+import AnalyticsDashboard from './pages/dashboard/dealer/analytics/AnalyticsOverview';
 import DealershipSettings from './pages/dashboard/dealer/settings/Settings';
 
 // Wallet
@@ -97,12 +97,18 @@ function App() {
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
      baseURL: 'https://server.motaa.net/api/v1',
-//    baseURL: 'http://localhost:8000/api/v1',
+    // baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
     },
   });
+
+  function reloadApp(){
+    // reloads user data including auth tokens
+    // use after verification or destructive actions only.
+    
+  }
   
   function getCookie(name){
     let cookie = Cookies.getJSON(name)
@@ -153,6 +159,10 @@ function App() {
   }
   
   function init(){
+    if (!loading){
+      setLoading(true);
+    }
+
     // try to authenticate the user else redirect to login screen
     getAuthUser();
 
@@ -232,7 +242,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
                       <Route ErrorBoundary={ErrorBoundary} path='/orders' element={<DealerDashboard />} />
-                      {/*<Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />*/}
+                      <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<DealershipSettings />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/support' element={<DealerDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />

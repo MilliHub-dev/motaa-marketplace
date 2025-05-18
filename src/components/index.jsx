@@ -1028,8 +1028,13 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         <Text className="small-text" as={Flex} alignItems="center" gap={1.25}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle?.dealer?.location} </Text>
                         {
                           listing?.listing_type === 'sale' ?
-                           listing?.vehicle?.custom_duty &&
-                            <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon color="purple"> <BsFillPatchCheckFill size={25} /> </Icon> </Tag>
+                           <Flex gap={2}>
+                            <Badge fontWeight={'600'} gap={1.5}> <span> Verified </span> <Icon color="blue"> <BsFillPatchCheckFill size={25} /> </Icon> </Badge>
+
+                            {listing?.vehicle?.custom_duty &&
+                              <Badge fontWeight={'600'} gap={1.5}> <span> Custom Duty </span> <Icon color="purple"> <BsFillPatchCheckFill size={25} /> </Icon> </Badge>
+                            }
+                           </Flex>
                           :
                           <Tag fontWeight={'bold'} gap={1.5}><Icon> <Leaf size={25} /> </Icon> <span> {listing?.vehicle?.fuel_system} </span> </Tag>
                         }

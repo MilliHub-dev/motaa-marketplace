@@ -52,16 +52,41 @@ import { BsWallet2 } from "react-icons/bs"
 
 const OrderListAdmin = () => {
   const [orderList, setOrderList] = useState([]);
+  const [matches, setMatches] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [searchValue, setSearchValue] = useState("");
   const {axios} = useContext(GlobalStore);
 
   async function getData(){
     const res = await axios.get('/admin/dealership/orders/');
     const data = objectifyJSON(res.data)
     if (res.status === 200){
-      setOrderList(data.data)
+      setOrderList(data.data);
+      setMatches(data.data);
     }
     console.log("Got orders:", data)
+  }
+
+  function handleSearch(e){
+    const value = e.target.value;
+    setSearchValue(value);
+
+    if (value.trim() !== ''){
+      const found = orderList.filter(elem => elem.order_item.vehicle.name.toLowerCase().includes(value));
+      setMatches([...found])
+    }else{
+      setMatches([...orderList])
+    }
+  }
+
+  function filterMatches(filter){
+    setActiveFilter(filter);
+
+    if(filter === 'All'){
+      return setMatches([ ...orderList ])
+    }
+    const filteredMatches = orderList.filter(item => item.order_status.toLowerCase() === filter.toLowerCase())
+    setMatches([...filteredMatches]);
   }
 
   useEffect(() => {
@@ -76,90 +101,71 @@ const OrderListAdmin = () => {
       <Flex justify="space-between" mb={6}>
         <HStack spacing={2}>
           <Button
-            size="sm"
+            size="md"
             variant={activeFilter === "All" ? "solid" : "outline"}
             bg={activeFilter === "All" ? "blue.50" : "white"}
             color={activeFilter === "All" ? "blue.500" : "gray.700"}
             borderColor="gray.200"
-            onClick={() => setActiveFilter("All")}
+            onClick={() => filterMatches("All")}
           >
             All
           </Button>
           <Button
-            size="sm"
-            variant={activeFilter === "Recents" ? "solid" : "outline"}
-            bg={activeFilter === "Recents" ? "blue.50" : "white"}
-            color={activeFilter === "Recents" ? "blue.500" : "gray.700"}
-            borderColor="gray.200"
-            onClick={() => setActiveFilter("Recents")}
-          >
-            Recents
-          </Button>
-          <Button
-            size="sm"
+            size="md"
             variant={activeFilter === "Pending" ? "solid" : "outline"}
             bg={activeFilter === "Pending" ? "blue.50" : "white"}
             color={activeFilter === "Pending" ? "blue.500" : "gray.700"}
             borderColor="gray.200"
-            onClick={() => setActiveFilter("Pending")}
+            onClick={() => filterMatches("Pending")}
           >
             Pending
           </Button>
           <Button
-            size="sm"
-            variant={activeFilter === "Locked" ? "solid" : "outline"}
-            bg={activeFilter === "Locked" ? "blue.50" : "white"}
-            color={activeFilter === "Locked" ? "blue.500" : "gray.700"}
+            size="md"
+            variant={activeFilter === "awaiting-inspection" ? "solid" : "outline"}
+            bg={activeFilter === "awaiting-inspection" ? "blue.50" : "white"}
+            color={activeFilter === "awaiting-inspection" ? "blue.500" : "gray.700"}
             borderColor="gray.200"
-            onClick={() => setActiveFilter("Locked")}
+            onClick={() => filterMatches("awaiting-inspection")}
           >
-            Locked (escrow)
+            Locked (Inspection)
           </Button>
           <Button
-            size="sm"
-            variant={activeFilter === "Sold" ? "solid" : "outline"}
-            bg={activeFilter === "Sold" ? "blue.50" : "white"}
-            color={activeFilter === "Sold" ? "blue.500" : "gray.700"}
+            size="md"
+            variant={activeFilter === "completed" ? "solid" : "outline"}
+            bg={activeFilter === "completed" ? "blue.50" : "white"}
+            color={activeFilter === "completed" ? "blue.500" : "gray.700"}
             borderColor="gray.200"
-            onClick={() => setActiveFilter("Sold")}
+            onClick={() => filterMatches("completed")}
           >
             Sold
-          </Button>
-          <Button
-            leftIcon={<MdFilterList size={16} />}
-            variant="outline"
-            size="sm"
-            borderColor="gray.200"
-            color="gray.700"
-          >
-            More filters
           </Button>
         </HStack>
         <InputGroup maxW="300px">
           <InputLeftElement pointerEvents="none">
             <MdSearch size={18} color="#667085" />
           </InputLeftElement>
-          <Input placeholder="Search" borderColor="gray.200" />
+          <Input onInput={handleSearch} value={searchValue} placeholder="Search" borderColor="gray.200" />
         </InputGroup>
       </Flex>
 
       {/* Transactions Table */}
-      <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="auto">
-        <Table variant="simple" textWrap="nowrap">
+      <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="auto" pb={10} minH={400}>
+        <Table variant="simple">
           <Thead bg="gray.50">
-            <Tr>
-              <Th>Car Listings</Th>
+            <Tr columns={9}>
+              <Th columns={3}>Car Listings</Th>
               <Th>Amount</Th>
               <Th>Date</Th>
               <Th>Status</Th>
               <Th>Client</Th>
-              <Th></Th>
+              <Th>Actions</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {orderList?.map((order) => (
+            {matches?.map((order) => (
               <Tr key={order?.uuid}>
-                <Td>
+                <Td columnSpan={4}>
                   <Flex align="center">
                     <Image
                       src={order?.order_item?.vehicle?.images[0]?.url}
@@ -171,7 +177,7 @@ const OrderListAdmin = () => {
                       mr={3}
                     />
                     <Box>
-                      <Text fontWeight="medium">{order?.order_item.vehicle.name}</Text>
+                      <Text fontWeight="medium" textOverflow="ellipsis">{order?.order_item.vehicle.name}</Text>
                       <Text color="gray.700" fontWeight="medium">
                         {order?.order_type}
                       </Text>

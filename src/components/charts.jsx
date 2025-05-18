@@ -6,11 +6,6 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
-const sparklineData = {
-  revenue: [65, 68, 70, 72, 75, 78, 82],
-  impressions: [45, 42, 40, 38, 35, 32, 30],
-  deals: [30, 32, 35, 40, 45, 48, 50],
-};
 
 export const StatCard = ({ title, value, change, data, format = (v) => v }, ...props) => {
   const chartData = {
@@ -63,10 +58,10 @@ export const StatCard = ({ title, value, change, data, format = (v) => v }, ...p
               {Math.abs(change)}% {change >= 0 ? 'increase' : 'decrease'}
             </Text>
           </Flex>
-
+{/*
           <Box h="50px" w={"50px"}>
             <Line data={chartData} options={chartOptions} />
-          </Box>
+          </Box>*/}
         </Flex>
       </Stack>
     </Box>
@@ -87,22 +82,22 @@ export const StatsCards = ({ title, value }) => {
       <StatCard
         title={title}
         value={value}
-        change={10}
-        data={sparklineData.revenue}
+        // change={10}
+        // data={sparklineData.revenue}
         format={formatCurrency}
       />
       <StatCard
         title={title}
         value={value}
-        change={-2}
-        data={sparklineData.impressions}
+        // change={-2}
+        // data={sparklineData.impressions}
         format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
       />
       <StatCard
         title={title}
         value={value}
-        change={14}
-        data={sparklineData.deals}
+        // change={14}
+        // data={sparklineData.deals}
         format={formatNumber}
       />
     </SimpleGrid>
