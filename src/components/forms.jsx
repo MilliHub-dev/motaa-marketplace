@@ -615,9 +615,8 @@ export function CreateRentalForm({ formData, setFormData }) {
 }
 
 
-
 // Car Details Form Component
-export function EditRentalForm({ formData, setFormData }) {
+export function EditListingForm({ formData, setFormData }) {
 
   return (
     <VStack spacing={6} align="stretch" w="full">
@@ -627,7 +626,7 @@ export function EditRentalForm({ formData, setFormData }) {
           placeholder="eg Ford Focus Mini Edition"
           isRequired={true}
           name="title"
-          value={formData.title}
+          value={formData?.title}
           onInput={(e) => setFormData({ ...formData, title: e.target.value })}
         />
       </FormControl>
@@ -640,10 +639,10 @@ export function EditRentalForm({ formData, setFormData }) {
             placeholder="Select brand"
             isRequired={true}
             name="brand"
-            value={formData.vehicle.brand}
+            value={formData?.vehicle?.brand}
             onChange={
               (e) => setFormData(
-                { ...formData, vehicle: {...formData.vehicle, brand: e.target.value}
+                { ...formData, vehicle: {...formData?.vehicle, brand: e.target.value}
               })
             }
           >
@@ -656,7 +655,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <Input
             placeholder="Car model"
             isRequired={true}
-            value={formData.vehicle.model}
+            value={formData?.vehicle?.model}
             onInput={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, model: e.target.value} })}
           />
         </FormControl>
@@ -668,26 +667,29 @@ export function EditRentalForm({ formData, setFormData }) {
               type="number"
               isRequired={true}
               placeholder="Enter price"
-              value={formData.price}
+              value={formData?.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             />
           </InputGroup>
         </FormControl>
 
-        <FormControl isRequired>
-          <FormLabel>Payment Cycle</FormLabel>
-          <Select
-           name="payment-cycle"
-           isRequired
-           value={formData.payment_cycle}
-           onChange={(e) => setFormData({ ...formData, payment_cycle: e.target.value })}
-          >
-            <option value='day'>Daily</option>
-            <option value='week'>Weekly</option>
-            <option value='month'>Monthly</option>
-            <option value='year'>Annually</option>
-          </Select>
-        </FormControl>
+        {
+          formData?.listing_type === 'rental' &&
+          <FormControl isRequired>
+            <FormLabel>Payment Cycle</FormLabel>
+            <Select
+             name="payment-cycle"
+             isRequired
+             value={formData?.payment_cycle}
+             onChange={(e) => setFormData({ ...formData, payment_cycle: e.target.value })}
+            >
+              <option value='day'>Daily</option>
+              <option value='week'>Weekly</option>
+              <option value='month'>Monthly</option>
+              <option value='year'>Annually</option>
+            </Select>
+          </FormControl>
+        }
         
         <FormControl isRequired>
           <FormLabel>Condition</FormLabel>
@@ -695,13 +697,12 @@ export function EditRentalForm({ formData, setFormData }) {
             placeholder="Choose condition"
             name="condition"
             isRequired={true}
-            value={formData.vehicle.condition}
+            value={formData?.vehicle?.condition}
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, condition: e.target.value} })}
           >
             <option value="new">New</option>
-            <option value="local-used">Used (Local)</option>
-            <option value="uk-used">Used (UK)</option>
-            <option value="us-used">Used (US)</option>
+            <option value="used-local">Local Used</option>
+            <option value="used-foreign">Foreign Used</option>
           </Select>
         </FormControl>
 
@@ -709,7 +710,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>VIN/Chassis Number</FormLabel>
           <Input
             placeholder="Enter Number..."
-            value={formData.vehicle.vin}
+            value={formData?.vehicle?.vin}
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, vin: e.target.value} })}
           />
         </FormControl>
@@ -718,7 +719,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>Vehicle Type</FormLabel>
           <Select
             placeholder="Select Vehicle Type"
-            value={formData.vehicle.type}
+            value={formData?.vehicle?.type}
             name="vehicle_type"
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, vehicle_type: e.target.value} })}
           >
@@ -734,7 +735,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>Fuel System</FormLabel>
           <Select
             placeholder="Select fuel type"
-            value={formData.vehicle.fuel_system}
+            value={formData?.vehicle?.fuel_system}
             name="fuel_system"
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, fuel_system: e.target.value} })}
           >
@@ -751,7 +752,7 @@ export function EditRentalForm({ formData, setFormData }) {
             name="transmission"
             isRequired={true}
             placeholder="Select transmission"
-            value={formData.vehicle.transmission}
+            value={formData?.vehicle?.transmission}
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, transmission: e.target.value} })}
           >
             <option>Automatic</option>
@@ -763,7 +764,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>Doors</FormLabel>
           <Select
             placeholder="Select Door number"
-            value={formData.vehicle.doors}
+            value={formData?.vehicle?.doors}
             name="doors"
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, doors: e.target.value} })}
           >
@@ -777,7 +778,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>Seats</FormLabel>
           <Select
             placeholder="Select seats number"
-            value={formData.vehicle.seats}
+            value={formData?.vehicle?.seats}
             name="seats"
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, seats: e.target.value} })}
           >
@@ -796,7 +797,7 @@ export function EditRentalForm({ formData, setFormData }) {
             type="number"
             min={0}
             placeholder="0 miles"
-            value={formData.vehicle.mileage}
+            value={formData?.vehicle?.mileage}
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, mileage: e.target.value} })}
           />
         </FormControl>
@@ -805,7 +806,7 @@ export function EditRentalForm({ formData, setFormData }) {
           <FormLabel>Drive train</FormLabel>
           <Select
             placeholder="Choose an option"
-            value={formData.vehicle.drivetrain}
+            value={formData?.vehicle?.drivetrain}
             name="drivetrain"
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, drivetrain: e.target.value} })}
           >
@@ -828,17 +829,17 @@ export function EditRentalForm({ formData, setFormData }) {
                minW="120px"
                maxW="max-content"
                borderRadius="5px"
-               borderColor={formData.vehicle.features.includes(feature) && "white"}
-               color={formData.vehicle.features.includes(feature) && "white"}
-               bgColor={formData.vehicle.features.includes(feature) ? "primary" : "white"}
+               borderColor={formData?.vehicle?.features?.includes(feature) && "white"}
+               color={formData?.vehicle?.features?.includes(feature) && "white"}
+               bgColor={formData?.vehicle?.features?.includes(feature) ? "primary" : "white"}
                px={4} py={3}
                cursor="pointer"
                transition="0.5s"
                gapRight={10}
                onClick={() => {
-                  const features = [...formData.vehicle.features]
-                  if (!features.includes(feature)){
-                    features.push(feature);
+                  const features = [...formData?.vehicle?.features]
+                  if (!features?.includes(feature)){
+                    features?.push(feature);
                     console.log("features:", features)
                     setFormData({ ...formData, vehicle: {...formData.vehicle, features }})
                   }
@@ -847,7 +848,7 @@ export function EditRentalForm({ formData, setFormData }) {
               }
               >
                 <TagLabel flex={1}> {feature} </TagLabel>
-                {formData.vehicle.features.includes(feature) &&
+                {formData?.vehicle?.features?.includes(feature) &&
                   <TagCloseButton opacity={1} color="white" onClick={() => {
                     const features = [...formData.vehicle.features]
                     if (features.includes(feature)){
@@ -866,7 +867,7 @@ export function EditRentalForm({ formData, setFormData }) {
         <FormLabel>Seller Notes <small>(optional)</small></FormLabel>
         <Textarea
           placeholder="Enter a description or any information that might be relevant to the customer..."
-          value={formData.notes}
+          value={formData?.notes}
           name="notes"
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           maxLength={700}
@@ -878,8 +879,6 @@ export function EditRentalForm({ formData, setFormData }) {
     </VStack>
   )
 }
-
-
 
 // Car Details Form Component
 export function CreateSaleForm({ formData, setFormData }) {

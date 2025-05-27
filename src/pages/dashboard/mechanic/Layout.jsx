@@ -2,7 +2,8 @@ import {useState, useEffect, useContext, createContext, Fragment,} from 'react';
 import {Link, Routes, Route, Outlet, useLocation} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {DealerDashboardSideBar, DealerNavbar, UnauthenticatedNavbar} from '../../../components/nav';
+import {MechanicDashboardSideBar, MechanicNavbar, UnauthenticatedNavbar} from '../../../components/nav';
+import {VerificationNotice} from '../../../components';
 import {
   Box,
   Container,
@@ -32,36 +33,30 @@ import {
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
-import {MdWarning,} from "react-icons/md";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
-import {VerificationNotice} from '../../../components';
-import Dashboard from './Dashboard';
+import Dashboard from './MechanicDashboard';
 
 
-export const DealershipContext = createContext({
-  dealership: null,
+export const MechanicContext = createContext({
+  mechanic: null,
 })
 
-function DealerDashboardLayout({children, hideSidebar, ...props}) {
+function MechanicDashboardLayout({children, hideSidebar, ...props}) {
   const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
   const [loading, setLoadingState] = useState(true);
-  const [dealership, setDealership] = useState({
-    uuid: '',
-
-  });
+  const [mechanic, setMechanic] = useState();
   const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   async function init(){
-    setLoadingState(true)
     // get the dealership
     try{
-      const res = await axios.get(`/admin/dealership/`);
+      const res = await axios.get(`/admin/mechanics/`);
       const data = objectifyJSON(res.data);
 
       if (res?.status === 200){
-        setDealership(data.data);
-        console.log("Dealership:", data.data)
+        setMechanic(data.data);
+        console.log("Mechanic:", data.data)
       }
 
       setTimeout(() => setLoadingState(false), 2000)
@@ -70,7 +65,6 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
       console.log("error getting dealership:", error)
     }
   }
-
 
   async function onVerification(type, data){
     try{
@@ -84,8 +78,8 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
             'user.verified_email',
             'verified_phone_number',
           ],
-          object: 'dealership',
-          object_id: dealership.uuid,
+          object: 'mechanic',
+          object_id: mechanic?.uuid,
         }
 
         const res = await axios.post(`/accounts/verify-business/`, jsonifyObject(payload));
@@ -125,7 +119,6 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
       })
     }
   }
-
   useEffect(() => {
     init();
 
@@ -136,19 +129,18 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
   }
 
   const context = {
-    dealership,
-    onVerification,
+    mechanic,
   }
 
   return (
-    <DealershipContext.Provider value={context}>
+    <MechanicContext.Provider value={context}>
     <Stack>
-      <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
+      <MechanicNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
 
       <Flex minH="100vh" position="relative">
         <Fragment>
-          <DealerDashboardSideBar
-           dealership={dealership}
+          <MechanicDashboardSideBar
+           mechanic={mechanic}
            sidebarOpen={sidebarOpen}
            onClose={() => setSidebarState(false)}
            setSidebarState={setSidebarState}
@@ -163,8 +155,8 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
           >
             <Container pb={10} maxW="container.xl">
               {
-                !hideSidebar && !dealership?.verified_business && 
-                <VerificationNotice user={authUser} onVerification={onVerification} businessType={'dealer'} />
+                !hideSidebar && !mechanic?.verified_business && 
+                <VerificationNotice user={authUser} onVerification={onVerification} businessType={'mechanic'} />
               }
               <Outlet />
             </Container>
@@ -172,13 +164,9 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
         </Fragment>
       </Flex>
     </Stack>
-    </DealershipContext.Provider>
+    </MechanicContext.Provider>
   )
 }
 
-
-
-
-
-export default DealerDashboardLayout;
+export default MechanicDashboardLayout;
 

@@ -17,8 +17,35 @@ import {
   Badge,
   Button,
   Wrap,
-  WrapItem,
+  WrapItem, 
+  Center, 
 } from "@chakra-ui/react";
+import { css, keyframes } from "@emotion/react";
+
+
+const pulse = keyframes`
+  0% { transform: scale(1); background-color: #2e5cb8; }
+
+  33% { transform: scale(1.1); background-color: #ffd700; }
+  
+  66% { transform: scale(1.2); background-color: limegreen; }
+  
+  100% { transform: scale(1); background-color: #2e5cb8; }
+`;
+
+export const AppLoadingScreen = ({ loading }) => {
+  return (
+    <Center height="100vh" bg="gray.50">
+      <Box
+        w="80px"
+        h="80px"
+        borderRadius="full"
+        css={css`animation: ${pulse} 2s infinite`}
+      ></Box>
+    </Center>
+  );
+}
+
 
 
 

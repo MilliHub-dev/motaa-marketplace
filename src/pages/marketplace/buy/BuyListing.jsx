@@ -46,6 +46,7 @@ const BuyListing = ({ }) => {
 
     function gotoPage(pageNum){
         console.log("Page:", pageNum)
+        getData(`/listings/buy/?offset${pageNum*25}`)
         // const res = await axios.get(`/listings/buy/`,);
         // let data = objectifyJSON(res.data);
     }
@@ -206,7 +207,6 @@ const BuyListing = ({ }) => {
                 <FilterList appliedFilters={appliedFilters} onRemove={removeFilter} />
 
                 <SimpleGrid
-                 minChildWidth="300px"
                  placeItems={isMobile ? 'center' : 'unset'}
                  gap={8}
                  spacing={8}
@@ -317,10 +317,10 @@ function BannerCarousel({ images }) {
             />
             ))}
         </HStack>
-        </Box>
-
+    </Box>
   )
 }
+
 
 
 

@@ -1,46 +1,55 @@
 import {
-    Box, Flex, IconButton, Heading,
-    Badge, Text, Divider,
-    HStack, VStack,
-    PinInput,
-    PinInputField,
-    Card,
-    CardBody,
-    Button,
-    Input,
-    CardHeader,
-    Image,
-    Icon,
-    FormLabel,
-    FormControl,
-    Grid,
-    Fade,
-    LinkBox,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalBody,
-    useDisclosure,
-    Tag,
-    AspectRatio,
-    Select,
-    useColorModeValue,
-    Menu,
-    MenuItem,
-    MenuButton,
-    MenuList,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    Breadcrumb,
-    NumberInput,
-    NumberInputField,
-    NumberInputStepper,
-    NumberIncrementStepper,
-    NumberDecrementStepper,
-    Popover,
-    PopoverTrigger,
-    PopoverContent,
-    PopoverBody,
+  Box, Flex, IconButton, Heading,
+  Badge, Text, Divider,
+  Stack, HStack, VStack,
+  PinInput,
+  PinInputField,
+  Card,
+  CardBody,
+  Button,
+  Input,
+  CardHeader,
+  Image,
+  Icon,
+  FormLabel,
+  FormControl,
+  Grid,
+  Fade,
+  LinkBox,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  useDisclosure,
+  Tag,
+  AspectRatio,
+  Avatar,
+  Select,
+  useColorModeValue,
+  Menu,
+  MenuItem,
+  MenuButton,
+  MenuList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Breadcrumb,
+  SimpleGrid,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  Progress,  
+  List,
+  ListItem,
+  Alert,
+  AlertTitle,
+  AlertIcon,
+  useOutsideClick,
 } from '@chakra-ui/react';
 import {Fragment, useContext, useEffect, useState, useRef} from 'react';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiSearch2Line } from 'react-icons/ri'
@@ -52,11 +61,299 @@ import { TbManualGearbox } from 'react-icons/tb';
 import { BsFillPatchCheckFill } from 'react-icons/bs';
 import { GlobalStore } from '../App';
 import { FcCheckmark } from 'react-icons/fc';
-import { Leaf } from 'lucide-react';
+import { Leaf, Star } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, StarIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CalendarIcon, TimeIcon } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
 import { addMonths, endOfMonth, format, isSameDay, isSameMonth, isToday, startOfMonth, subMonths } from "date-fns"
+import {
+  MdSearch,
+  MdHome,
+  MdBarChart,
+  MdPeople,
+  MdWarning,
+  MdSettings,
+  MdMoreVert,
+  MdFilterList,
+  MdShare,
+  MdMessage,
+  MdNotifications,
+  MdBolt,
+  MdLock,
+  MdLocationOn,
+  MdKeyboardArrowDown,
+  MdInventory,
+  MdCalendarMonth,
+} from "react-icons/md"
+import { BsWallet2 } from "react-icons/bs"
+import Dojah from 'react-dojah';
+
+
+export const ComboBox = ({ defaultOptions, onSelect }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [filteredOptions, setFilteredOptions] = useState(defaultOptions);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  const ref = useRef(null);
+
+  useOutsideClick({
+    ref,
+    handler: () => setIsOpen(false),
+  });
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    const matched = defaultOptions.filter(option =>
+      option.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredOptions(matched);
+    setIsOpen(true);
+  };
+
+  const handleSelect = (value) => {
+    setInputValue(value);
+    setSelected(value);
+    setIsOpen(false);
+    onSelect(value)
+  };
+
+  const showCreateOption =
+    inputValue.trim() !== '' &&
+    !defaultOptions.some(
+      option => option.toLowerCase() === inputValue.trim().toLowerCase()
+    );
+
+  return (
+    <VStack ref={ref} align="stretch" position="relative" spacing={1}>
+      <Input
+        placeholder="Select an option or type..."
+        value={inputValue}
+        onChange={handleChange}
+        onFocus={() => setIsOpen(true)}
+      />
+      {isOpen && (filteredOptions.length > 0 || showCreateOption) && (
+        <Box
+          position="absolute"
+          top="100%"
+          left="0"
+          right="0"
+          bg="white"
+          border="1px solid"
+          borderColor="gray.200"
+          borderRadius="md"
+          boxShadow="md"
+          zIndex="1"
+          maxHeight="200px"
+          overflowY="auto"
+        >
+          <List spacing={0}>
+            {filteredOptions.map(option => (
+              <ListItem
+                key={option}
+                px={4}
+                py={2}
+                cursor="pointer"
+                _hover={{ bg: 'gray.100' }}
+                onClick={() => handleSelect(option)}
+              >
+                {option}
+              </ListItem>
+            ))}
+            {showCreateOption && (
+              <ListItem
+                px={4}
+                py={2}
+                bg="gray.50"
+                color="blue.600"
+                fontStyle="italic"
+                cursor="pointer"
+                _hover={{ bg: 'blue.50' }}
+                onClick={() => handleSelect(inputValue.trim())}
+              >
+                Create "{inputValue.trim()}"
+              </ListItem>
+            )}
+          </List>
+        </Box>
+      )}
+      {selected && (
+        <Text fontSize="sm" color="gray.600">
+          Selected: <strong>{selected}</strong>
+        </Text>
+      )}
+    </VStack>
+  );
+}
+
+
+export const VerificationNotice = ({ businessType, user, onVerification, ...props })=>{
+  const [beginVerification, setVerificationState] = useState(false);
+  const appIds = {
+    'dealership': "6790a5a3a5a0229a0a5c0839",
+    'mechanic': "682932fdd3eb2aebd3716885",
+  }
+
+  return(
+    <Alert my={4} colorScheme="yellow" rounded="lg" as={Stack} alignItems="start" placeItems="start">
+      <AlertIcon as={MdWarning} w={30} h={30} />
+      <Flex width="100%" alignItems="center" flexWrap="wrap" justify="space-between" gap={2}>
+        <AlertTitle size="sm"> You have not completed your business verification. 
+         You must complete your verification before you can {
+          businessType === 'dealership' ? 'add listings' : 'add services'
+        }.
+        </AlertTitle>
+        <Button onClick={() => setVerificationState(true)} colorScheme="yellow" variant="outline" borderColor="tertiary"> Complete verification </Button>
+        {
+          beginVerification && 
+          <Dojah
+            response={onVerification}
+            publicKey={import.meta.env.VITE_DOJAH_LIVE_PUBLIC_KEY}
+            appId={appIds[businessType]}
+            type="custom"
+            config={{
+              widget_id: import.meta.env.VITE_DOJAH_BIZ_DEALER_WIDGET_ID,
+            }}
+          />
+        }
+      </Flex>
+    </Alert>
+  )
+}
+
+// Status Badge Component
+export const StatusBadge = ({ status }) => {
+  let color, bg, icon
+
+  switch (status) {
+    case "Successful":
+      color = "green.600"
+      bg = "green.50"
+      break
+    case "Locked":
+      color = "blue.500"
+      bg = "blue.50"
+      icon = <MdLock size={12} style={{ marginRight: "4px" }} />
+      break
+    case "Pending":
+      color = "orange.500"
+      bg = "orange.50"
+      break
+    default:
+      color = "gray.500"
+      bg = "gray.50"
+  }
+
+  return (
+    <Badge
+      display="flex"
+      alignItems="center"
+      px={3}
+      py={1}
+      borderRadius="full"
+      color={color}
+      bg={bg}
+      fontWeight="medium"
+      fontSize="sm"
+    >
+      {icon}
+      {status}
+    </Badge>
+  )
+}
+
+
+export const RatingCard = ({ avg_rating, ratings }) => {
+  const categories = {}
+  let count = 0;
+
+  if (ratings){
+    console.log("Ratings: ", ratings)
+    for(let rating of ratings){
+      count++;
+      if (rating){
+        const keys = Object.keys(rating);
+        for(let key of keys){
+          if (typeof categories[key] === Number){
+            categories[`${key}`] += rating[`${key}`]
+          }else{
+            categories[`${key}`] = rating[`${key}`]
+          }
+        }
+      }
+    }
+    
+    const keys = Object.keys(categories);
+    for(let key of keys){
+      console.log(key, "has", categories[key])
+      categories[`${key}`] = categories[`${key}`]/count
+    }
+  }
+
+
+
+
+  return(
+    <Box mb={8}>
+      <Heading size="md" mb={4} fontWeight={'500'}>Ratings & reviews</Heading>
+      <HStack spacing={2} mb={6}>
+        <Heading size="lg">{avg_rating}</Heading>
+        <Icon as={StarIcon} color="yellow.400" w={6} h={6} />
+      </HStack>
+
+      <VStack align="stretch" spacing={2} mb={8}>
+        {Object.keys(categories)?.map((category, idx) => (
+          <Box key={idx}>
+            <SimpleGrid columns={2} justify="space-between" alignItems="center" spacing={2}>
+              <Text flex={1} colSpan={3} textTransform="capitalize">{category}</Text>
+              <Flex alignItems="center" gap={2}>
+                <Progress size="sm" value={(categories[category] * 20)} borderRadius="lg" flex={1} colorScheme="blue" />
+                <Text color="gray.500">({categories[category]})</Text>
+              </Flex>
+            </SimpleGrid>
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  )
+}
+
+
+// Review Card Component
+export function ReviewCard({ review }) {
+  // const {reviewer, avg_rating, date, comment} = review;
+
+  return (
+    <Box pb={6} borderBottom="1px solid lavender">
+      <HStack mb={2}>
+        <Avatar size="sm" name={review?.reviewer?.name} src={review?.reviewer?.image} />
+        <VStack spacing={-1} placeItems="flex-start">
+          <HStack>
+            <Text fontWeight="bold">{review?.reviewer?.name}</Text>
+            <HStack spacing={1}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Icon
+                  key={i}
+                  as={Star}
+                  color={i < review?.avg_rating ? "yellow.400" : "gray.300"}
+                  fill={i < review?.avg_rating ? "currentColor" : "none"}
+                  w={3}
+                  h={3}
+                />
+              ))}
+            </HStack>
+          </HStack>
+          <Text fontSize="sm" color="gray.500"> {review?.date} </Text>
+        </VStack>
+      </HStack>
+      <Text color="gray.600" fontSize="sm">
+        {review?.comment}
+      </Text>
+    </Box>
+  )
+}
+
 
 export function CalendarPicker({
   className,
@@ -309,7 +606,7 @@ export function CalendarPicker({
 
   return (
     <Box p={3} {...props}>
-      <Flex justifyContent="space-between" alignItems="center" mb={4}>
+      <Flex justifyContent={{base: 'center', md: "space-between"}} flexWrap="wrap-reverse" alignItems="center" mb={4}>
         <Flex alignItems="center">
           <Select value={format(month, "MMMM")} onChange={handleMonthChange} size="sm" width="120px" mr={2}>
             {months.map((monthName) => (
@@ -326,6 +623,7 @@ export function CalendarPicker({
             ))}
           </Select>
         </Flex>
+
         <Flex alignItems="center">
           <Button
             variant="outline"
@@ -747,7 +1045,7 @@ export const ListingItemCard = ({ listing, ...props }) => {
     }
 
     useEffect(() => {
-        setImage(vehicle.images[0])
+        setImage(vehicle?.images[0])
     }, [listing]);
 
     function nextImage(idx){
@@ -785,21 +1083,21 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         position={'relative'}
                     >
                         <NavLink to={`/${type}/${listing?.uuid}`}>
-                            <LinkBox
-                                flex={1} w={'100%'} height={'200px'}
-                                position={'relative'}
-                                sx={{
-                                    backgroundImage: `url(${image.url})`,
-                                    borderRadius: '10px',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundSize: 'cover',
-                                    backgroundPositionX: '70%',
-                                    backgroundPositionY: '37.5%',
-                                }}
-                            />
+                          <LinkBox
+                            flex={1} w={'100%'} height={'200px'}
+                            position={'relative'}
+                            sx={{
+                              backgroundImage: `url(${image?.url})`,
+                              borderRadius: '10px',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: 'cover',
+                              backgroundPositionX: '70%',
+                              backgroundPositionY: '37.5%',
+                            }}
+                          />
                         </NavLink>
                         {
-                            vehicle?.images.length > 1 &&
+                            vehicle?.images?.length > 1 &&
                             <Flex
                              position={'absolute'}
                              w={'100%'}
@@ -870,8 +1168,13 @@ export const ListingItemCard = ({ listing, ...props }) => {
                         <Text className="small-text" as={Flex} alignItems="center" gap={1.25}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle?.dealer?.location} </Text>
                         {
                           listing?.listing_type === 'sale' ?
-                           listing?.vehicle?.custom_duty &&
-                            <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon color="purple"> <BsFillPatchCheckFill size={25} /> </Icon> </Tag>
+                           <Flex gap={2}>
+                            <Badge fontWeight={'600'} gap={1.5}> <span> Verified </span> <Icon color="blue"> <BsFillPatchCheckFill size={25} /> </Icon> </Badge>
+
+                            {listing?.vehicle?.custom_duty &&
+                              <Badge fontWeight={'600'} gap={1.5}> <span> Custom Duty </span> <Icon color="purple"> <BsFillPatchCheckFill size={25} /> </Icon> </Badge>
+                            }
+                           </Flex>
                           :
                           <Tag fontWeight={'bold'} gap={1.5}><Icon> <Leaf size={25} /> </Icon> <span> {listing?.vehicle?.fuel_system} </span> </Tag>
                         }
@@ -1094,14 +1397,18 @@ export const DNDUploadField = ({ accept, multiple=true, onUpload, ...props}) => 
 
 export function ImageCarousel({ images, ...props }) {
   const [currentImage, setCurrentImage] = useState(0)
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  if (!images){
+    return null;
+  }
 
   const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length)
+    setCurrentImage((prev) => (prev + 1) % images?.length)
   }
 
   const previousImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
+    setCurrentImage((prev) => (prev - 1 + images?.length) % images?.length)
   }
 
   return (
@@ -1109,7 +1416,7 @@ export function ImageCarousel({ images, ...props }) {
         <Box position="relative" mb={4}>
             <Box
                 sx={{
-                    backgroundImage: `url(${images[currentImage].url})`,
+                    backgroundImage: `url(${images[currentImage]?.url})`,
                     borderRadius: '10px',
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: 'cover',
@@ -1154,7 +1461,7 @@ export function ImageCarousel({ images, ...props }) {
         </Box>
 
         <HStack spacing={2} overflowX="scroll" w='100%' pb={2}>
-        {images.map((img, index) => (
+        {images?.map((img, index) => (
             <AspectRatio
             key={index}
             ratio={4/3}
@@ -1167,9 +1474,9 @@ export function ImageCarousel({ images, ...props }) {
                 images?.length > 4 ? (
                     <Fragment>
                         {
-                            index > 4 ? (null):(
+                            index > 3 ? (null):(
                                 <Image
-                                    src={img.url}
+                                    src={img?.url}
                                     alt={`Thumbnail ${index + 1}`}
                                     objectFit="cover"
                                     borderRadius="md"
@@ -1178,7 +1485,7 @@ export function ImageCarousel({ images, ...props }) {
                                 />
                             )
                         }
-                        {index === 4 &&
+                        {index === 3 &&
                         <Image
                                 src={img.url}
                                 alt={`Thumbnail ${index + 1}`}
@@ -1191,7 +1498,7 @@ export function ImageCarousel({ images, ...props }) {
                     </Fragment>
                 ) : (
                     <Image
-                        src={img.url}
+                        src={img?.url}
                         alt={`Thumbnail ${index + 1}`}
                         objectFit="cover"
                         borderRadius="md"
@@ -1243,28 +1550,38 @@ export function ImageCarousel({ images, ...props }) {
 }
 
 
+
 export const LocationBreadcrumb = ({ label }) => {
-  // Get the current URL from window.location.pathname (remove protocol and domain)
   const path = window.location.pathname;
-  
-  // Split the path into individual segments (remove any empty strings from the array)
+
+  // If on home, return only the home breadcrumb
+  if (path === '/' || path === '/home/') {
+    return (
+      <Breadcrumb alignItems="center" separator={<ChevronRightIcon />}>
+        <BreadcrumbItem>
+          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+      </Breadcrumb>
+    );
+  }
+
+  // Split path into segments and remove empty strings
   const pathSegments = path.split('/').filter(segment => segment);
 
-  // Initialize the breadcrumb items
+  // Generate breadcrumb links (excluding last segment)
   const breadcrumbItems = pathSegments.slice(0, -1).map((segment, index) => {
-    // Construct the path up to the current segment (excluding the last one)
     const routeTo = '/' + pathSegments.slice(0, index + 1).join('/');
 
     return (
       <BreadcrumbItem key={index}>
-        <BreadcrumbLink as={Link} to={routeTo} textTransform={'capitalize'}>
-          {segment.replace(/-/g, ' ')} {/* Replace hyphens with spaces */}
+        <BreadcrumbLink as={Link} to={routeTo} textTransform="capitalize">
+          {segment.replace(/-/g, ' ')}
         </BreadcrumbLink>
       </BreadcrumbItem>
     );
   });
 
-  // Add the label as the final breadcrumb, without a link
+  // Add final non-clickable label
   breadcrumbItems.push(
     <BreadcrumbItem key="current" isCurrentPage>
       <BreadcrumbLink>{label}</BreadcrumbLink>
@@ -1272,10 +1589,12 @@ export const LocationBreadcrumb = ({ label }) => {
   );
 
   return (
-    <Breadcrumb separator=">">
-      <BreadcrumbItem>
-        <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
-      </BreadcrumbItem>
+    <Breadcrumb alignItems={'center'} separator={<ChevronRightIcon />}>
+      {/*{breadcrumbItems &&
+        <BreadcrumbItem>
+          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+      }*/}
       {breadcrumbItems}
     </Breadcrumb>
   );

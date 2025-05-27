@@ -14,6 +14,8 @@ import { TbManualGearbox } from "react-icons/tb"
 import { ListingItemCard, DatePicker } from "../../../components"
 import { objectifyJSON } from "../../../utils"
 import { ListingSkeleton } from "../../../components/loaders"
+import { CustomPlacesAutocomplete } from "../../../components/maps"
+import {Autocomplete} from "@react-google-maps/api";
 import {
     CarBrandFilter,
     PriceFilter,
@@ -33,6 +35,22 @@ export const RentListing = ({ props }) => {
     const [loading, setLoading] = useState(true);
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const {axios, notify, commaInt, authUser, apiUrl, otherContext, setOtherContext} = useContext(GlobalStore);
+    const [autocomplete, setAutocomplete] = useState(null);
+    const [location, setLocation] = useState({lat: 10, lng: 8, name: 'Current Location'});
+    const onLoad = (auto) => setAutocomplete(auto);
+
+    const onPlaceChanged = () => {
+        if (autocomplete) {
+          const place = autocomplete.getPlace();
+          if (place.geometry) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            setLocation({ lat, lng, name: place.name });
+            setRental({ ...rental, where: place.formatted_address || place.name});
+          }
+        }
+    };
+
     /**
      * @param filter: filter object
      * e.g { brand: 'bmw'}
@@ -124,10 +142,18 @@ export const RentListing = ({ props }) => {
                         gap={3}
                     >
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            <Text textAlign={{base: "center", md: "left"}} mb={0.25} lineHeight="1" fontWeight="600" className="small">
                                 Where
                             </Text>
-                            <Input onInput={e => changeRental({ where: e.target.value })} value={rental.where} type="text" border="1px solid lavender" placeholder="City, airport, hotel?" className="small" />
+                            <CustomPlacesAutocomplete onPlaceChange={console.log} />
+                            {/*<Autocomplete
+                              onLoad={onLoad}
+                              style={{width: "100%"}}
+                              onPlaceChanged={onPlaceChanged}
+                              className="w-full"
+                            >
+                                <Input type="text" border="1px solid lavender" placeholder="City, airport, hotel?" className="small" />
+                            </Autocomplete>*/}
                         </VStack>
 
                         <VStack
@@ -137,14 +163,14 @@ export const RentListing = ({ props }) => {
                         borderLeft={{ base: "none", md: "1px solid lavender" }}
                         borderRight={{ base: "none", md: "1px solid lavender" }}
                         >
-                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            <Text textAlign={{base: "center", md: "left"}} mb={0.25} lineHeight="1" fontWeight="600" className="small">
                                 From
                             </Text>
                             <DatePicker onChange={(val) => changeRental({ 'from': val })} />
                         </VStack>
 
                         <VStack flex={{ base: "1 1 100%", md: "1 1 auto" }} align="stretch">
-                            <Text textAlign={{base: "center", md: "left"}} mb={-2} lineHeight="1" fontWeight="600" className="small">
+                            <Text textAlign={{base: "center", md: "left"}} mb={0.25} lineHeight="1" fontWeight="600" className="small">
                                 Until
                             </Text>
                             <DatePicker onChange={(val) => changeRental({ 'until': val })} />

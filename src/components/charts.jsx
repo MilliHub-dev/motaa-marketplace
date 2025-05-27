@@ -6,11 +6,6 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
-const sparklineData = {
-  revenue: [65, 68, 70, 72, 75, 78, 82],
-  impressions: [45, 42, 40, 38, 35, 32, 30],
-  deals: [30, 32, 35, 40, 45, 48, 50],
-};
 
 export const StatCard = ({ title, value, change, data, format = (v) => v }, ...props) => {
   const chartData = {
@@ -63,17 +58,17 @@ export const StatCard = ({ title, value, change, data, format = (v) => v }, ...p
               {Math.abs(change)}% {change >= 0 ? 'increase' : 'decrease'}
             </Text>
           </Flex>
-
+{/*
           <Box h="50px" w={"50px"}>
             <Line data={chartData} options={chartOptions} />
-          </Box>
+          </Box>*/}
         </Flex>
       </Stack>
     </Box>
   );
 };
 
-export const StatsCards = () => {
+export const StatsCards = ({ title, value }) => {
   const formatCurrency = (value) => {
     return `₦${parseInt(value).toLocaleString()}`;
   };
@@ -85,24 +80,24 @@ export const StatsCards = () => {
   return (
     <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>
       <StatCard
-        title="Total Revenue"
-        value="80000000"
-        change={10}
-        data={sparklineData.revenue}
+        title={title}
+        value={value}
+        // change={10}
+        // data={sparklineData.revenue}
         format={formatCurrency}
       />
       <StatCard
-        title="Impressions"
-        value="32700"
-        change={-2}
-        data={sparklineData.impressions}
+        title={title}
+        value={value}
+        // change={-2}
+        // data={sparklineData.impressions}
         format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
       />
       <StatCard
-        title="Total Deals"
-        value="546"
-        change={14}
-        data={sparklineData.deals}
+        title={title}
+        value={value}
+        // change={14}
+        // data={sparklineData.deals}
         format={formatNumber}
       />
     </SimpleGrid>

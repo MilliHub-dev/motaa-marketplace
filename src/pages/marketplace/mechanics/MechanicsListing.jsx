@@ -13,6 +13,7 @@ import {
     Badge,
     Card,
     CardBody,
+    Alert,
     Icon,
     VStack,
     HStack,
@@ -32,18 +33,17 @@ import {  RiFilterLine, } from 'react-icons/ri'
 import {BiBuildings} from 'react-icons/bi';
 import {GrLocation} from 'react-icons/gr';
 import { MechanicListSkeleton } from "../../../components/loaders";
-import { MapComponent } from "../../../components/maps";
+import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
+import { TopRatedBadgeIcon } from "../../../components/icons";
 import { 
-  LocationFilter,
+  ServiceFilter
 } from "../../../components/filters";
 import { Paginator } from "../../../components/nav";
-import {Autocomplete} from "@react-google-maps/api";
-
 
 
 
 export const MechanicListPage = ({ props }) => {
-  const [serching, setSearching] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [autocomplete, setAutocomplete] = useState(null);
   const [locationName, setLocationName] = useState("Current Location");
   const [inputValue, setInputValue] = useState("Your Current Location");
@@ -94,7 +94,9 @@ export const MechanicListPage = ({ props }) => {
     if (control) control.click();
   }
 
-  const filters = [<LocationFilter onChange={console.log} />];
+  const filters = [
+    <ServiceFilter onChange={console.log} />
+  ];
 
   async function getData() {
     try {
@@ -121,6 +123,12 @@ export const MechanicListPage = ({ props }) => {
     }
   }
 
+  function cancelSearch(){
+    setSearching(false);
+    setQuery("");
+    getData();
+  }
+
   useEffect(() => {
     getData();
     setTimeout(() => setLoading(false), 2500);
@@ -134,13 +142,13 @@ export const MechanicListPage = ({ props }) => {
     <Box minH="100vh">
         <Container maxW="container.xl" py={8}>
           {/* Search and Location */}
-          <Container maxW={"container.lg"}>
+          <Container maxW={"container.xl"}>
             <Flex gap={4} mb={6} flexWrap={"wrap"}>
               <InputGroup size="lg" flex={1}>
                 <InputLeftElement>
                   <SearchIcon className="w-5 h-5 text-gray-400" />
                 </InputLeftElement>
-                <Input placeholder="Engine Service" bg={bgColor} onInput={e => setQuery(e.target.value)} />
+                <Input value={query} placeholder="Engine Service" bg={bgColor} onInput={e => setQuery(e.target.value)} />
               </InputGroup>
 
               <Button onClick={performSearch} isDisabled={!query.trim()} borderRadius={5} size="lg" bg="primary" colorScheme="primary" >
@@ -157,6 +165,14 @@ export const MechanicListPage = ({ props }) => {
             {filters.map((filter, idx) => <Fragment key={idx}>{filter}</Fragment>)}
           </Flex>
 
+          {
+            searching &&
+            <Alert colorScheme="yellow" w="100%" gap={3} my={3} rounded="md" display={'flex'}>
+              <Text flex={1}> Showing results for "{query}" </Text>
+              <Button onClick={cancelSearch} colorScheme="yellow"> Cancel </Button>
+            </Alert>
+          }
+
           {/* Results Count */}
           <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" mb={6}>
             {matches?.length} Mechanic{matches?.length > 1 && "s"} are available near you.
@@ -164,28 +180,29 @@ export const MechanicListPage = ({ props }) => {
 
           <Flex gap={6} alignItems="self-start" flexWrap="wrap-reverse">
             {/* Mechanics List */}
-            <VStack minW="400px" spacing={0} flex={1}>
+            <VStack w="100%" spacing={0} flex={1} maxW={{ md: "calc(100% - 350px)", lg: "calc(100% - 450px)" }}>
               {matches?.map((mechanic) => (
                 <Box key={mechanic.id} w="full" bg={bgColor} p={6} borderBottomWidth={2} borderColor={borderColor}>
-                  <Flex gap={4}>
+                  <Box as={Flex} direction={{ base: 'column', md: 'row'}} gap={4} flexWrap="wrap">
                     <Link to={`/mechanics/${mechanic?.uuid}`}>
                       <Avatar size="lg" name={mechanic?.business_name || mechanic?.user?.name} src={mechanic?.logo} />
                     </Link>
+
                     <Box flex={1}>
                       <Flex justify="space-between" align="start">
                         <Box>
                           <Link to={`/mechanics/${mechanic?.uuid}`}>
-                            <Heading size="sm" mb={1}>
+                            <Heading size="md" fontWeight="600" mb={1}>
                               {mechanic?.business_name || mechanic?.user?.name}
                               {mechanic?.mechanic_type === "business" && <Icon> <BiBuildings size={25} /> </Icon>}
                             </Heading>
                           </Link>
-                          <Text color="gray.800" fontWeight="md" fontSize="lg">
+                          <Text color="gray.800" fontWeight="md" fontSize="sm">
                             {mechanic?.headline}
                           </Text>
                         </Box>
-                        <Badge colorScheme="blue" fontSize="xs">
-                          TOP RATED
+                        <Badge colorScheme="blue" fontSize="xs" p={'5px'} display="flex" align="center" rounded="lg">
+                          <TopRatedBadgeIcon viewBox="0 0 27 28" w="20px" h="20px" /> {mechanic?.level}
                         </Badge>
                       </Flex>
 
@@ -193,7 +210,7 @@ export const MechanicListPage = ({ props }) => {
                         <GrLocation />
                         <Text fontSize="md">{mechanic?.location}</Text>
                         <Text fontSize="md" color="gray.700">
-                          • {mechanic.distance || "> 2km away"}
+                          • {mechanic?.distance || "> 2km away"}
                         </Text>
                       </Flex>
 
@@ -218,7 +235,7 @@ export const MechanicListPage = ({ props }) => {
                       <Flex justify="flex-start" columnGap={5} flexWrap="wrap" align="center">
                         <Flex align="center" gap={1}>
                           <Text color="gray.600">Services start from:</Text>
-                          <Text fontSize="lg" fontWeight="bold">{mechanic?.startingPrice}</Text>
+                          <Text fontSize="lg" fontWeight="bold">{parseInt(mechanic?.price_start).toLocaleString()}</Text>
                         </Flex>
 
                         <Flex align="center" gap={1}>
@@ -227,7 +244,7 @@ export const MechanicListPage = ({ props }) => {
                         </Flex>
                       </Flex>
                     </Box>
-                  </Flex>
+                  </Box>
                 </Box>
               ))}
             </VStack>
@@ -238,20 +255,10 @@ export const MechanicListPage = ({ props }) => {
               <Flex my={5} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                 <Text>Location:</Text>
 
-                <Autocomplete
+                <CustomPlacesAutocomplete
                   onLoad={onLoad}
-                  style={{width: "100%"}}
                   onPlaceChanged={onPlaceChanged}
-                  className="w-full"
-                >
-                  <Input
-                    flex={1}
-                    w="100%"
-                    border="none"
-                    outline="none"
-                    placeholder="Search location..."
-                  />
-                </Autocomplete>
+                />
               </Flex>
               <Button w="100%" size="lg" colorScheme="blue" onClick={expandMap} p={4}>Expand Map</Button>
             </Box>

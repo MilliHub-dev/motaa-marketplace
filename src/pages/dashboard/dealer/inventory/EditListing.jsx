@@ -30,9 +30,9 @@ import {BackButton} from '../../../../components/nav';
 import {
   StepIndicator,
   DocumentUploader,
-  // ImageUploader,
-  EditRentalForm,
+  EditListingForm,
   CreateSaleForm,
+  // ImageUploader,
   // ListingReviewCard,
 } from '../../../../components/forms';
 import {GlobalStore} from '../../../../App';
@@ -48,8 +48,8 @@ export default function EditListing() {
   const {listingId} = useParams();
   const [listing, setListing] = useState({})
   const [formData, setFormData] = useState({
-    uuid: null,
-    listing_type: 'sale',
+    uuid: '',
+    listing_type: '',
     price: 0,
     vehicle: {
       images: [],
@@ -240,11 +240,7 @@ export default function EditListing() {
                       </ButtonGroup>
                     </FormControl>
 
-                    { formData?.listing_type === 'rental' ?
-                      <EditRentalForm formData={formData} setFormData={setFormData} />
-                      :
-                      <CreateSaleForm formData={formData} setFormData={setFormData} />
-                    }
+                    <EditListingForm formData={formData} setFormData={setFormData} />
                     <Button colorScheme="blue" form="details-form" type="submit" size="lg" w="full" maxW="600px" onClick={handleContinue}>
                       Continue
                     </Button>

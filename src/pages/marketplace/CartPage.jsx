@@ -30,7 +30,7 @@ import {
 import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../App";
 import { jsonifyObject, objectifyJSON } from "../../utils";
-import { useSearchParams, NavLink } from "react-router-dom";
+import { useSearchParams, NavLink, Link } from "react-router-dom";
 // import { SearchIcon, StarIcon, ZapIcon } from '@chakra-ui/icons';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
 import { motion } from "framer-motion";
@@ -79,18 +79,18 @@ export const CartPage = ({ props }) => {
 
         if (res.status === 200){
             console.log("Cart Data:", data.data);
-            let cars, rentals, services, orders;
+            let cars, rentals, bookings, orders;
 
             cars = data?.data?.cars;
             rentals = data?.data?.rentals;
-            services = data?.data?.services;
+            bookings = data?.data?.bookings;
             orders = data?.data?.orders;
 
             setCart({
-                itemsCount: (cars?.length + rentals?.length + services?.length),
+                itemsCount: (cars?.length + rentals?.length + bookings?.length),
                 cars,
                 rentals,
-                services,
+                bookings,
                 orders,
             })
         }
@@ -143,7 +143,7 @@ export const CartPage = ({ props }) => {
                     <Tab className="subtitle" borderBottom={'2px solid transparent'} gap={1} spacing={1} _selected={{ borderColor: 'primary'}}>
                         Mechanics
                         <Badge borderRadius="30px" className="subtitle" px="2" color="primary">
-                        {cart?.services?.length}
+                        {cart?.bookings?.length}
                         </Badge>
                     </Tab>
                     </TabList>
@@ -182,10 +182,10 @@ export const CartPage = ({ props }) => {
                                                 {order?.order_type === 'sale' && (
                                                     order?.order_status === 'awaiting-inspection' || order?.order_status === 'inspecting' ?
                                                     <>
-                                                     <Button px={4} colorScheme="yellow" bg="tertiary" onClick={console.log}>Finish Inspection</Button>
+                                                     <Button as={Link} px={4} colorScheme="yellow" bg="tertiary" to={`/checkout/inspection/?listingId=${order?.order_item?.uuid}`}>Finish Inspection</Button>
                                                     </>
-                                                    :
-                                                    <Button px={4} bgColor="primary" colorScheme="blue">Pay Now {order?.status}</Button>
+                                                    : 
+                                                    <Button px={4} bgColor="primary" colorScheme="blue">Pay Now {order?.order_status}</Button>
                                                 )}
 
                                                 {order?.order_type === 'rental' && (
@@ -274,28 +274,32 @@ export const CartPage = ({ props }) => {
 
                         <TabPanel>
                             <List px="3" py="3">
-                                {/*
-                                    cart?.services?.map((service, idx) => 
+                                {
+                                    cart?.bookings?.map((booking, idx) => 
                                         <ListItem my={5}>
                                             <Flex gap={4}>
-                                                <Box w={'150px'} h={'75px'} rounded={'lg'}>
-                                                    <Image lazy w={'100%'}  rounded={'lg'} src={service?.service?.service?.mechanic[0]?.url} />
-                                                </Box>
+                                                {/*<Box w={'150px'} h={'75px'} rounded={'lg'}>
+                                                    <Image lazy w={'100%'}  rounded={'lg'} src={service?.service?.service?.mechanic[0]?.image} />
+                                                </Box>*/}
 
                                                 <Box flex={1}>
-                                                    <Heading size="sm"  my={1}> {service?.service?.vehicle?.name} </Heading>
-                                                    <Text my={1}> ₦{commaInt(service?.service?.price)} </Text>
-                                                    
+                                                    <Heading size="sm"  my={1}> {booking?.mechanic} </Heading>
+                                                    <Text my={1}> ₦{commaInt(booking?.sub_total)} <Text as="small">(sub total)</Text></Text>
+                                                    {
+                                                        booking?.services?.map((service, idx) => 
+                                                            <Tag key={service}> {service} </Tag>
+                                                        )
+                                                    }
                                                 </Box>
 
-                                                <Flex>
-                                                    <Button bgColor="primary" px={4} colorScheme="red"> Remove </Button>
-                                                    <Button bgColor="primary" px={4} colorScheme="blue"> Book Now </Button>
+                                                <Flex gap={2} flexWrap={'wrap'}>
+                                                    <Button bgColor="danger" px={4} colorScheme="red"> Cancel Booking </Button>
+                                                    {booking?.status === 'completed' && <Button bgColor="primary" px={4} colorScheme="blue"> Pay Mechanic </Button>}
                                                 </Flex>
                                             </Flex>
                                         </ListItem>
                                     )
-                                */}
+                                }
                             </List>
                         </TabPanel>
                     </TabPanels>

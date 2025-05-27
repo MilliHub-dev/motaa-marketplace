@@ -5,6 +5,7 @@ import { Axios, } from 'axios';
 import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
+import {AppLoadingScreen} from './components/loaders';
 import {APIProvider} from '@vis.gl/react-google-maps';
 import {Autocomplete, LoadScript} from "@react-google-maps/api";
 
@@ -13,6 +14,10 @@ import {Autocomplete, LoadScript} from "@react-google-maps/api";
 import HomePage from './pages/marketplace/HomePage';
 import LandingPage from './pages/LandingPage';
 import ComingSoon from './pages/ComingSoon';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+
+
 import RentListing from './pages/marketplace/rent/RentListing';
 import RentDetail from './pages/marketplace/rent/RentDetail';
 import BuyListing from './pages/marketplace/buy/BuyListing';
@@ -20,26 +25,38 @@ import BuyDetail from './pages/marketplace/buy/BuyDetail';
 import MechanicSearchPage from './pages/marketplace/search/MechanicSearch';
 import CarSearchPage from './pages/marketplace/search/CarSearch';
 import MechanicListPage from './pages/marketplace/mechanics/MechanicsListing';
+import ConfirmMechanicBookingPage from './pages/marketplace/mechanics/ConfirmBooking';
 import MechanicDetailPage from './pages/marketplace/mechanics/MechanicDetail';
 import LoginView from './pages/auth/Login';
 import SignupView from './pages/auth/Signup';
+import BusinessSignupView from './pages/auth/BusinessProfile';
 import ChatLayout from './pages/marketplace/chat/Layout';
 import ChatRoom from './pages/marketplace/chat/ChatRoom';
 import CartPage from './pages/marketplace/CartPage';
 import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
 import CheckoutWithInspection from './pages/marketplace/checkout/CheckoutInspection';
+import DocumentSigningPage from './pages/marketplace/checkout/DocumentSigningPage';
 import NotificationsPage from './pages/marketplace/Notifications';
 
-// Dealership Dashboard
+// Mechanic Dashboard
+import MechanicDashboardLayout from './pages/dashboard/mechanic/Layout';
+import MechanicDashboard from './pages/dashboard/mechanic/MechanicDashboard';
+import BookingsAdmin from './pages/dashboard/mechanic/Bookings';
+import ServiceOfferings from './pages/dashboard/mechanic/services/ServiceOfferings';
+import MechanicAnalytics from './pages/dashboard/mechanic/Analytics';
+import CreateServiceOffering from './pages/dashboard/mechanic/services/CreateServiceOffering';
+import BusinessProfile from './pages/dashboard/mechanic/settings/BusinessProfile';
 
+// Dealership Dashboard
 import DealerProfile from './pages/marketplace/DealerProfile';
 import DealerDashboardLayout from './pages/dashboard/dealer/Layout';
 import DealerDashboard from './pages/dashboard/dealer/Dashboard';
 import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
 import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
 import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
-import AnalyticsDashboard from './pages/dashboard/dealer/analytics/Analytics';
-import DealershipSettings from './pages/dashboard/dealer/Settings';
+import OrderListAdmin from './pages/dashboard/dealer/orders/OrderList';
+import AnalyticsDashboard from './pages/dashboard/dealer/analytics/AnalyticsOverview';
+import DealershipSettings from './pages/dashboard/dealer/settings/Settings';
 
 // Wallet
 import WalletLayout from './pages/marketplace/wallet/Layout';
@@ -63,14 +80,14 @@ export const GlobalStore = createContext({
   notify: undefined,
   loading: undefined,
   authUser: undefined,
-  // apiUrl: 'http://localhost:8000/api/v1',
-  // apiUrl: 'https://motaadev.pythonanywhere.com/api/v1',
+  apiUrl: '',
   getCookie: undefined,
   setCookie: undefined,
   axios: Axios,
   logout: undefined,
   redirect: undefined,
   commaInt: undefined,
+  naturalDate: undefined,
 });
 
 const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
@@ -83,13 +100,19 @@ function App() {
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
   const axiosClient =  new Axios({
-    baseURL: 'http://localhost:8000/api/v1',
-    // baseURL: IS_DEBUG ? 'http://localhost:8000/api/v1': 'https://server.motaa.net/api/v1',
+     baseURL: 'https://server.motaa.net/api/v1',
+    // baseURL: 'http://localhost:8000/api/v1',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': authUser ? `Token ${authUser?.token}` : null
     },
   });
+
+  function reloadApp(){
+    // reloads user data including auth tokens
+    // use after verification or destructive actions only.
+    
+  }
   
   function getCookie(name){
     let cookie = Cookies.getJSON(name)
@@ -97,7 +120,6 @@ function App() {
   }
 
   async function logout(){
-    await redirect('/');
     return onLogout();
   }
 
@@ -124,28 +146,51 @@ function App() {
     setAuthState(true)
   }
 
+  function naturalDate (dateObj) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
+    return (`${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`)
+  }
+
+  function naturalTime (dateObj) {
+    let time = 'am'
+    let hours = dateObj.getHours()
+    if (hours >= 12){
+      time = 'pm'
+      if (hours > 12){
+        hours -= 12
+      }
+    }
+    return (`${hours}:${dateObj.getMinutes()} ${time}`)
+  }
 
   function setCookie({name, val, expires}){
     let cookie = Cookies.set(name, val, { expires })
     return cookie
   }
 
-
   function getAuthUser(){
     const user = localStorage.getItem('motaa-auth-user')
     if (user === null){
     }else{
-      setAuthUser(JSON.parse(user));
+      const userData = JSON.parse(user)
+      setAuthUser(userData);
       setAuthState(true)
     }
   }
   
   function init(){
+    if (!loading){
+      setLoading(true);
+    }
+
     // try to authenticate the user else redirect to login screen
     getAuthUser();
 
     // show loading screen for 3.5 seconds
-    setTimeout(() => setLoading(false), 1500);
+    setTimeout(() => setLoading(false), 5000);
 
     // TODO: try to refresh the auth token if expired - for jwt
   }
@@ -186,24 +231,26 @@ function App() {
     commaInt,
     redirect,
     logout,
+    naturalDate,
+    naturalTime,
     setOtherContext,
     otherContext,
   }
 
   useEffect(() => {
     init();
-
   }, [isAuthenticated,])
 
 
   if (loading){
     return null
+    // return <ErrorBoundary> <AppLoadingScreen /> </ErrorBoundary>
   }  
   
   return (
-    <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>
     <ChakraProvider theme={BrandColors}>
     <ErrorBoundary>
+      <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
           <Routes ErrorBoundary={ErrorBoundary}>
@@ -212,6 +259,7 @@ function App() {
                   {authUser?.user_type === 'dealer' ? (
                     <Route ErrorBoundary={ErrorBoundary} element={<DealerDashboardLayout />}>
                       <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<DealerDashboard />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/orders' element={<OrderListAdmin />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/inventory' element={<><Outlet /></>}>
                         <Route ErrorBoundary={ErrorBoundary} path='edit/:listingId' element={<EditListingAdmin />} />
                         <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateListingAdmin />} />
@@ -226,7 +274,21 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
                     </Route>
                     ) : authUser?.user_type === 'mechanic' ? (
-                      <Fragment></Fragment>
+                      <Route ErrorBoundary={ErrorBoundary} element={<MechanicDashboardLayout />}>
+                        <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<MechanicAnalytics />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<MechanicDashboard />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/bookings' element={<BookingsAdmin />} />
+                        
+                        <Route ErrorBoundary={ErrorBoundary} path='/services' element={<> <Outlet /> </>}>
+                          <Route ErrorBoundary={ErrorBoundary} path='edit/:serviceId' element={<ServiceOfferings />} />
+                          <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateServiceOffering />} />
+                          <Route ErrorBoundary={ErrorBoundary} path='' element={<ServiceOfferings />} />
+                        </Route>
+
+                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
+                      </Route>
                     ) : (
                       <Route ErrorBoundary={ErrorBoundary} element={<Layout />}>
                         <Route ErrorBoundary={ErrorBoundary} path='/rent' element={<RentListing />} />
@@ -236,13 +298,13 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/buy/:listingId' element={<BuyDetail />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics' element={<MechanicListPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/mechanics/book/:mechId' element={<ConfirmMechanicBookingPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dealership/:dealerId' element={<DealerProfile />} />
                         
-                        
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
-                        <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<CheckoutPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<DocumentSigningPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/inspection' element={<CheckoutWithInspection />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/' element={<CheckoutPage />} />
                         
@@ -259,7 +321,7 @@ function App() {
                   {/* Wallet Routes */}
                   <Route ErrorBoundary={ErrorBoundary} element={
                     authUser?.user_type === 'dealer' ? <DealerDashboardLayout hideSidebar={true} hideFooter={true} />
-                    : authUser?.user_type === 'mechanic' ? <DealerDashboardLayout />
+                    : authUser?.user_type === 'mechanic' ? <MechanicDashboardLayout hideFooter={true} hideSidebar={true} />
                     : <Layout hideFooter={true} />
                   }>
                     <Route ErrorBoundary={ErrorBoundary} path={'/wallet'} element={<WalletLayout />}>
@@ -281,7 +343,9 @@ function App() {
                 <Route element={<Layout />}>
                   <Route ErrorBoundary={ErrorBoundary} path='/login' element={<LoginView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup' element={<SignupView />} />
-                  <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<SignupView type={'business'} />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<BusinessSignupView />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
                 </Route>      
               )              
@@ -290,9 +354,9 @@ function App() {
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>
+      </LoadScript>
     </ErrorBoundary>
     </ChakraProvider>
-    </LoadScript>
   );
 }
 

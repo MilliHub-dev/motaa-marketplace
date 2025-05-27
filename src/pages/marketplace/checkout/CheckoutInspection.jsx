@@ -13,13 +13,19 @@ import {
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { useState, useEffect, useContext } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {CalendarPicker, TimePicker} from '../../../components';
+import {jsonifyObject, objectifyJSON} from '../../../utils';
 import {GlobalStore} from '../../../App';
 
 function CheckoutInspection() {
-  const [selectedDate, setSelectedDate] = useState()
-  const [selectedTime, setSelectedTime] = useState()
+  const [selectedDate, setSelectedDate] = useState();
+  const [selectedTime, setSelectedTime] = useState();
   const {axios, notify} = useContext(GlobalStore);
+  const redirect = useNavigate();
+  const [params] = useSearchParams();
+  const listing_id = params.get('listingId');
+
 
   async function scheduleInspection(e){
     e.preventDefault();
@@ -27,6 +33,30 @@ function CheckoutInspection() {
     const date = selectedDate.toLocaleDateString();
     const time = selectedTime.toLocaleTimeString();
     console.log("Inspection scheduled for:", date, " at ", time);
+
+    const res = await axios.post(`/listings/checkout/inspection/`, jsonifyObject({
+      listing_id,
+      date,
+      time,
+    }));
+
+    const data = objectifyJSON(res.data)
+
+    if (res.status === 200){
+      setTimeout(() => notify({
+        title: 'Success',
+        body: `Inspection scheduled for ${date}`,
+        level: 'green'
+      }), 1000)
+      return redirect('/checkout/docs/?docType=inspection-slip')
+    }
+
+    notify({
+      title: 'Error',
+      body: data.message,
+      color: 'red',
+    })
+
   }
 
   return (
@@ -51,6 +81,7 @@ function CheckoutInspection() {
           onSelect={(date) => setSelectedDate(date)}
           borderWidth="1px"
           borderRadius="md"
+          my={3}
         />
         <Button onClick={scheduleInspection} colorScheme="blue" size="lg" width="100%">
           Save & Apply

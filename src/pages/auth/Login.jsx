@@ -171,7 +171,6 @@ export const LoginView = ({ ...props }) => {
 
                         <Stack flex={1} columnGap={4} rowGap={8}>
                             <Button w={'100%'} leftIcon={<FaGoogle />} onClick={signInWithGoogle} colorScheme="white" color={'secondary'} variant={'outline'}> Log in with Google </Button>
-                            <Button w={'100%'} leftIcon={<FaFacebook />} colorScheme="blue" bg={'primary'}> Log in with Facebook </Button>
                             <Button w={'100%'} variant="outline" borderWidth={'2px'} rightIcon={<FaArrowRight />} colorScheme="blue" borderColor={'primary'}> Log in to Business Account </Button>
                         </Stack>
 

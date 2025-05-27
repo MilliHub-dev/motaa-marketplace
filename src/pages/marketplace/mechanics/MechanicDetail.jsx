@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../../App";
 import { jsonifyObject, objectifyJSON } from "../../../utils";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Tag,
+  SimpleGrid,
   Progress,
   VStack,
   HStack,
@@ -18,14 +19,68 @@ import {
   IconButton,
   Select,
   Input,
+  Collapse,
   useColorModeValue,
+  useDisclosure,
 } from '@chakra-ui/react'
-import { ChevronLeftIcon, ChevronRightIcon, MapPinIcon, StarIcon, VerifiedIcon, MessageCircleIcon, MoreHorizontalIcon } from 'lucide-react'
+import {
+ ChevronDownIcon, ChevronUpIcon,
+ ChevronLeftIcon, ChevronRightIcon,
+ MapPinIcon, StarIcon, VerifiedIcon,
+ MessageCircleIcon, MoreHorizontalIcon
+} from 'lucide-react'
 import {IoRibbonOutline} from 'react-icons/io5';
-import {LocationBreadcrumb} from '../../../components';
+import {LocationBreadcrumb, ReviewCard, RatingCard,} from '../../../components';
 import { ChatPopup } from "../../../components/chat";
-import { MapComponent } from "../../../components/maps";
-import {Autocomplete} from "@react-google-maps/api";
+import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
+import { CashMoneyIcon, TopRatedBadgeIcon } from "../../../components/icons";
+
+
+const ServiceAccordion = ({ service, ...props }) => {
+  const { isOpen, onToggle } = useDisclosure();
+
+  return (
+    <Box
+      borderWidth="1px"
+      borderRadius="xl"
+      p={4}
+      mb={4}
+      boxShadow="sm"
+      bg="white"
+      _hover={{ boxShadow: "md" }}
+    >
+      <Flex justify="space-between" align="center">
+        <Box>
+          <Text fontSize="xl" fontWeight="bold">
+            {service?.service}
+          </Text>
+          <Flex mt={1} gap={3} alignItems="center">
+            <Text size="md" color="green">
+              <CashMoneyIcon />
+              { service?.charge > 0 ?
+                ` Starting at: ${parseInt(service?.charge).toLocaleString()}`
+                : " Free"
+              }
+            </Text>
+            <Badge colorScheme="blue">{service?.charge_rate} rate</Badge>
+          </Flex>
+        </Box>
+        <IconButton
+          aria-label="Toggle description"
+          icon={isOpen ? <ChevronUpIcon size={20} /> : <ChevronDownIcon size={20} />}
+          onClick={onToggle}
+          variant="ghost"
+        />
+      </Flex>
+
+      <Collapse in={isOpen} animateOpacity>
+        <Box mt={4} color="gray.600" fontSize="sm">
+          {service?.description || 'No description available'}
+        </Box>
+      </Collapse>
+    </Box>
+  );
+};
 
 
 export const MechanicDetailPage = ({ }) => {
@@ -34,16 +89,33 @@ export const MechanicDetailPage = ({ }) => {
   const [loading, setLoading] = useState(true);
   const [showPopup, setPopupState] = useState(false);
   const [autocomplete, setAutocomplete] = useState(null);
-  const [locationName, setLocationName] = useState("Current Location");
-  const [inputValue, setInputValue] = useState("Your Current Location");
-  const [location, setLocation] = useState({lat: 10, lng: 8, name: 'Current Location'});
-  const {axios, authUser, commaInt, notify, redirect, } = useContext(GlobalStore);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const bgColor = useColorModeValue('white', 'gray.800')
+  const [locationName, setLocationName] = useState("");
+  const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState();
+  const {axios, authUser, commaInt, notify, } = useContext(GlobalStore);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const redirect = useNavigate();
 
   function init(){
+    setLoading(true);
     getData();
-    setTimeout(() => setLoading(false), 2000)
+    setTimeout(() => setLoading(false), 2500)
+  }
+
+  function reverseGeocode(lat, lng) {
+    const geocoder = new window.google.maps.Geocoder();
+    const latlng = { lat, lng };
+
+    geocoder.geocode({ location: latlng }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const place = results[0].address_components.find(addr => addr.types.includes("administrative_area_level_2"));
+        const formattedAddress = place.long_name;
+        setLocationName(formattedAddress);
+      } else {
+        console.error("Geocoder failed due to: " + status);
+      }
+    });
   }
 
   async function getData(){
@@ -54,6 +126,30 @@ export const MechanicDetailPage = ({ }) => {
 
   const onLoad = (auto) => setAutocomplete(auto);
 
+  function getDistance(distanceFrom){
+    return 'Unknown Distance'
+  }
+
+  function gotoBookingPage(){
+
+    if(address && address.trim()){
+      if (location && locationName.trim()){
+        const {lat, lng} = location;
+        return redirect(`/mechanics/book/${mechId}/?lat=${lat}&lng=${lng}&address=${address}`)
+      }
+      return notify({
+        title: "Error",
+        body: 'Please enter a location',
+        color: 'red',
+      })
+    }
+    return notify({
+      title: "Error",
+      body: 'Please enter your house address',
+      color: 'red',
+    })
+  }
+
   const onPlaceChanged = () => {
     if (autocomplete) {
       const place = autocomplete.getPlace();
@@ -61,7 +157,7 @@ export const MechanicDetailPage = ({ }) => {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         setLocation({ lat, lng, name: place.name });
-        setInputValue(place.formatted_address || place.name);
+        setLocationName(place.formatted_address || place.name);
       }
     }
   };
@@ -70,11 +166,14 @@ export const MechanicDetailPage = ({ }) => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // setLocation({
-          //   lat: position.coords.latitude,
-          //   lng: position.coords.longitude,
-          //   name: "Current Location"
-          // });
+          console.log("Current Location", position)
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            name: "Current Location"
+          });
+          reverseGeocode(position.coords.latitude, position.coords.longitude);
+          setLocationName("Current Location");
         },
         (error) => {
           setError("Unable to retrieve location.");
@@ -92,7 +191,7 @@ export const MechanicDetailPage = ({ }) => {
 
 
   if (loading){
-      return null;
+    return null;
   }
   
   return (
@@ -104,167 +203,80 @@ export const MechanicDetailPage = ({ }) => {
 
         <Flex gap={6} direction={{ base: 'column', md: 'row' }} alignItems="self-start">
           {/* Main Content */}
-          <Box flex={1}>
+          <Box w={{ base: 'full', md: '56%', lg: 'calc(100% - 450px)' }}>
             {/* Profile Header */}
             <Box bg={bgColor} p={6} rounded="lg" mb={4}>
-              <Flex gap={4}>
+              <Flex gap={4} >
                 <Avatar size={{base: 'xl', lg: "xl"}} name={mechanic?.business_name || mechanic?.user?.name} src={mechanic?.logo} />
-                <Box flex={1}>
-                  
-                  <Flex justify="space-between" align="start" flexWrap="wrap-reverse">
-                    <Box>
-                      <Flex align="center" gap={2}>
-                        <Heading size="lg">{mechanic?.business_name || mechanic?.user?.name}</Heading>
-                        <VerifiedIcon fill="cornflowerblue" color="white" />
-                      </Flex>
-
-                      <Flex align="center" gap={2} mt={2} color="gray.600">
-                        <MapPinIcon className="w-4 h-4" />
-                        <Text>{mechanic?.location}</Text>
-                        <Text color="gray.700"> • 300m away</Text>
-                      </Flex>
-                    </Box>
-                    
-                    <Flex gap={2}>
-                      <Button gap={2} variant="outline" onClick={() => setPopupState(true)}>
-                        <MessageCircleIcon className="w-4 h-4 mr-2" />
-                        Chat
-                      </Button>
-
-                      <IconButton
-                        variant="outline"
-                        icon={<MoreHorizontalIcon className="w-4 h-4" />}
-                        aria-label="More options"
-                      />
-                    </Flex>
+                
+                <Box flex={1}>                  
+                  <Flex align="center" gap={2}>
+                      <Heading size="lg">{mechanic?.business_name || mechanic?.user?.name}</Heading>
+                      <VerifiedIcon fill="cornflowerblue" color="white" />
                   </Flex>
+                  
                   <Flex flexWrap="wrap" align="center" gap={2} mt={4}>
-                    <Tag colorScheme="blue" gap={1.5} alignItems="center"><IoRibbonOutline size={20} /> Top Rated</Tag>
-                    
+                    <Badge
+                     colorScheme="blue"
+                     gap={1.5}
+                     p={"5px"}
+                     rounded="lg"
+                     alignItems="center"
+                    >
+                      <TopRatedBadgeIcon viewBox="0 0 27 28" w="20px" h="20px" />
+                      {mechanic?.level}
+                    </Badge>
+                  
                     <Flex align="center" gap={1}>
                       <Text fontWeight="bold">{mechanic?.rating}</Text>
                       <StarIcon size={20} color="orange" fill="orange" />
                       <Text color="gray.500">({mechanic?.reviews?.length} Reviews)</Text>
                     </Flex>
+                  </Flex>
 
+                  <Flex align="center" gap={2} mt={2} color="gray.600">
+                    <MapPinIcon size="20px" className="w-4 h-4" />
+                    <Text>{mechanic?.location || 'N/A'}</Text>
+                    <Text color="gray.700"> • {getDistance(mechanic?.location)}</Text>
                   </Flex>
                 </Box>
               </Flex>
             </Box>
 
             {/* About Section */}
-            <Box bg={bgColor} p={6} rounded="lg" mb={4}>
-              <Heading size="md" fontWeight="400" mb={4}>About Me</Heading>
-              <Text color="gray.600">{mechanic?.about}</Text>
+            <Box bg={bgColor} border="1px solid lavender" p={6} rounded="lg" mb={4}>
+              <Heading size="md" mb={4}>About {mechanic?.business_type === 'business' ? 'Us' : 'Me'}</Heading>
+              <Text color="gray.600">{mechanic?.about || "No description available"}</Text>
             </Box>
 
-            {/* Skills Section */}
+            {/* Services Section */}
             <Box bg={bgColor} p={6} rounded="lg" mb={4}>
               <Heading size="md" mb={4}>Services</Heading>
-              <Flex gap={2} flexWrap="wrap">
+              <SimpleGrid spacing={2} alignItems="flex-start" minChildWidth={'300px'} columns={{ base: 1, md: 2, lg: 3}} flexWrap="wrap">
                 {mechanic?.services?.map((service) => (
-                  <Tag key={service?.service} size="lg" borderRadius={'30px'} p={3} variant="subtle">
-                    {service?.service}
-                  </Tag>
+                  <ServiceAccordion key={service?.uuid} service={service} />
                 ))}
-              </Flex>
+              </SimpleGrid>
             </Box>
-
-            {/* Photo Gallery */}
-{/*            <Box bg={bgColor} p={6} rounded="lg" mb={4}>
-              <Flex justify="space-between" align="center" mb={4}>
-                <Heading size="md">Photo Gallery</Heading>
-                <Button variant="link" colorScheme="blue">
-                  See all
-                </Button>
-              </Flex>
-              <Box position="relative">
-                <Flex overflow="hidden" rounded="lg">
-                  {images.map((src, index) => (
-                    <Box
-                      key={index}
-                      flexShrink={0}
-                      w="full"
-                      transform={`translateX(-${currentImageIndex * 100}%)`}
-                      transition="transform 0.3s ease-in-out"
-                    >
-                      <img src={src} alt={`Gallery ${index + 1}`} style={{ width: '100%', height: 'auto' }} />
-                    </Box>
-                  ))}
-                </Flex>
-                <IconButton
-                  icon={<ChevronLeftIcon />}
-                  aria-label="Previous image"
-                  position="absolute"
-                  left={2}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
-                  isDisabled={currentImageIndex === 0}
-                />
-                <IconButton
-                  icon={<ChevronRightIcon />}
-                  aria-label="Next image"
-                  position="absolute"
-                  right={2}
-                  top="50%"
-                  transform="translateY(-50%)"
-                  onClick={() => setCurrentImageIndex(Math.min(images.length - 1, currentImageIndex + 1))}
-                  isDisabled={currentImageIndex === images.length - 1}
-                />
-              </Box>
-            </Box>*/}
 
             {/* Ratings & Reviews */}
             <Box bg={bgColor} p={6} rounded="lg">
-              <Heading size="md" mb={6}>Ratings & reviews</Heading>
-              <Flex align="center" gap={4} mb={6}>
-                <Heading size="xl">{mechanic?.rating}</Heading>
-                <Box flex={1}>
-                  <Text mb={2}>Service Delivery</Text>
-                  <Progress value={94} size="sm" colorScheme="blue" rounded="full" />
-                  <Text mt={4} mb={2}>Communication</Text>
-                  <Progress value={96} size="sm" colorScheme="blue" rounded="full" />
-                  <Text mt={4} mb={2}>Value for work</Text>
-                  <Progress value={90} size="sm" colorScheme="blue" rounded="full" />
-                </Box>
-              </Flex>
+              <RatingCard
+                avg_rating={mechanic?.rating}
+                ratings={[mechanic?.ratings]}
+              />
 
               <VStack spacing={6} align="stretch">
-                {mechanic?.reviews?.map((review) => (
-                  <Box key={review.id}>
-                    <Flex gap={3}>
-                      <Avatar size="sm" name={review.name} />
-                      <Box flex={1}>
-                        <Flex justify="space-between" align="center">
-                          <Text fontWeight="bold">{review.name}</Text>
-                          <Text color="gray.500" fontSize="sm">{review.date}</Text>
-                        </Flex>
-                        <Flex gap={1} my={1}>
-                          {Array(5).fill('').map((_, i) => (
-                            <StarIcon
-                              key={i}
-                              className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-200'}`}
-                              fill="currentColor"
-                            />
-                          ))}
-                        </Flex>
-                        <Text color="gray.600">{review.text}</Text>
-                      </Box>
-                    </Flex>
-                  </Box>
-                ))}
+                {mechanic?.reviews?.map((review) => 
+                  <ReviewCard key={review.id} rating={review} />
+                )}
               </VStack>
-
-              {/*<Button variant="link" colorScheme="blue" mt={6}>
-                See more reviews
-              </Button>*/}
             </Box>
           </Box>
 
           {/* Sidebar */}
           <Box w={{ base: 'full', md: '40%', lg: '400px' }}>
-            <Box position="relative" top={4}>
+            <Box position="relative" top={4} border="1px solid gray" p={3} rounded="2xl">
               <Box bg={bgColor} className="map-wrapper">
                 {/* Map placeholder */}
                 <Box
@@ -274,33 +286,36 @@ export const MechanicDetailPage = ({ }) => {
                   location={location}
                 />
                             
-                <VStack  w="100%">
-                  <Flex w="100%" my={2} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
+                <VStack pt={4} w="100%">
+                  <Flex w="100%" my={1.25} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
                     <Text>Location:</Text>
 
-                    <Autocomplete
+                    <CustomPlacesAutocomplete
                       onLoad={onLoad}
                       style={{width: "100%"}}
                       onPlaceChanged={onPlaceChanged}
                       className="w-full"
-                    >
-                      <Input
-                        flex={1}
-                        w="100%"
-                        border="none"
-                        outline="none"
-                        placeholder="Search location..."
-                      />
-                    </Autocomplete>
+                      value={locationName}
+                      placeholder="Search location"
+                    />
+                  </Flex>
+
+                  <Flex w="100%" my={1.25} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
+                    <Text>Street Address:</Text>
+                    <Input
+                      flex={1}
+                      w="100%"
+                      border="none"
+                      outline="none"
+                      type="address"
+                      name="address"
+                      value={address}
+                      onInput={e => setAddress(e.target.value)}
+                      placeholder="e.g No. 6 Sule Drive"
+                    />
                   </Flex>
                   
-                  <Select placeholder="Choose Service">
-                    {mechanic?.services?.map((service) =>
-                      <option> {service?.service} </option>
-                    )}
-                  </Select>
-                  
-                  <Button colorScheme="blue" size="lg" w="full">
+                  <Button colorScheme="blue" size="lg" w="full" onClick={gotoBookingPage}>
                     Book Now
                   </Button>
                 </VStack>

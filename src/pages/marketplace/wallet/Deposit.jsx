@@ -37,18 +37,21 @@ import { GiHomeGarage } from "react-icons/gi";
 import { AiOutlineTransaction } from "react-icons/ai";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
 import {FlutterwavePaymentModal} from '../../../components/wallet';
+import { usePaystackPayment } from 'react-paystack';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import {CenteredLayout} from '../../../components';
 
 function WalletDepositPage() {
   const {axios, notify, authUser, commaInt, redirect} = useContext(GlobalStore);
+  const [minDeposit, setMinDeposit] = useState(500)
   const [currency, setCurrency] = useState({
       code: 'NGN',
       symbol: '₦'
   });
   const [showDepositModal, setDepositModalVisibility] = useState(false);
+  const [loading, setLoadingState] = useState(true);
   const [amount, setAmount] = useState(0);
-  const [accept, setAccept] = useState(false);
+  const [accept, setAccept] = useState(true);
   const amountRef = useRef();
 
   const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
@@ -59,6 +62,15 @@ function WalletDepositPage() {
 
     if (res.status === 200){
       redirect('/wallet/', 500);
+      notify({
+        title: 'Deposit received!',
+        color: 'blue'
+      })
+    }else{
+      notify({
+        title: data.message,
+        color: 'red'
+      })
     }
   }
 
@@ -70,43 +82,63 @@ function WalletDepositPage() {
     setTimeout(() => setLoadingState(false), 2000);
   }
 
+  // const config = {
+  //   public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
+  //   tx_ref: `${authUser?.token.substr(0, 7)}${Date.now()}${authUser?.token.substr(5, 3)}`,
+  //   amount: DEBUG ? (amount > 500000 ? 500000 : amount) : amount,
+  //   currency: currency?.code,
+  //   payment_options: 'card,ussd,transfer',
+  //   customer: {
+  //     email: authUser?.email,
+  //     phone_number: authUser?.phone_number,
+  //     name: `${authUser?.first_name} ${authUser?.last_name}`,
+  //   },
+  //   customizations: {
+  //     title: 'Motaa',
+  //     description: 'Add funds to your wallet',
+  //     logo: `${window.location.origin}/static/motaa/motaa-logo-1.png`,
+  //   },
+  //   meta: {
+  //     transaction_type: 'wallet:deposit'
+  //   }
+  // };
+  // const handleFlutterPayment = useFlutterwave(config);
+
+  const getFinalAmount = (amt) => {
+    return (amt * 100)
+  }
+  
+  // const PAYSTACK_LIVE_KEY = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY;
+  const PAYSTACK_LIVE_KEY = "pk_test_73e0d039b25449f1493d055ff5ed58a4b6c800f0";
+  
+
   const config = {
-    public_key: "FLWPUBK_TEST-6d708e896eb3ba9f1ee4e1e73509e9e5-X",
-    tx_ref: `${authUser?.token.substr(0, 7)}${Date.now()}${authUser?.token.substr(5, 3)}`,
-    amount: DEBUG ? (amount > 500000 ? 500000 : amount) : amount,
-    currency: currency?.code,
-    payment_options: 'card,ussd,transfer',
-    customer: {
-      email: authUser?.email,
-      phone_number: authUser?.phone_number,
-      name: `${authUser?.first_name} ${authUser?.last_name}`,
-    },
-    customizations: {
-      title: 'Motaa',
-      description: 'Add funds to your wallet',
-      logo: `${window.location.origin}/assets/images/motaa-logo-2.png`,
-    },
-    meta: {
-      transaction_type: 'wallet:deposit'
-    }
+    publicKey: PAYSTACK_LIVE_KEY,
+    reference: (new Date()).getTime().toString(),
+    amount: getFinalAmount(amount),
+    email: authUser?.email,
   };
-  const handleFlutterPayment = useFlutterwave(config);
+
+  const handlePayment = usePaystackPayment(config);
 
   function payUp(){
     try{
-      handleFlutterPayment({
-        callback: (response) => {
-          processDeposit(response);
-          closePaymentModal();
-        },
-        onClose: () => {
-          closePaymentModal();
-        },
-      });
+      handlePayment(onPaymentComplete, onModalClose);
     }catch(err){
       console.log("error paying up:", err)
     }
   }
+
+  function onPaymentComplete(response){
+    console.log(response);
+    return processDeposit(response)
+  }
+
+  function onModalClose(){
+  // user cancelled the payment flow
+    console.log("User cancelled the transaction")
+  }
+
 
   useEffect(() => {
     init();
@@ -167,37 +199,17 @@ function WalletDepositPage() {
             ></Text>
           </Heading>
 
-          <Button onClick={payUp} isDisabled={amount < 50000 || accept === false } display="block" bg="primary" colorScheme="blue" w="full" flex={1} mt="3rem" size="lg"> PROCEED </Button>
+          {amount < minDeposit && <Text my={2} size="xs" fontSize={'13px'} fontWeight="600" color="red"> minimum allowed amount {currency?.symbol}{minDeposit} </Text>}
+
+          <Button onClick={payUp} isDisabled={amount < minDeposit || accept === false } display="block" bg="primary" colorScheme="blue" w="full" flex={1} mt="3rem" size="lg"> PROCEED </Button>
+          
+          <Alert fontSize={'14px'} mt={'2rem'} colorScheme="blue" color="primary" gap={2} textAlign="left" maxW="550px" borderRadius="lg" border="1px solid" borderColor="primary">
+            <Checkbox borderColor="primary" value={accept} onInput={e => setAccept(!accept)} isChecked={accept} style={{accentColor: 'primary'}} type="checkbox" name="i_accept" />
+            Motaa is not a bank, all banking services are provided by TAJ Bank.
+          </Alert>
         </Box>
 
-        <Alert mt={'2rem'} colorScheme="blue" color="primary" gap={2} textAlign="left" maxW="550px" borderRadius="lg" border="1px solid" borderColor="primary">
-          <Checkbox borderColor="primary" value={accept} onInput={e => setAccept(!accept)} selected={accept} style={{accentColor: 'primary'}} type="checkbox" name="i_accept" />
-          Motaa is not a bank, all banking services are provided by TAJ Bank.
-        </Alert>
       </CenteredLayout>
-
-      <FlutterwavePaymentModal
-       isOpen={showDepositModal}
-       payload={{
-        amount: 20000,
-        currency: 'NGN',
-        payment_option: 'card,bank',
-        email: authUser?.email,
-        phone_number: authUser?.phone_number,
-        first_name: authUser?.first_name,
-        last_name: authUser?.last_name,
-       }}
-       onSuccess={console.log}
-       customizations={{
-        title: 'Deposit',
-        description: 'Deposit money to your Motaa wallet',
-        logo: '/assets/images/motaa-logo-2.png',
-       }}
-       meta={{
-        'opration': 'Wallet Deposit'
-       }}
-       onClose={() => setDepositModalVisibility(false)}
-      />
     </Box>
   )
 }
