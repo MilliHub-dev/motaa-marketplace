@@ -160,7 +160,7 @@ function ListingTable({ listings }) {
       <Table variant="simple" overflowX={'scroll'} className="hidden-scroll">
         <Thead>
           <Tr>
-            <Th as={Flex} gap={2} alignItems="center"> # - <Checkbox isChecked={selected?.length === listings?.length} onChange={toggleSelectAll} /> </Th>
+            <Th gap={2} alignItems="center"> # - <Checkbox isChecked={selected?.length === listings?.length} onChange={toggleSelectAll} /> </Th>
             <Th columns={3}>Car Listing</Th>
             <Th>Status</Th>
             <Th>Views</Th>
@@ -170,7 +170,7 @@ function ListingTable({ listings }) {
         <Tbody>
           {listings?.map((listing, index) => (
             <Tr key={index}>
-              <Td gap={2} as={Flex} alignItems="center"> {index} - <Checkbox onChange={e => toggleSelect(listing?.uuid)} isChecked={selected.includes(listing?.uuid)} /> </Td>
+              <Td placeItems="center" placeContent="center" alignItems="center"> {index+1} - <Checkbox onChange={e => toggleSelect(listing?.uuid)} isChecked={selected.includes(listing?.uuid)} /> </Td>
               <Td columns={3}>
                 <Flex align="center" gap={2}>
                   <Image src={listing?.vehicle?.images[0]?.url} objectFit="cover" boxSize="70px" borderRadius="md" />
@@ -188,11 +188,13 @@ function ListingTable({ listings }) {
               </Td>
               <Td>{listing?.viewers?.length}</Td>
               <Td>
-                <Flex gap={2}>
-                  <Button size="sm" colorScheme="green">Boost</Button>
-                  <IconButton as={Link} to={`edit/${listing?.uuid}`} aria-label="Edit" icon={<EditIcon />} size="sm" />
-                  <IconButton aria-label="Delete" icon={<DeleteIcon />} size="sm" colorScheme="red" />
-                </Flex>
+                {!listing?.vehicle?.available && 
+                  <Flex gap={2}>
+                    <Button size="sm" colorScheme="green">Boost</Button>
+                    <IconButton as={Link} to={`edit/${listing?.uuid}`} aria-label="Edit" icon={<EditIcon />} size="sm" />
+                    <IconButton aria-label="Delete" icon={<DeleteIcon />} size="sm" colorScheme="red" />
+                  </Flex>
+                }
               </Td>
             </Tr>
           ))}

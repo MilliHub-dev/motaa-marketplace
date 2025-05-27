@@ -2,7 +2,6 @@ import {useState, useEffect, useContext, createContext, Fragment,} from 'react';
 import {Link, Routes, Route, Outlet, useLocation} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
-import Dojah from 'react-dojah';
 import {DealerDashboardSideBar, DealerNavbar, UnauthenticatedNavbar} from '../../../components/nav';
 import {
   Box,
@@ -30,14 +29,12 @@ import {
   Badge,
   Stack,
   useMediaQuery,
-  Alert,
-  AlertTitle,
-  AlertIcon,
 } from '@chakra-ui/react'
 import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
 import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
 import {MdWarning,} from "react-icons/md";
 import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
+import {VerificationNotice} from '../../../components';
 import Dashboard from './Dashboard';
 
 
@@ -180,33 +177,6 @@ function DealerDashboardLayout({children, hideSidebar, ...props}) {
 }
 
 
-export const VerificationNotice = ({ businessType, user, onVerification, ...props })=>{
-  const [beginVerification, setVerificationState] = useState(false);
-
-  return(
-    <Alert my={4} colorScheme="yellow" rounded="lg" as={Stack} alignItems="start" placeItems="start">
-      <AlertIcon as={MdWarning} w={30} h={30} />
-      <Flex width="100%" alignItems="center" flexWrap="wrap" justify="space-between" gap={2}>
-        <AlertTitle size="sm"> You have not completed your business verification. 
-         You must complete your verification before you can add listings.
-        </AlertTitle>
-        <Button onClick={() => setVerificationState(true)} colorScheme="yellow" variant="outline" borderColor="tertiary"> Complete verification </Button>
-        {
-          beginVerification && 
-          <Dojah
-            response={onVerification}
-            publicKey={import.meta.env.VITE_DOJAH_LIVE_PUBLIC_KEY}
-            appId={"6790a5a3a5a0229a0a5c0839"}
-            type="custom"
-            config={{
-              widget_id: import.meta.env.VITE_DOJAH_BIZ_DEALER_WIDGET_ID,
-            }}
-          />
-        }
-      </Flex>
-    </Alert>
-  )
-}
 
 
 

@@ -47,8 +47,10 @@ import { TbBell, TbSearch } from 'react-icons/tb';
 import { HiOutlineShoppingCart } from 'react-icons/hi';
 import { RxEnvelopeClosed } from 'react-icons/rx';
 import { AiOutlineMessage } from 'react-icons/ai';
+import { GiMechanicGarage } from 'react-icons/gi';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
+import { BsTools } from 'react-icons/bs';
 import { LuWallet, LuChartLine } from 'react-icons/lu';
 import { NavLink, Link as RLink, useNavigate } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -58,12 +60,11 @@ import {
   Settings, Share2, MoreVertical, TrendingUp
 } from 'lucide-react';
 import { GiHomeGarage } from "react-icons/gi";
+import { GrUserWorker } from "react-icons/gr";
 import {
   Wallet3, Home3, Chart, Shop,
   Chart1, Chart2, Chart21, ChartCircle, ChartFail, ChartSquare, ChartSuccess,
-  Coin, Coin1,Money, Money2, Money3, Money4, MoneyAdd, MoneyArchive,
-  User,
-  MoneyChange, MoneyForbidden, MoneyRecive, MoneyRemove, MoneySend, MoneyTick, MoneyTime, Moneys
+  Coin, User, //Toolbox,
 } from "iconsax-react";
 import { AiOutlineTransaction } from "react-icons/ai";
 
@@ -767,10 +768,7 @@ export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
 
 
         <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-          {isMobile ? 
-            <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-            : <DashboardSearchBar flex={1} />
-          }
+          
           {isMobile ? (
               <Button
                as={RLink}
@@ -828,14 +826,6 @@ export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
           }
         </Flex>          
       </Flex>
-
-      {isMobile && searchIsOpen &&
-        <Fragment>
-          <Box px={2} py={2}  w={'100%'} bg="#fff">
-            <DashboardSearchBar />
-          </Box>
-        </Fragment>
-      }
     </Box>
   )
 }
@@ -851,8 +841,9 @@ export const MechanicDashboardSideBar = ({ mechanic, sidebarOpen, setSidebarStat
     }, [window.location])
 
      const links = [
-      { icon: Home3, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
-      { icon: Coin, label: 'Bookings', path: '/bookings', active: pathname.includes('bookings')},
+      { icon: GiHomeGarage, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
+      { icon: GrUserWorker, label: 'Bookings', path: '/bookings', active: pathname.includes('bookings')},
+      { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services', active: pathname.includes('services')},
       { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
       { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
       { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},

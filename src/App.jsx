@@ -42,6 +42,9 @@ import NotificationsPage from './pages/marketplace/Notifications';
 import MechanicDashboardLayout from './pages/dashboard/mechanic/Layout';
 import MechanicDashboard from './pages/dashboard/mechanic/MechanicDashboard';
 import BookingsAdmin from './pages/dashboard/mechanic/Bookings';
+import ServiceOfferings from './pages/dashboard/mechanic/services/ServiceOfferings';
+import MechanicAnalytics from './pages/dashboard/mechanic/Analytics';
+import CreateServiceOffering from './pages/dashboard/mechanic/services/CreateServiceOffering';
 import BusinessProfile from './pages/dashboard/mechanic/settings/BusinessProfile';
 
 // Dealership Dashboard
@@ -84,6 +87,7 @@ export const GlobalStore = createContext({
   logout: undefined,
   redirect: undefined,
   commaInt: undefined,
+  naturalDate: undefined,
 });
 
 const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
@@ -142,6 +146,25 @@ function App() {
     setAuthState(true)
   }
 
+  function naturalDate (dateObj) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ]
+    return (`${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`)
+  }
+
+  function naturalTime (dateObj) {
+    let time = 'am'
+    let hours = dateObj.getHours()
+    if (hours >= 12){
+      time = 'pm'
+      if (hours > 12){
+        hours -= 12
+      }
+    }
+    return (`${hours}:${dateObj.getMinutes()} ${time}`)
+  }
 
   function setCookie({name, val, expires}){
     let cookie = Cookies.set(name, val, { expires })
@@ -208,6 +231,8 @@ function App() {
     commaInt,
     redirect,
     logout,
+    naturalDate,
+    naturalTime,
     setOtherContext,
     otherContext,
   }
@@ -250,8 +275,16 @@ function App() {
                     </Route>
                     ) : authUser?.user_type === 'mechanic' ? (
                       <Route ErrorBoundary={ErrorBoundary} element={<MechanicDashboardLayout />}>
+                        <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<MechanicAnalytics />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<MechanicDashboard />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/bookings' element={<BookingsAdmin />} />
+                        
+                        <Route ErrorBoundary={ErrorBoundary} path='/services' element={<> <Outlet /> </>}>
+                          <Route ErrorBoundary={ErrorBoundary} path='edit/:serviceId' element={<ServiceOfferings />} />
+                          <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateServiceOffering />} />
+                          <Route ErrorBoundary={ErrorBoundary} path='' element={<ServiceOfferings />} />
+                        </Route>
+
                         <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />

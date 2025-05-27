@@ -701,9 +701,8 @@ export function EditListingForm({ formData, setFormData }) {
             onChange={(e) => setFormData({ ...formData, vehicle: {...formData.vehicle, condition: e.target.value} })}
           >
             <option value="new">New</option>
-            <option value="local-used">Used (Local)</option>
-            <option value="uk-used">Used (UK)</option>
-            <option value="us-used">Used (US)</option>
+            <option value="used-local">Local Used</option>
+            <option value="used-foreign">Foreign Used</option>
           </Select>
         </FormControl>
 

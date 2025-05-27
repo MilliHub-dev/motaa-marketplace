@@ -108,7 +108,9 @@ function WalletDepositPage() {
     return (amt * 100)
   }
   
-  const PAYSTACK_LIVE_KEY = (import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY);
+  // const PAYSTACK_LIVE_KEY = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY;
+  const PAYSTACK_LIVE_KEY = "pk_test_73e0d039b25449f1493d055ff5ed58a4b6c800f0";
+  
 
   const config = {
     publicKey: PAYSTACK_LIVE_KEY,
@@ -137,22 +139,6 @@ function WalletDepositPage() {
     console.log("User cancelled the transaction")
   }
 
-
-  // function payUp(){
-  //   try{
-  //     handleFlutterPayment({
-  //       callback: (response) => {
-  //         processDeposit(response);
-  //         closePaymentModal();
-  //       },
-  //       onClose: () => {
-  //         closePaymentModal();
-  //       },
-  //     });
-  //   }catch(err){
-  //     console.log("error paying up:", err)
-  //   }
-  // }
 
   useEffect(() => {
     init();

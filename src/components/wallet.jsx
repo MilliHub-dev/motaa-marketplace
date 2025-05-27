@@ -51,14 +51,15 @@ export const PaystackPaymentModal = ({
 
 	function payUp(){
 		try{
-		  handlePayment(onPaymentComplete,onModalClose);
+			console.log("Paying Up...");
+		  	handlePayment((res) => onPaymentComplete(res), onModalClose);
 		}catch(err){
-		  console.log("error paying up:", err)
+		  	console.log("error paying up:", err)
 		}
 	}
 
 	function onPaymentComplete(response){
-		console.log(response);
+		console.log("Paystack", response);
 		return onSuccess(response)
 	}
 

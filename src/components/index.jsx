@@ -1,49 +1,55 @@
 import {
-    Box, Flex, IconButton, Heading,
-    Badge, Text, Divider,
-    HStack, VStack,
-    PinInput,
-    PinInputField,
-    Card,
-    CardBody,
-    Button,
-    Input,
-    CardHeader,
-    Image,
-    Icon,
-    FormLabel,
-    FormControl,
-    Grid,
-    Fade,
-    LinkBox,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalBody,
-    useDisclosure,
-    Tag,
-    AspectRatio,
-    Avatar,
-    Select,
-    useColorModeValue,
-    Menu,
-    MenuItem,
-    MenuButton,
-    MenuList,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    Breadcrumb,
-    SimpleGrid,
-    NumberInput,
-    NumberInputField,
-    NumberInputStepper,
-    NumberIncrementStepper,
-    NumberDecrementStepper,
-    Popover,
-    PopoverTrigger,
-    PopoverContent,
-    PopoverBody,
-    Progress,
+  Box, Flex, IconButton, Heading,
+  Badge, Text, Divider,
+  Stack, HStack, VStack,
+  PinInput,
+  PinInputField,
+  Card,
+  CardBody,
+  Button,
+  Input,
+  CardHeader,
+  Image,
+  Icon,
+  FormLabel,
+  FormControl,
+  Grid,
+  Fade,
+  LinkBox,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  useDisclosure,
+  Tag,
+  AspectRatio,
+  Avatar,
+  Select,
+  useColorModeValue,
+  Menu,
+  MenuItem,
+  MenuButton,
+  MenuList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Breadcrumb,
+  SimpleGrid,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  Progress,  
+  List,
+  ListItem,
+  Alert,
+  AlertTitle,
+  AlertIcon,
+  useOutsideClick,
 } from '@chakra-ui/react';
 import {Fragment, useContext, useEffect, useState, useRef} from 'react';
 import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiSearch2Line } from 'react-icons/ri'
@@ -65,6 +71,7 @@ import {
   MdHome,
   MdBarChart,
   MdPeople,
+  MdWarning,
   MdSettings,
   MdMoreVert,
   MdFilterList,
@@ -79,8 +86,141 @@ import {
   MdCalendarMonth,
 } from "react-icons/md"
 import { BsWallet2 } from "react-icons/bs"
+import Dojah from 'react-dojah';
 
 
+export const ComboBox = ({ defaultOptions, onSelect }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [filteredOptions, setFilteredOptions] = useState(defaultOptions);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  const ref = useRef(null);
+
+  useOutsideClick({
+    ref,
+    handler: () => setIsOpen(false),
+  });
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    const matched = defaultOptions.filter(option =>
+      option.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredOptions(matched);
+    setIsOpen(true);
+  };
+
+  const handleSelect = (value) => {
+    setInputValue(value);
+    setSelected(value);
+    setIsOpen(false);
+    onSelect(value)
+  };
+
+  const showCreateOption =
+    inputValue.trim() !== '' &&
+    !defaultOptions.some(
+      option => option.toLowerCase() === inputValue.trim().toLowerCase()
+    );
+
+  return (
+    <VStack ref={ref} align="stretch" position="relative" spacing={1}>
+      <Input
+        placeholder="Select an option or type..."
+        value={inputValue}
+        onChange={handleChange}
+        onFocus={() => setIsOpen(true)}
+      />
+      {isOpen && (filteredOptions.length > 0 || showCreateOption) && (
+        <Box
+          position="absolute"
+          top="100%"
+          left="0"
+          right="0"
+          bg="white"
+          border="1px solid"
+          borderColor="gray.200"
+          borderRadius="md"
+          boxShadow="md"
+          zIndex="1"
+          maxHeight="200px"
+          overflowY="auto"
+        >
+          <List spacing={0}>
+            {filteredOptions.map(option => (
+              <ListItem
+                key={option}
+                px={4}
+                py={2}
+                cursor="pointer"
+                _hover={{ bg: 'gray.100' }}
+                onClick={() => handleSelect(option)}
+              >
+                {option}
+              </ListItem>
+            ))}
+            {showCreateOption && (
+              <ListItem
+                px={4}
+                py={2}
+                bg="gray.50"
+                color="blue.600"
+                fontStyle="italic"
+                cursor="pointer"
+                _hover={{ bg: 'blue.50' }}
+                onClick={() => handleSelect(inputValue.trim())}
+              >
+                Create "{inputValue.trim()}"
+              </ListItem>
+            )}
+          </List>
+        </Box>
+      )}
+      {selected && (
+        <Text fontSize="sm" color="gray.600">
+          Selected: <strong>{selected}</strong>
+        </Text>
+      )}
+    </VStack>
+  );
+}
+
+
+export const VerificationNotice = ({ businessType, user, onVerification, ...props })=>{
+  const [beginVerification, setVerificationState] = useState(false);
+  const appIds = {
+    'dealership': "6790a5a3a5a0229a0a5c0839",
+    'mechanic': "682932fdd3eb2aebd3716885",
+  }
+
+  return(
+    <Alert my={4} colorScheme="yellow" rounded="lg" as={Stack} alignItems="start" placeItems="start">
+      <AlertIcon as={MdWarning} w={30} h={30} />
+      <Flex width="100%" alignItems="center" flexWrap="wrap" justify="space-between" gap={2}>
+        <AlertTitle size="sm"> You have not completed your business verification. 
+         You must complete your verification before you can {
+          businessType === 'dealership' ? 'add listings' : 'add services'
+        }.
+        </AlertTitle>
+        <Button onClick={() => setVerificationState(true)} colorScheme="yellow" variant="outline" borderColor="tertiary"> Complete verification </Button>
+        {
+          beginVerification && 
+          <Dojah
+            response={onVerification}
+            publicKey={import.meta.env.VITE_DOJAH_LIVE_PUBLIC_KEY}
+            appId={appIds[businessType]}
+            type="custom"
+            config={{
+              widget_id: import.meta.env.VITE_DOJAH_BIZ_DEALER_WIDGET_ID,
+            }}
+          />
+        }
+      </Flex>
+    </Alert>
+  )
+}
 
 // Status Badge Component
 export const StatusBadge = ({ status }) => {

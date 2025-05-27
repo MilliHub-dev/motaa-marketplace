@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Box,
   Button,
   Flex,
@@ -23,6 +24,7 @@ import {
   Thead,
   Tr,
   Badge,
+  Tag,
 } from "@chakra-ui/react"
 import {
   FaChevronDown,
@@ -30,11 +32,11 @@ import {
 
 } from 'react-icons/fa6'
 // import { ChevronDownIcon, ChevronRightIcon, ClockIcon, Filter, MapPin, MoreVertical, Search, Star, User, X } from "react-feather"
-import {useState, useEffect, useContext} from 'react';
+import {useState, useEffect, useContext, Fragment} from 'react';
 import {GlobalStore} from '../../../App';
 import { Link } from 'react-router-dom';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
-
+import {MapPin, Search, MoreVertical} from 'lucide-react'
 
 // Metric Card Component
 const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
@@ -58,7 +60,7 @@ const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
 
       {
         change &&
-        <>
+        <Fragment>
         <Flex align="center">
           <Text fontSize="sm" color={trendColor} fontWeight="medium">
             {changeText}
@@ -69,36 +71,42 @@ const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
             <path d={trend} fill="none" stroke={isPositive ? "green" : "red"} strokeWidth="1.5" opacity="0.5" />
           </svg>
         </Box>
-        </>
+        </Fragment>
       }
     </Box>
   )
 }
 
 // Client Info Component
-const ClientInfo = ({ name, location, hasAvatar }) => (
+const ClientInfo = ({ customer, location, }) => (
   <Flex align="center">
-    <Box mr={3} w="40px" h="40px" borderRadius="full" overflow="hidden" bg={hasAvatar ? "transparent" : "gray.100"}>
-      {hasAvatar ? (
-        <Image src="https://via.placeholder.com/40" alt={name} w="100%" h="100%" objectFit="cover" />
-      ) : (
-        <Flex w="100%" h="100%" align="center" justify="center">
-          {/*<User size={20} color="#667085" />*/}
-        </Flex>
-      )}
+    <Box mr={3} w="40px" h="40px" borderRadius="full" overflow="hidden">
+      <Avatar src={customer?.image} name={customer?.name} w="100%" h="100%" objectFit="cover" />
     </Box>
     <Box>
-      <Text fontWeight="medium">{name}</Text>
+      <Text fontWeight="medium">{customer?.name}</Text>
       <Flex align="center" color="gray.500" fontSize="xs">
-        {/*<MapPin size={12} style={{ marginRight: "4px" }} />*/}
+        <MapPin size={12} style={{ marginRight: "4px" }} />
         {location}
       </Flex>
     </Box>
   </Flex>
 )
 
+
+const StatusColor = {
+  'accepted': 'blue',
+  'working': 'purple',
+  'requested': 'cyan',
+  'completed': 'green',
+  'declined': 'yellow',
+  'expired': 'red',
+  'canceled': 'red',
+}
+
+
 export const MechanicOverview = () => {
-  const {authUser, axios} = useContext(GlobalStore);
+  const {authUser, axios, notify, naturalDate, naturalTime} = useContext(GlobalStore);
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState();
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -109,6 +117,7 @@ export const MechanicOverview = () => {
     const data = objectifyJSON(res.data);
 
     if (res.status === 200){
+      // console.log("Dashboard Data:", data.data)
       setDashboardData(data.data)
       setPendingRequests(data.data.pending_requests)
       setBookingHistory(data.data.booking_history)
@@ -121,9 +130,47 @@ export const MechanicOverview = () => {
     setTimeout(() => setLoading(false), 2000);
   }
 
+
+
+
+  async function handleAcceptRequest(requestId){
+    const res = await axios.post(`/admin/mechanics/bookings/${requestId}/`, jsonifyObject({
+      action: 'accept'
+    }));
+    const data = await objectifyJSON(res.data);
+    if (res.status === 200){
+      notify({
+        title: 'Success',
+        body: 'Request Accepted!',
+        level: 'info'
+      });
+
+      init();
+
+    }
+  }
+  
+  async function handleDeclineRequest(requestId){
+    const res = await axios.post(`/admin/mechanics/bookings/${requestId}/`, jsonifyObject({
+      action: 'decline'
+    }));
+    const data = await objectifyJSON(res.data);
+    if (res.status === 200){
+      notify({
+        title: 'Success',
+        body: 'Request Declined!',
+        level: 'info'
+      });
+
+      init();
+
+    }
+  }
+
+
   useEffect(() => {
     init()
-  }, [])
+  }, []);
 
   if (loading){
     return null
@@ -155,8 +202,8 @@ export const MechanicOverview = () => {
         
         <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
           <MetricCard
-           title="Impressions"
-           value={parseInt(dashboardData?.total_impressions)}
+           title="Total Hires"
+           value={parseInt(dashboardData?.total_hires)}
            // change={-2} 
            // trend="M0,5 Q40,10 60,15 T100,20 T150,25 T200,30"
           />
@@ -173,55 +220,6 @@ export const MechanicOverview = () => {
         
       </Flex>
 
-      {/* Profile Setup Notification */}
-      <Box borderWidth="1px" borderColor="blue.100" borderRadius="md" p={4} mb={6} bg="white" position="relative">
-        <Box align="center" mb={2}>
-          <Text fontWeight="medium">Complete your profile setup</Text>
-          <Button colorScheme="blue" as={"dojah-button"}
-            widgetId="68067151186873a0f4098161"
-            text="Web"
-            textColor="#FFFFFF"
-            backgroundColor="#3977de"> Verify your Business
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Action Buttons */}
-      <Flex gap={4} mb={8} flexDir={{ base: "column", sm: "row" }}>
-        <Button
-         as={Link}
-         to="/bookings"
-         // leftIcon={<Icon as={Clock} />}
-         colorScheme="blue" size="lg" flex={1}>
-          View Bookings
-        </Button>
-        <Button
-          leftIcon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          }
-          as={Link}
-          to={'/chat'}
-          colorScheme="blue"
-          variant="outline"
-          size="lg"
-          flex={1}
-          bg="blue.50"
-          color="blue.500"
-          borderColor="blue.100"
-          _hover={{ bg: "blue.100" }}
-        >
-          View Messages
-        </Button>
-      </Flex>
-
       {/* Pending Requests */}
       <Box mb={8}>
         <Heading as="h2" size="md" mb={4}>
@@ -231,32 +229,34 @@ export const MechanicOverview = () => {
           <Table variant="simple">
             <Thead bg="gray.50">
               <Tr>
+                <Th>ID</Th>
                 <Th>Client</Th>
-                <Th>Service</Th>
+                <Th>Services</Th>
                 <Th>Date</Th>
                 <Th></Th>
               </Tr>
             </Thead>
             <Tbody>
-              {pendingRequests.map((request) => (
-                <Tr key={request.id}>
+              {pendingRequests.map((request, idx) => (
+                <Tr key={request?.id}>
+                  <Td>{idx+1}</Td>
                   <Td>
-                    <ClientInfo name={request.client} location={request.location} hasAvatar={request.hasAvatar} />
+                    <Avatar name={request?.customer?.name} src={request?.customer?.image} size="md" />
+                    {/*<ClientInfo name={request?.client} location={request.location} hasAvatar={request.hasAvatar} />*/}
                   </Td>
-                  <Td>{request.service}</Td>
+                  <Td>{request?.services?.map((service, idx) => <Tag> {service} </Tag> )}</Td>
                   <Td>
-                    <Text>{request.date}</Text>
-                    <Text color="gray.500" fontSize="sm">
-                      {request.time}
+                    <Text>{naturalDate(new Date(request?.date_created))} | 
+                       {naturalTime(new Date(request?.date_created))}
                     </Text>
                   </Td>
                   <Td>
                     <HStack spacing={2}>
-                      <Button colorScheme="blue" size="sm">
+                      <Button onClick={(e) => handleAcceptRequest(request?.uuid)} colorScheme="blue" size="sm">
                         Accept
                       </Button>
-                      <Button colorScheme="red" variant="outline" size="sm">
-                        Reject
+                      <Button onClick={(e) => handleDeclineRequest(request?.uuid)} colorScheme="red" size="sm">
+                        Decline
                       </Button>
                     </HStack>
                   </Td>
@@ -272,6 +272,7 @@ export const MechanicOverview = () => {
         <Heading as="h2" size="md" mb={4}>
           Booking History
         </Heading>
+       
         <Flex justify="space-between" mb={4} flexDir={{ base: "column", sm: "row" }} gap={3}>
           <HStack>
             <Menu>
@@ -284,17 +285,16 @@ export const MechanicOverview = () => {
                 <MenuItem>Last 90 days</MenuItem>
               </MenuList>
             </Menu>
-            {/*<Button leftIcon={<Filter size={16} />} variant="outline" size="sm">
-              More filters
-            </Button>*/}
           </HStack>
+
           <InputGroup maxW={{ base: "full", sm: "300px" }}>
             <InputLeftElement pointerEvents="none">
-              {/*<Search size={18} color="#667085" />*/}
+              <Search size={18} color="#667085" />
             </InputLeftElement>
             <Input placeholder="Search" />
           </InputGroup>
         </Flex>
+
         <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="hidden">
           <Table variant="simple">
             <Thead bg="gray.50">
@@ -307,44 +307,59 @@ export const MechanicOverview = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {bookingHistory.map((booking) => (
+              {bookingHistory?.map((booking) => (
                 <Tr key={booking.id}>
                   <Td>
-                    <ClientInfo name={booking.client} location={booking.location} hasAvatar={booking.hasAvatar} />
+                    <ClientInfo customer={booking?.customer} location={booking?.location} />
                   </Td>
-                  <Td>{booking.service}</Td>
+                  <Td>{booking?.services[0]} {booking?.services?.length > 1 && `+ ${booking?.services?.length - 1} other services`}</Td>
                   <Td>
-                    <Text>{booking.date}</Text>
-                    <Text color="gray.500" fontSize="sm">
-                      {booking.time}
+                    <Text>{naturalDate(new Date(booking?.date_created))} | 
+                       {naturalTime(new Date(booking?.date_created))}
                     </Text>
                   </Td>
                   <Td>
                     <Badge
-                      colorScheme={booking.status === "Completed" ? "green" : "red"}
+                      colorScheme={StatusColor[booking?.status?.toLowerCase()]}
                       px={2}
                       py={1}
                       borderRadius="full"
-                      textTransform="none"
+                      textTransform="capitalize"
                     >
-                      {booking.status}
+                      {booking?.status}
                     </Badge>
                   </Td>
                   <Td>
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        aria-label="Options"
-                        // icon={<MoreVertical size={16} />}
-                        variant="ghost"
-                        size="sm"
-                      />
-                      <MenuList>
-                        <MenuItem>View details</MenuItem>
-                        <MenuItem>Contact client</MenuItem>
-                        <MenuItem>Download invoice</MenuItem>
-                      </MenuList>
-                    </Menu>
+                    <Flex gap={3}>
+                      {
+                        booking?.status === 'accepted' ?
+                        <Button size="sm" colorScheme="blue"> Start Job </Button>
+                        : booking?.status === 'working' ?
+                        <Fragment>
+                          <Button size="sm" colorScheme="blue"> Finish Job </Button>
+                          <Button size="sm" colorScheme="red"> Cancel Job </Button>
+                        </Fragment>
+                        : null
+                      }
+
+                      {
+                        !['expired', 'canceled', 'declined'].includes(booking?.status) &&
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            aria-label="Options"
+                            icon={<MoreVertical size={16} />}
+                            variant="ghost"
+                            size="sm"
+                          />
+                          <MenuList>
+                            <MenuItem>View details</MenuItem>
+                            <MenuItem>Contact client</MenuItem>
+                            <MenuItem>Download invoice</MenuItem>
+                          </MenuList>
+                        </Menu>
+                      }
+                    </Flex>
                   </Td>
                 </Tr>
               ))}

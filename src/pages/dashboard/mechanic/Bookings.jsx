@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect, useContext, Fragment } from "react"
 import {GlobalStore} from '../../../App';
 import {objectifyJSON, jsonifyObject} from '../../../utils';
 import {
@@ -26,15 +24,19 @@ import {
   Th,
   Thead,
   Tr,
+  TableContainer,
   Badge,
 } from "@chakra-ui/react"
-
+import {MoreVertical, MapPin, Search} from 'lucide-react';
 
 const BookingStatusColors = {
   'accepted': 'blue',
+  'working': 'purple',
+  'requested': 'cyan',
   'completed': 'green',
-  'declined': 'red',
-  'requested': 'yellow',
+  'declined': 'yellow',
+  'expired': 'red',
+  'canceled': 'red',
 }
 
 
@@ -48,7 +50,7 @@ const ClientInfo = ({ name, location, image }) => (
     <Box>
       <Text fontWeight="medium">{name}</Text>
       <Flex align="center" color="gray.500" fontSize="xs">
-        {/*<MapPin size={12} style={{ marginRight: "4px" }} />*/}
+        <MapPin size={12} style={{ marginRight: "4px" }} />
         {location}
       </Flex>
     </Box>
@@ -60,7 +62,15 @@ const Bookings = () => {
   const [bookingHistory, setBookingHistory] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
-  const {axios, notify, authUser } = useContext(GlobalStore);
+  const {axios, notify, authUser, naturalDate, naturalTime } = useContext(GlobalStore);
+
+  const filters = [
+    'All',
+    'Accepted',
+    'Completed',
+    'Declined',
+    'Working',
+  ]
 
   async function init(){
     const res = await axios.get('/admin/mechanics/bookings/');
@@ -72,12 +82,26 @@ const Bookings = () => {
       setBookingHistory(data.bookings.history);
       setFilteredBookings(data.bookings.history);
     }
-
   }
 
-  useEffect(() => {
-    init();
-  }, [])
+
+  async function handleStartJob(requestId){
+    const res = await axios.post(`/admin/mechanics/bookings/${requestId}/`, jsonifyObject({
+      action: 'start-job'
+    }));
+    const data = await objectifyJSON(res.data);
+    if (res.status === 200){
+      notify({
+        title: 'Success',
+        body: 'Job Started!',
+        level: 'info'
+      });
+
+      init();
+
+    }
+  }
+  
 
   // Filter bookings based on selected filter
   const handleFilterChange = (filter) => {
@@ -86,7 +110,7 @@ const Bookings = () => {
     if (filter === "All") {
       setFilteredBookings(bookingHistory)
     } else {
-      setFilteredBookings(bookingHistory.filter((booking) => booking.status === filter))
+      setFilteredBookings(bookingHistory.filter((booking) => booking.status.toLowerCase() === filter.toLowerCase()))
     }
   }
 
@@ -125,6 +149,11 @@ const Bookings = () => {
     }
   }
 
+
+  useEffect(() => {
+    init();
+  }, [])
+
   return (
     <Box p={4} maxW="1200px" mx="auto">
       {/* Header */}
@@ -139,35 +168,32 @@ const Bookings = () => {
         <Heading as="h2" size="md" mb={4}>
           Pending Requests
         </Heading>
-        <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="hidden">
+        <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="auto">
           <Table variant="simple">
             <Thead bg="gray.50">
               <Tr>
                 <Th>Client</Th>
                 <Th>Service</Th>
                 <Th>Date</Th>
-                <Th></Th>
+                <Th>Action</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {pendingRequests.map((request) => (
-                <Tr key={request?.uuid}>
+              {pendingRequests.map((request, idx) => (
+                <Tr key={idx}>
                   <Td>
                     <ClientInfo name={request?.customer?.name} location={request?.location} image={request?.customer?.image} />
                   </Td>
                   <Td>{request?.services[0]} {request?.services?.length > 1 && `+ ${request?.services?.length - 1} services`}</Td>
                   <Td>
-                    <Text>{request?.date_created}</Text>
-                    <Text color="gray.500" fontSize="sm">
-                      {request.time}
-                    </Text>
+                    <Text>{naturalDate(new Date(request?.date_created))} | {naturalTime(new Date(request?.date_created))}</Text>
                   </Td>
                   <Td>
                     <HStack spacing={2}>
-                      <Button onClick={() => handleAcceptRequest(request?.uuid)} colorScheme="blue" size="sm">
+                      <Button onClick={() => handleAcceptRequest(request?.uuid)} colorScheme="blue" bg="primary" size="sm">
                         Accept
                       </Button>
-                      <Button onClick={() => handleDeclineRequest(request?.uuid)} colorScheme="red" variant="outline" size="sm">
+                      <Button onClick={() => handleDeclineRequest(request?.uuid)} colorScheme="red" size="sm">
                         Decline
                       </Button>
                     </HStack>
@@ -176,7 +202,7 @@ const Bookings = () => {
               ))}
             </Tbody>
           </Table>
-        </Box>
+        </TableContainer>
       </Box>
 
       {/* Booking History */}
@@ -186,60 +212,32 @@ const Bookings = () => {
         </Heading>
         <Flex justify="space-between" mb={4} flexDir={{ base: "column", sm: "row" }} gap={3}>
           <HStack spacing={2}>
-            <Button
-              size="sm"
-              variant={activeFilter === "All" ? "solid" : "outline"}
-              bg={activeFilter === "All" ? "blue.50" : "white"}
-              color={activeFilter === "All" ? "blue.500" : "gray.700"}
-              borderColor="gray.200"
-              onClick={() => handleFilterChange("All")}
-            >
-              All
-            </Button>
-            <Button
-              size="sm"
-              variant={activeFilter === "Recents" ? "solid" : "outline"}
-              bg={activeFilter === "Recents" ? "blue.50" : "white"}
-              color={activeFilter === "Recents" ? "blue.500" : "gray.700"}
-              borderColor="gray.200"
-              onClick={() => handleFilterChange("Recents")}
-            >
-              Recents
-            </Button>
-            <Button
-              size="sm"
-              variant={activeFilter === "Rejected" ? "solid" : "outline"}
-              bg={activeFilter === "Rejected" ? "blue.50" : "white"}
-              color={activeFilter === "Rejected" ? "blue.500" : "gray.700"}
-              borderColor="gray.200"
-              onClick={() => handleFilterChange("Rejected")}
-            >
-              Rejected
-            </Button>
-            <Button
-              size="sm"
-              variant={activeFilter === "Completed" ? "solid" : "outline"}
-              bg={activeFilter === "Completed" ? "blue.50" : "white"}
-              color={activeFilter === "Completed" ? "blue.500" : "gray.700"}
-              borderColor="gray.200"
-              onClick={() => handleFilterChange("Completed")}
-            >
-              Completed
-            </Button>
-            <Button
-             // leftIcon={<Filter size={16} />} 
-             variant="outline" size="sm" borderColor="gray.200">
-              More filters
-            </Button>
+            {
+              filters.map(filter => 
+                <Button
+                  size="sm"
+                  key={filter}
+                  variant={activeFilter === filter ? "solid" : "outline"}
+                  bg={activeFilter === filter ? "blue.50" : "white"}
+                  color={activeFilter === filter ? "blue.500" : "gray.700"}
+                  borderColor="gray.200"
+                  onClick={() => handleFilterChange(filter)}
+                >
+                  {filter}
+                </Button>
+              )
+            }
+
           </HStack>
           <InputGroup maxW={{ base: "full", sm: "300px" }}>
             <InputLeftElement pointerEvents="none">
-              {/*<Search size={18} color="#667085" />*/}
+              <Search size={18} color="#667085" />
             </InputLeftElement>
             <Input placeholder="Search" borderColor="gray.200" />
           </InputGroup>
         </Flex>
-        <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="hidden">
+
+        <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="auto">
           <Table variant="simple">
             <Thead bg="gray.50">
               <Tr>
@@ -258,10 +256,7 @@ const Bookings = () => {
                   </Td>
                   <Td>{booking?.services[0]} {booking?.services?.length > 1 && `+ ${booking?.services?.length - 1} services`}</Td>
                   <Td>
-                    <Text>{booking?.date_created}</Text>
-                    <Text color="gray.500" fontSize="sm">
-                      {booking?.time}
-                    </Text>
+                    <Text>{naturalDate(new Date(booking?.date_created))} | {naturalTime(new Date(booking?.date_created))}</Text>
                   </Td>
                   <Td>
                     <Badge
@@ -275,26 +270,42 @@ const Bookings = () => {
                     </Badge>
                   </Td>
                   <Td>
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        aria-label="Options"
-                        // icon={<MoreVertical size={16} />}
-                        variant="ghost"
-                        size="sm"
-                      />
-                      <MenuList>
-                        <MenuItem>View details</MenuItem>
-                        <MenuItem>Contact client</MenuItem>
-                        <MenuItem>Download invoice</MenuItem>
-                      </MenuList>
-                    </Menu>
+                    <Flex gap={3}>
+                      {
+                        booking?.status === 'accepted' ?
+                        <Button size="sm" colorScheme="blue" onClick={() => handleStartJob(booking?.uuid)}> Start Job </Button>
+                        : booking?.status === 'working' ?
+                        <Fragment>
+                          <Button size="sm" colorScheme="blue"> Finish Job </Button>
+                          <Button size="sm" colorScheme="red"> Cancel Job </Button>
+                        </Fragment>
+                        : null
+                      }
+
+                      {
+                        !['expired', 'canceled', 'declined'].includes(booking?.status) &&
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            aria-label="Options"
+                            icon={<MoreVertical size={16} />}
+                            variant="ghost"
+                            size="sm"
+                          />
+                          <MenuList>
+                            <MenuItem>View details</MenuItem>
+                            <MenuItem>Contact client</MenuItem>
+                            <MenuItem>Download invoice</MenuItem>
+                          </MenuList>
+                        </Menu>
+                      }
+                    </Flex>
                   </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
-        </Box>
+        </TableContainer>
       </Box>
     </Box>
   )
