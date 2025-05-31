@@ -141,23 +141,20 @@ export const HomePage = ({ props }) => {
               }
             >
                 {/* Hero */}
-              <Container maxW={'600px'} pt={15} pb={'2rem'}>
-                <Box position={'relative'} className='hero' mb={3}>
-                  <Text position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
+              <Container maxW={'800px'} pt={15} pb={'2rem'}>
+               <center> <Box position={'relative'} className='hero' mb={3}>
+                  <Text fontsize="44px" fontWeight={700} position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
                    One Platform for </Text>  
-                  <Text position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
+                  <Text fontWeight={700} position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
                    All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
                   </Text>
-                  <Text size="lg"> Buy, sell, rent cars or find trusted mechanics all in one platform. </Text>          
-                </Box>
-
-                <DashboardSearchBar onSearch={(query) => console.log(query)} bg="white" color="black" />
-
+                  <Text size="22px" fontWeight={600} > Buy, sell, rent cars or find trusted mechanics all in one platform. </Text> <br />
+                    <DashboardSearchBar onSearch={(query) => console.log(query)} bg="white" color="black" borderRadius="1234px" /> <br />
                 <SimpleGrid
                  placeItems="center"
                  justify="center"
                  columns={{sm: 2, md: 4}}
-                 spacing={4}
+                 spacing={0}
                  width="100%"
                  mt={5}
                  minChildWidth={isMobile ? '150px' : '130px'}
@@ -174,31 +171,35 @@ export const HomePage = ({ props }) => {
                         animateIn={"flipInY"}
                         key={item.label}
                         variant="solid"
-                        w="100%"
+                        w="130px"
+                        h={isMobile ? "max-content" : "140px"}
                         bg="whiteAlpha.200"
                         _hover={{ bg: 'whiteAlpha.300' }}
-                        height={isMobile ? "max-content" : "150px"}
+                        height={isMobile ? "max-content" : "140px"}
                         py={6}
                         px={3}
                         align="center"
                         alignItems="center"
                         placeContent="center"
-                        borderWidth={2}
+                        borderWidth={4}
                         borderRadius="10px"
-                        gap={2} direction={isMobile ? 'row' : 'column'}
+                        gap={10} direction={isMobile ? 'row' : 'column'}
                       >
-                        <Icon as={Image} src={item.icon} fontSize={27} />
-                        <Text fontSize="sm">{item.label}</Text>
+                        <Icon as={Image} src={item.icon} fontSize={27} width={50} height={50}   />
+                        <Text fontSize="sm" fontWeight={600}   >{item.label}  </Text>
                       </Flex>                      
                     ))}
                 </SimpleGrid>
+                </Box></center>
+
+                
               </Container>
             </Box>
         </motion.section>
 
         <Box py={20} px={10}>
           <SimpleGrid my={4} columns={{base: 1, md: 2}} gap={4} alignItems="baseline" textAlign={isMobile && 'center'}>
-            <Heading> Explore our network of <Text as="span" color="primary"> 5000+ verified dealers and mechanics.</Text> </Heading>
+            <Heading> Explore our network of <Text as="span" color="primary"> 5000+ {<Icon as={Image} fontSize="25px" src="/assets/icons/Vector.svg" />} verified dealers and mechanics.</Text> </Heading>
             <Text> Motaa connects you to verified dealers and certified mechanics across Nigeria. We believe in excellence and provide you with only partners you can trust.</Text>
           </SimpleGrid>
 
@@ -398,7 +399,7 @@ function Partnership() {
             <br /> partner with us today.
           </Heading>
 
-          <Text fontSize="md" maxW="2xl">
+          <Text fontSize="20px" maxW="2xl">
             Whether you're a dealer, mechanic, or anything in between, Motaa
             gives you the tools and help you need to accelerate your business growth.
           </Text>
@@ -440,40 +441,41 @@ function Features() {
         <Heading size="lg" textAlign="center" mb={12}>
           Why Choose Us<Text as="span" color="primary">?</Text>
         </Heading>
+          <center>
+                  <Flex
+                  w={'996px'}
+                  className="hidden-scroll"
+                  alignItems="center"
+                  px={4} gap={8} justify="space-between"
+                  flexWrap="nowrap"
+                  overflowX='scroll'
+                  py={10}
+                  >
+                    <ScrollAnimation animateIn="zoomIn">
+                      <FeatureCard
+                        icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
+                        title="All in One Marketplace"
+                        description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
+                      />
+                    </ScrollAnimation>
 
-        <Flex
-         w={'100%'}
-         className="hidden-scroll"
-         alignItems="center"
-         px={4} gap={8} justify="space-between"
-         flexWrap="nowrap"
-         overflowX='scroll'
-         py={10}
-        >
-          <ScrollAnimation animateIn="zoomIn">
-            <FeatureCard
-              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/FullCartIcon.svg" />}
-              title="All in One Marketplace"
-              description="Motaa offers you the best experience by providing solutions to your car needs all in one place."
-            />
-          </ScrollAnimation>
+                    <ScrollAnimation animateIn="zoomIn">
+                      <FeatureCard
+                        icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
+                        title="Trust & Transparency"
+                        description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
+                      />
+                    </ScrollAnimation>
 
-          <ScrollAnimation animateIn="zoomIn">
-            <FeatureCard
-              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/TrustAndTransparencyIcon.svg" />}
-              title="Trust & Transparency"
-              description="Have peace of mind when dealing on Motaa with our verified partners and secure payment solutions."
-            />
-          </ScrollAnimation>
-
-          <ScrollAnimation animateIn="zoomIn">
-            <FeatureCard
-              icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
-              title="Ease of Use"
-              description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
-            />
-          </ScrollAnimation>
-        </Flex>
+                    <ScrollAnimation animateIn="zoomIn">
+                      <FeatureCard
+                        icon={<Icon as={Image} fontSize="25px" src="/assets/icons/EaseOfUseIcon.svg" />}
+                        title="Ease of Use"
+                        description="Motaa makes it easy for users to find verified dealers and mechanics with our intuitive interface."
+                      />
+                    </ScrollAnimation>
+                  </Flex>
+            </center>
       </Container>
     </Box>
   )

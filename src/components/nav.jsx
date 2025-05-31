@@ -317,18 +317,19 @@ export const CustomerNavbar = ({ props }) => {
           <Fragment>
             {!isLaptop && 
               <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-                <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={3} alignItems={'center'}>
-                  <Text as={RLink} fontWeight={'600'} to={"/home"}> Home </Text>
-                  <Text as={RLink} fontWeight={'600'} to={"/buy"}> Buy </Text>
-                  <Text as={RLink} fontWeight={'600'} to={"/rent"}> Rent </Text>
-                  <Text as={RLink} fontWeight={'600'} to={"/mechanics"}> Find Mechanic </Text>
+                <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={6} alignItems={'center'}>
+                  <Text as={RLink} fontWeight={'500'} to={"/home"}> Home </Text>
+                  <Text as={RLink} fontWeight={'500'} to={"/buy"}> Buy </Text>
+                  <Text as={RLink} fontWeight={'500'} to={"/rent"}> Rent </Text>
+                  <Text as={RLink} fontWeight={'500'} to={"/mechanics"}> Find Mechanic </Text>
                 </Flex>
               </Flex>
             }
 
-            {!isMobile && <CustomerSearchBar flex={1} />}
+          {/* {!isMobile && <CustomerSearchBar flex={1} />} */}  
 
             <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'nowrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
+              
               {isMobile && 
                 <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
               }
