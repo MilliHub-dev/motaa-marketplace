@@ -248,12 +248,12 @@ function App() {
   }  
   
   return (
-    <ChakraProvider theme={BrandColors}>
-    <ErrorBoundary>
-      <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}>
+     <ChakraProvider theme={BrandColors}>
+     <ErrorBoundary>
+     <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}> 
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
-          <Routes ErrorBoundary={ErrorBoundary}>
+           <Routes ErrorBoundary={ErrorBoundary}>
             {authUser ? (
                 <Fragment>
                   {authUser?.user_type === 'dealer' ? (
@@ -316,7 +316,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to='/home' />} />
                       </Route>
                     )
-                  }
+                  }* 
 
                   {/* Wallet Routes */}
                   <Route ErrorBoundary={ErrorBoundary} element={
@@ -355,9 +355,9 @@ function App() {
         </GlobalStore.Provider>
       </Router>
       </LoadScript>
-    </ErrorBoundary>
-    </ChakraProvider>
-  );
-}
+    </ErrorBoundary>                
+    </ChakraProvider>           
+  );  
+} 
 
 export default App;

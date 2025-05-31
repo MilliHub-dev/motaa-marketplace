@@ -141,8 +141,11 @@ export default function MainPage() {
 
             <Box position="relative" gridArea="image">
               <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
-              <Box width="100px" position="absolute" top={4} right={4} bg="white" p={2} borderRadius="md" boxShadow="md">
-                {/*<Image w="100%" lazy src="/assets/images/buy-widget.svg" h="auto" />*/}
+              <Box width="247px" position="absolute" top={4} right={4}  p={2} borderRadius="md">
+                <Image w="100%" lazy src="/assets/icons/1.png" h="auto" alt='icon' />
+              </Box>
+              <Box width="247px" position="absolute" bottom={200} left={4}  p={2} borderRadius="md" >
+                <Image w="247px" lazy src="/assets/icons/2.png" h="auto" alt='icon' />
               </Box>
             </Box>
           </Grid>
@@ -200,9 +203,9 @@ export default function MainPage() {
         <Heading size="lg" textAlign="center" mb={12}>
           Why Choose Us<Text as="span" color="primary">?</Text>
         </Heading>
-
+        <center>
         <Flex
-         w={'100%'}
+         w={'996px'}
          className="hidden-scroll"
          alignItems="center"
          px={4} gap={8} justify="space-between"
@@ -234,6 +237,7 @@ export default function MainPage() {
             />
           </ScrollAnimation>
         </Flex>
+        </center>
       </Container>
 
       {/* Top Deals Section */}
