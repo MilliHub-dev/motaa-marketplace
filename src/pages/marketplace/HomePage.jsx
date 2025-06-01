@@ -139,7 +139,7 @@ export default function MainPage() {
               </VStack>
             </Box>
 
-            <Box position="relative" gridArea="image">
+            <Box position="relative" gridArea="image" py={5}>
               <Image lazy src="/assets/images/motaa-car-top.png" alt="Featured Car" w="full" h="auto" />
               <Box width="247px" position="absolute" top={4} right={4}  p={2} borderRadius="md">
                 <Image w="100%" lazy src="/assets/icons/1.png" h="auto" alt='icon' />
@@ -205,12 +205,13 @@ export default function MainPage() {
         </Heading>
         <center>
         <Flex
-         w={'996px'}
+         w={'100%'}
+         maxW={'996px'}
          className="hidden-scroll"
          alignItems="center"
          px={4} gap={8} justify="space-between"
          flexWrap="nowrap"
-         overflowX='scroll'
+         overflowX='auto'
          py={10}
         >
           <ScrollAnimation animateIn="zoomIn">

@@ -142,55 +142,57 @@ export const HomePage = ({ props }) => {
             >
                 {/* Hero */}
               <Container maxW={'800px'} pt={15} pb={'2rem'}>
-               <center> <Box position={'relative'} className='hero' mb={3}>
+               <center>
+                <Box position={'relative'} className='hero' mb={3}>
                   <Text fontsize="44px" fontWeight={700} position="relative" lineHeight={1} mb={0} className='title animate__animated animate__fadeInUp'>
                    One Platform for </Text>  
                   <Text fontWeight={700} position="relative" zIndex={'3'}  lineHeight={1} mb={3} className='title animate__animated animate__fadeInUp'>
                    All your <Text as={'span'} className="after-line">Car Needs<Text as='span' color="primary">.</Text></Text>
                   </Text>
                   <Text size="22px" fontWeight={600} > Buy, sell, rent cars or find trusted mechanics all in one platform. </Text> <br />
-                    <DashboardSearchBar onSearch={(query) => console.log(query)} bg="white" color="black" borderRadius="1234px" /> <br />
-                <SimpleGrid
-                 placeItems="center"
-                 justify="center"
-                 columns={{sm: 2, md: 4}}
-                 spacing={0}
-                 width="100%"
-                 mt={5}
-                 minChildWidth={isMobile ? '150px' : '130px'}
-                >
-                    {[
-                      { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car', link: '/signup' },
-                      { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car', link: '/signup/business' },
-                      { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car', link: '/signup' },
-                      { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic', link: '/signup' },
-                    ].map((item, idx) => (
-                      <Flex
-                        as={Link}
-                        to={item.link}
-                        animateIn={"flipInY"}
-                        key={item.label}
-                        variant="solid"
-                        w="130px"
-                        h={isMobile ? "max-content" : "140px"}
-                        bg="whiteAlpha.200"
-                        _hover={{ bg: 'whiteAlpha.300' }}
-                        height={isMobile ? "max-content" : "140px"}
-                        py={6}
-                        px={3}
-                        align="center"
-                        alignItems="center"
-                        placeContent="center"
-                        borderWidth={4}
-                        borderRadius="10px"
-                        gap={10} direction={isMobile ? 'row' : 'column'}
-                      >
-                        <Icon as={Image} src={item.icon} fontSize={27} width={50} height={50}   />
-                        <Text fontSize="sm" fontWeight={600}   >{item.label}  </Text>
-                      </Flex>                      
-                    ))}
-                </SimpleGrid>
-                </Box></center>
+                  <DashboardSearchBar onSearch={(query) => console.log(query)} bg="white" color="black" borderRadius="1234px" /> <br />
+                  <SimpleGrid
+                   placeItems="center"
+                   justify="center"
+                   columns={{sm: 2, md: 4}}
+                   spacing={0}
+                   width="100%"
+                   mt={5}
+                   minChildWidth={isMobile ? '150px' : '130px'}
+                  >
+                      {[
+                        { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car', link: '/signup' },
+                        { icon: '/assets/icons/SellCarIcon.svg', label: 'Sell your Car', link: '/signup/business' },
+                        { icon: '/assets/icons/RentCarIcon.svg', label: 'Rent a Car', link: '/signup' },
+                        { icon: '/assets/icons/FindMechanicIcon.svg', label: 'Find Mechanic', link: '/signup' },
+                      ].map((item, idx) => (
+                        <Flex
+                          as={Link}
+                          to={item.link}
+                          animateIn={"flipInY"}
+                          key={item.label}
+                          variant="solid"
+                          w="130px"
+                          h={isMobile ? "max-content" : "140px"}
+                          bg="whiteAlpha.200"
+                          _hover={{ bg: 'whiteAlpha.300' }}
+                          height={isMobile ? "max-content" : "140px"}
+                          py={6}
+                          px={3}
+                          align="center"
+                          alignItems="center"
+                          placeContent="center"
+                          borderWidth={4}
+                          borderRadius="10px"
+                          gap={10} direction={isMobile ? 'row' : 'column'}
+                        >
+                          <Icon as={Image} src={item.icon} fontSize={27} width={{base: 25, md: 50}} height={{base: 25, md: 50}} />
+                          <Text fontSize="sm" fontWeight={600}>{item.label}  </Text>
+                        </Flex>                      
+                      ))}
+                  </SimpleGrid>
+                </Box>
+              </center>
 
                 
               </Container>
@@ -443,13 +445,15 @@ function Features() {
         </Heading>
           <center>
                   <Flex
-                  w={'996px'}
-                  className="hidden-scroll"
-                  alignItems="center"
-                  px={4} gap={8} justify="space-between"
-                  flexWrap="nowrap"
-                  overflowX='scroll'
-                  py={10}
+                  
+                    w={'100%'}
+                    maxW={'996px'}
+                    className="hidden-scroll"
+                    alignItems="center"
+                    px={4} gap={8} justify="space-between"
+                    flexWrap="nowrap"
+                    overflowX='scroll'
+                    py={10}
                   >
                     <ScrollAnimation animateIn="zoomIn">
                       <FeatureCard

@@ -6,7 +6,7 @@ import {
 import SignaturePad from 'react-signature-canvas';
 import {GlobalStore} from '../App';
 
-export const PreviewWithSignature = ({ docType, params }) => {
+export const PreviewWithSignature = ({ docType, params, onSignatureComplete }) => {
   const [sigMode, setSigMode] = useState('type');      // 'type' or 'draw'
   const [typedSig, setTypedSig] = useState('');
   const sigPadRef = useRef(null);
@@ -45,7 +45,8 @@ export const PreviewWithSignature = ({ docType, params }) => {
     const signedBlob = new Blob([res.data], { type: 'application/pdf' });
     const url = URL.createObjectURL(signedBlob);
     setPdfUrl(url);
-    setTimeout(() => downloader.current.click(), 1200)
+    setTimeout(() => downloader.current.click(), 500);
+    onSignatureComplete();
   };
 
   return (
