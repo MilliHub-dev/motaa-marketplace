@@ -157,7 +157,7 @@ export const HomePage = ({ props }) => {
                  spacing={0}
                  width="100%"
                  mt={5}
-                 minChildWidth={isMobile ? '150px' : '130px'}
+                 minChildWidth={isMobile ? '130px' : '150px'}
                 >
                     {[
                       { icon: '/assets/icons/BuyCarIcon.svg', label: 'Buy a Car', link: '/signup' },

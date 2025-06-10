@@ -115,7 +115,7 @@ export default function MainPage() {
               </Text>
 
               <VStack spacing={4} align="stretch" mb={4}>
-                <InputGroup size="lg">
+               {/* <InputGroup size="lg">
                   <InputLeftElement>
                     <Search size="20px"/>
                   </InputLeftElement>
@@ -125,7 +125,7 @@ export default function MainPage() {
                    borderRadius="30px" bg="gray.200"
                    onInput={e => setQuery(e.target.value)}
                   />
-                </InputGroup>
+                </InputGroup> */}
 
                 <Button as={!query.trim() && Link} to='/buy' colorScheme="blue" bg="primary" size="lg">
                   Browse cars for sale

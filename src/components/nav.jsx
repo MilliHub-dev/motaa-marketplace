@@ -326,7 +326,7 @@ export const CustomerNavbar = ({ props }) => {
               </Flex>
             }
 
-          {/* {!isMobile && <CustomerSearchBar flex={1} />} */}  
+           {!isMobile && <CustomerSearchBar flex={1} />} 
 
             <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'nowrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
               

@@ -90,7 +90,7 @@ export const GlobalStore = createContext({
   naturalDate: undefined,
 });
 
-const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+//const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
 
   
 function App() {
