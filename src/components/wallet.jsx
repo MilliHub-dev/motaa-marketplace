@@ -21,7 +21,7 @@ import { usePaystackPayment } from 'react-paystack';
 import {PinField, CenteredLayout} from '.';
 import {EmptyWalletIcon,} from './icons';
 import {GlobalStore} from '../App';
-import {objectifyJSON, jsonifyObject} from '../utils';
+import {objectifyJSON, jsonifyObject, isDebug} from '../utils';
 
 
 export const PaystackPaymentModal = ({
@@ -36,7 +36,7 @@ export const PaystackPaymentModal = ({
 	} = payload;
 
 	const {title, logo, description} = customizations;
-	const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
+	const DEBUG = isDebug();
 	// const PAYSTACK_LIVE_KEY = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY;
 	const PAYSTACK_LIVE_KEY = "pk_test_73e0d039b25449f1493d055ff5ed58a4b6c800f0";
 
@@ -109,7 +109,7 @@ export const FlutterwavePaymentModal = ({
 	} = payload;
 
 	const {title, logo, description} = customizations;
-	const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
+	const DEBUG = isDebug();
 	console.log("Amount", payment_option, amount)
 
 	const config = {

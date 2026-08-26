@@ -1,7 +1,7 @@
 import {useState, useEffect, useContext, useRef} from 'react';
 import {Link, NavLink, Outlet} from 'react-router-dom';
 import {GlobalStore} from '../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
+import {objectifyJSON, jsonifyObject, isDebug} from '../../../utils';
 import {
   Box,
   Container,
@@ -56,7 +56,7 @@ function WalletWithdrawalPage() {
   const [accept, setAccept] = useState(false);
   const [step, setStep] = useState(0);
   const amountRef = useRef();
-  const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG);
+  const DEBUG = isDebug();
 
   async function processWithdrawal(response){
     const res = await axios.post('/wallet/deposit/', jsonifyObject(response));

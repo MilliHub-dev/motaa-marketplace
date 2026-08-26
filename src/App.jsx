@@ -2,12 +2,13 @@ import { createContext, Fragment, useEffect, useState } from 'react';
 import {Outlet, redirect, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { Axios, } from 'axios';
+import { isDebug } from './utils';
 import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
 import {AppLoadingScreen} from './components/loaders';
 import {APIProvider} from '@vis.gl/react-google-maps';
-import {Autocomplete, LoadScript} from "@react-google-maps/api";
+import {useJsApiLoader} from "@react-google-maps/api";
 
 
 // pages
@@ -90,7 +91,12 @@ export const GlobalStore = createContext({
   naturalDate: undefined,
 });
 
-const IS_DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+const IS_DEBUG = isDebug();
+
+// Must be module-level constants — a fresh array/string each render makes
+// useJsApiLoader tear down and re-inject the script on every render.
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0';
+const GOOGLE_MAPS_LIBRARIES = ['places'];
 
   
 function App() {
@@ -99,6 +105,15 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setAuthState] = useState(false)
   const [otherContext, setOtherContext] = useState({})
+
+  // Loads the Maps script WITHOUT gating the app on it. If Google is
+  // unreachable (offline, blocked network, ad-blocker) mapsLoaded stays false
+  // and map-dependent widgets degrade instead of the whole site going dark.
+  const {isLoaded: mapsLoaded, loadError: mapsError} = useJsApiLoader({
+    id: 'script-loader',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
   const axiosClient =  new Axios({
      baseURL: 'https://server.motaa.net/api/v1',
     // baseURL: 'http://localhost:8000/api/v1',
@@ -187,10 +202,9 @@ function App() {
     }
 
     // try to authenticate the user else redirect to login screen
+    // this is a synchronous localStorage read, so there is nothing to wait for
     getAuthUser();
-
-    // show loading screen for 3.5 seconds
-    setTimeout(() => setLoading(false), 5000);
+    setLoading(false);
 
     // TODO: try to refresh the auth token if expired - for jwt
   }
@@ -235,6 +249,8 @@ function App() {
     naturalTime,
     setOtherContext,
     otherContext,
+    mapsLoaded,
+    mapsError,
   }
 
   useEffect(() => {
@@ -250,7 +266,6 @@ function App() {
   return (
      <ChakraProvider theme={BrandColors}>
      <ErrorBoundary>
-     <LoadScript googleMapsApiKey="AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0" libraries={['places', 'maps']}> 
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
            <Routes ErrorBoundary={ErrorBoundary}>
@@ -354,7 +369,6 @@ function App() {
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>
-      </LoadScript>
     </ErrorBoundary>                
     </ChakraProvider>           
   );  

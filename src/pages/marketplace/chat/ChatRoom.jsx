@@ -18,13 +18,13 @@ import {
 import { Search, Phone, Send, Smile, Mic, MoreVertical, Check, PlayCircle } from 'lucide-react';
 import { useState, useEffect, useContext } from 'react';
 import {GlobalStore} from '../../../App';
-import {objectifyJSON} from '../../../utils';
+import {objectifyJSON, isDebug} from '../../../utils';
 import {useParams, Link} from 'react-router-dom';
 import {ChevronLeftIcon, CloseIcon} from '@chakra-ui/icons';
 
 
 function ChatRoom() {
-  const DEBUG = JSON.parse(import.meta.env.VITE_DEBUG) || false;
+  const DEBUG = isDebug();
   const [chatRoom, setChatRoom] = useState({});
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);

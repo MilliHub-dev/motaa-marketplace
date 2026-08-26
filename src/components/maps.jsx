@@ -37,7 +37,7 @@ import { useSearchParams, Link } from "react-router-dom";
 export const MapComponent = ({ location, style, ref, ...props }) => {
   return (
     <APIProvider
-     apiKey={'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0'}
+     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0'}
     >
       <Map
         mapId="fe2d2f3f932f354f"
@@ -62,20 +62,26 @@ export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [selectedLatLng, setSelectedLatLng] = useState(null);
 
+  const {mapsLoaded} = useContext(GlobalStore);
   const autocompleteService = useRef(null);
   const placesService = useRef(null);
   const mapRef = useRef(null);
 
+  // Re-runs when the Maps script finishes loading. With [] deps this silently
+  // never initialised if the script wasn't ready at mount, leaving a plain
+  // input that returns no predictions.
   useEffect(() => {
-    if (window.google && !autocompleteService.current) {
+    if (!mapsLoaded || !window.google?.maps?.places) return;
+
+    if (!autocompleteService.current) {
       autocompleteService.current = new window.google.maps.places.AutocompleteService();
     }
 
-    if (window.google && mapRef.current && !placesService.current) {
+    if (mapRef.current && !placesService.current) {
       const dummyMap = new window.google.maps.Map(mapRef.current);
       placesService.current = new window.google.maps.places.PlacesService(dummyMap);
     }
-  }, []);
+  }, [mapsLoaded]);
 
   const fetchPredictions = (input) => {
     if (!autocompleteService.current || input.length < 2) {
