@@ -1027,7 +1027,7 @@ export const Sidebar = ({ show, onClose, }) => {
                 {isLoggedIn && 
                   <Button display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
                 }
-                <Button display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
+                <Button data-maintenance display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
             </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -1086,8 +1086,8 @@ export const Footer = ({ props }) => {
             </Box>
 
             <Flex gap={5}>
-              <Button size="lg" colorScheme="yellow" bg="tertiary" color="primary"> Get Started </Button>
-              <Button size="lg" colorScheme="white" bg="white" color="black"> Learn More </Button>
+              <Button data-maintenance size="lg" colorScheme="yellow" bg="tertiary" color="primary"> Get Started </Button>
+              <Button data-maintenance size="lg" colorScheme="white" bg="white" color="black"> Learn More </Button>
             </Flex>
           </Flex>
         </Box>
@@ -1212,7 +1212,6 @@ export const FormStepper = () => {
     </Box>
   );
 };
-
 
 
 

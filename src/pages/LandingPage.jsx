@@ -243,7 +243,7 @@ export const HomePage = ({ props }) => {
                   <Text px={3} py={1} borderRadius={'5px'} color={'#fff'} bg={'primary'} w={'max-content'}> {feature.label} </Text>
                   <Text my={2} maxW="75%"> {feature.content} </Text>
 
-                  <Button variant="outine" borderColor="white" color="white" borderWidth={2} rightIcon={<RxArrowRight />}>{feature.cta.label}</Button>
+                  <Button data-maintenance variant="outline" borderColor="white" color="white" borderWidth={2} rightIcon={<RxArrowRight />}>{feature.cta.label}</Button>
                 </Box>
               </Box>
               </ScrollAnimation>
@@ -336,7 +336,7 @@ export const HomePage = ({ props }) => {
                 )}
               </Flex>
 
-              <Button variant="outline" maxW={'200px'} rightIcon={<FaPlus />}> Show all Brands </Button>
+              <Button data-maintenance variant="outline" maxW={'200px'} rightIcon={<FaPlus />}> Show all Brands </Button>
             </Stack>
           </Stack>
         </Container>
@@ -348,7 +348,7 @@ export const HomePage = ({ props }) => {
         {/* FAQs */}
         <Container maxW={{md: '75%'}} py={'100px'} textAlign={'center'}>
           <Text my={2} className='title'> Frequently Asked Questions </Text>
-          <Text my={2} className='text'> Still not convinced? <a href={'/'} className='link'>Chat with our team here.</a> </Text>
+          <Text my={2} className='text'> Still not convinced? <a data-maintenance href={'/'} className='link'>Chat with our team here.</a> </Text>
 
           <Stack mt={10} maxW={{md: '500px'}} mx={'auto'}>
             <Accordion allowMultiple allowToggle border={'none'} textAlign={'left'}>
@@ -588,6 +588,5 @@ function Testimonials() {
     </Box>
   )
 }
-
 
 

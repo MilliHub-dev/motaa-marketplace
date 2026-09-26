@@ -7,11 +7,16 @@ import {
 } from "../components/nav";
 import { Box, Stack } from "@chakra-ui/react";
 import { Outlet, useLocation } from "react-router-dom";
+import LandingMaintenance from "../components/LandingMaintenance";
 
 
 
 export const Layout = ({ children, hideFooter, ...props }) => {
     const {authUser, isAuthenticated} = useContext(GlobalStore);
+    const { pathname } = useLocation();
+    const isLandingPage = !isAuthenticated && ![
+        '/login', '/signup', '/signup/business', '/privacy-policy', '/terms-of-service',
+    ].includes(pathname.replace(/\/$/, ''));
     const loc = window.location.pathname.split('/');
 
     function getUserNav(userType){
@@ -39,6 +44,7 @@ export const Layout = ({ children, hideFooter, ...props }) => {
     }, [window.location.pathname, hideFooter])
 
     return(
+        <LandingMaintenance enabled={isLandingPage}>
         <Stack bgColor="#fff" gap={0} spacing={0}>
             {
                 !isAuthenticated ? (<UnauthenticatedNavbar />):(<CustomerNavbar />)
@@ -46,6 +52,7 @@ export const Layout = ({ children, hideFooter, ...props }) => {
             <Box minH={'50vh'}><Outlet /></Box>
             {!shouldHideFooter && <Footer />}
         </Stack>
+        </LandingMaintenance>
     )
 }
 
