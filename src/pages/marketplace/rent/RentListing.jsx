@@ -36,7 +36,7 @@ export const RentListing = () => {
     const [params, setParams] = useSearchParams();
     const qs = apiQuery(params);
     const listings = useApiQuery(
-        (api, signal) => api.get(`/listings/rentals/${qs ? `?${qs}` : ''}`, { signal }),
+        (api, signal, { useCache }) => api.get(`/listings/rentals/?summary=1${qs ? `&${qs}` : ''}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [qs],
         { select: (body) => body?.data }
     );

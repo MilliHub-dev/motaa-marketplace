@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Link as RLink } from 'react-router-dom';
 import {
   Box,
@@ -30,6 +30,7 @@ import {
 import { Pencil, Trash2, Plus, Car, ImageOff, Eye, EyeOff, Info } from 'lucide-react';
 import { GlobalStore } from '../../../../App';
 import { asList } from '../../../../utils';
+import { PageControls } from '../../../../components';
 import { useApiQuery, useApiMutation } from '../../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../../components/states';
 import { optionLabel } from '../../../../components/forms';
@@ -62,19 +63,22 @@ function ListingsAdmin() {
   const { dealership } = useContext(DealershipContext);
   const verified = Boolean(dealership?.verified_business);
   const [filter, setFilter] = useState('all');
+  const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
 
   const listings = useApiQuery(
-    (api, signal) => api.get('/admin/dealership/listings/', { signal }),
-    [],
-    { select: (body) => asList(body?.data) }
+    (api, signal) => api.get(`/admin/dealership/listings/?paginated=1&status=${filter}&offset=${offset}`, { signal }),
+    [filter, offset],
+    { select: (body) => ({ ...body?.data, requestedOffset: offset }) }
   );
-
-  const counts = { all: 0, live: 0, review: 0, draft: 0, sold: 0 };
-  for (const listing of listings.data || []) {
-    counts.all += 1;
-    counts[listingStatus(listing).key] += 1;
-  }
+  const counts = listings.data?.counts || {};
+  const pagination = listings.data?.pagination;
+  useEffect(() => {
+    if (!listings.loading && listings.data?.requestedOffset === offset && pagination && pagination.offset !== offset) {
+      setOffset(pagination.offset);
+    }
+  }, [listings.loading, listings.data?.requestedOffset, pagination, offset]);
+  function chooseFilter(value) { setFilter(value); setOffset(0); }
 
   return (
     <Box minH="70vh" pt={5}>
@@ -107,7 +111,7 @@ function ListingsAdmin() {
           return (
             <Button
               key={key}
-              onClick={() => setFilter(key)}
+              onClick={() => chooseFilter(key)}
               aria-pressed={active}
               h="auto"
               py={3}
@@ -132,7 +136,7 @@ function ListingsAdmin() {
       <AsyncState
         query={listings}
         loadingLabel="Loading your listings…"
-        isEmpty={(items) => items.length === 0}
+        isEmpty={(data) => data.counts.all === 0}
         empty={
           <EmptyState
             icon={Car}
@@ -142,13 +146,17 @@ function ListingsAdmin() {
           />
         }
       >
-        {(items) => {
-          const visible = filter === 'all' ? items : items.filter((l) => listingStatus(l).key === filter);
-          return visible.length ? (
-            <ListingTable listings={visible} verified={verified} onDelete={setPendingDelete} onChanged={listings.reload} />
-          ) : (
-            <EmptyState icon={Car} title="Nothing here" description="No listings match this filter." action={{ label: 'Show all listings', onClick: () => setFilter('all') }} />
-          );
+        {(data) => {
+          const visible = asList(data.results);
+          return <>
+            {visible.length ? (
+              <ListingTable listings={visible} verified={verified} onDelete={setPendingDelete} onChanged={listings.reload} />
+            ) : (
+              <EmptyState icon={Car} title="Nothing here" description="No listings match this filter." action={{ label: 'Show all listings', onClick: () => chooseFilter('all') }} />
+            )}
+            <PageControls offset={pagination?.offset} limit={pagination?.limit} count={pagination?.count}
+              isLoading={listings.loading} onPage={setOffset} />
+          </>;
         }}
       </AsyncState>
 
@@ -225,7 +233,7 @@ function ListingTable({ listings, verified, onDelete, onChanged }) {
                     </Tag>
                   </Tooltip>
                 </Td>
-                <Td isNumeric>{Array.isArray(listing?.viewers) ? listing.viewers.length : 0}</Td>
+                <Td isNumeric>{listing?.views_count ?? (Array.isArray(listing?.viewers) ? listing.viewers.length : 0)}</Td>
                 <Td>
                   <HStack spacing={2}>
                     <Tooltip label="Edit listing" hasArrow>

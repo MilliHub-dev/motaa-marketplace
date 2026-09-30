@@ -59,7 +59,7 @@ const BuyListing = () => {
     const qs = apiQuery(params);
     const condition = params.get('condition') || '';
     const listings = useApiQuery(
-        (api, signal) => api.get(`/listings/buy/${qs ? `?${qs}` : ''}`, { signal }),
+        (api, signal, { useCache }) => api.get(`/listings/buy/?summary=1${qs ? `&${qs}` : ''}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [qs],
         { select: (body) => body?.data }
     );

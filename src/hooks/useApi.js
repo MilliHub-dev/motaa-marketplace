@@ -14,7 +14,7 @@ import { GlobalStore } from '../App';
 import { toApiError } from '../api/client';
 
 /**
- * @param {(api, signal) => Promise<any>} fetcher
+ * @param {(api, signal, { useCache: boolean }) => Promise<any>} fetcher
  * @param {any[]} deps   re-fetch when these change
  * @param {{ enabled?: boolean, select?: (body) => any, initialData?: any }} [options]
  * @returns {{ data, error, loading, reload, setData }}
@@ -31,7 +31,7 @@ export function useApiQuery(fetcher, deps = [], { enabled = true, select, initia
   fetcherRef.current = fetcher;
   selectRef.current = select;
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async ({ useCache = false } = {}) => {
     const id = ++requestId.current;
     controllerRef.current?.abort();
     const controller = new AbortController();
@@ -39,7 +39,7 @@ export function useApiQuery(fetcher, deps = [], { enabled = true, select, initia
     setLoading(true);
     setError(null);
     try {
-      const body = await fetcherRef.current(api, controller.signal);
+      const body = await fetcherRef.current(api, controller.signal, { useCache });
       if (id !== requestId.current) return;
       setData(selectRef.current ? selectRef.current(body) : body);
     } catch (err) {
@@ -57,7 +57,7 @@ export function useApiQuery(fetcher, deps = [], { enabled = true, select, initia
       setLoading(false);
       return undefined;
     }
-    reload();
+    reload({ useCache: true });
     // cancel and ignore requests that are superseded or unmounted
     return () => {
       requestId.current++;

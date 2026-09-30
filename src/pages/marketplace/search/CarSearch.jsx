@@ -41,7 +41,7 @@ export const CarSearchPage = () => {
     const apiQs = qs.toString();
 
     const results = useApiQuery(
-        (api, signal) => api.get(`/listings/find/?${apiQs}`, { signal }),
+        (api, signal, { useCache }) => api.get(`/listings/find/?summary=1&${apiQs}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [apiQs],
         { select: (body) => body?.data }
     );

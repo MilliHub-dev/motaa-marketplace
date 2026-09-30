@@ -101,6 +101,14 @@ function safeParse(text) {
  */
 export function createApiClient({ baseURL, getToken, onUnauthorized, onConnectionProblem }) {
   const http = axios.create({ baseURL, timeout: 30000 });
+  const cache = new Map();
+  let cacheToken = getToken?.();
+  let cacheVersion = 0;
+  const clearCache = () => { cache.clear(); cacheVersion += 1; };
+  const syncSession = () => {
+    const token = getToken?.();
+    if (token !== cacheToken) { clearCache(); cacheToken = token; }
+  };
 
   http.interceptors.request.use((config) => {
     const token = getToken?.();
@@ -120,6 +128,7 @@ export function createApiClient({ baseURL, getToken, onUnauthorized, onConnectio
       if (body && typeof body === 'object' && body.error === true) {
         throw new ApiError(readableMessage(response.status, body), { status: response.status, data: body });
       }
+      if (response.config.method !== 'get') clearCache();
       return response;
     },
     (error) => {
@@ -133,8 +142,26 @@ export function createApiClient({ baseURL, getToken, onUnauthorized, onConnectio
 
   const unwrap = (promise) => promise.then((response) => response.data ?? {});
 
+  async function get(url, { cacheTTL = 0, ...config } = {}) {
+    syncSession();
+    const key = http.getUri({ ...config, url });
+    const cached = cache.get(key);
+    if (config.signal?.aborted) throw new ApiError('Request cancelled.', { kind: 'cancelled' });
+    if (cacheTTL > 0 && cached && cached.expires > Date.now()) return cached.body;
+    cache.delete(key);
+    const version = cacheVersion;
+    const body = await unwrap(http.get(url, config));
+    syncSession();
+    if (cacheTTL > 0 && version === cacheVersion && !config.signal?.aborted) {
+      cache.delete(key);
+      cache.set(key, { body, expires: Date.now() + cacheTTL });
+      if (cache.size > 50) cache.delete(cache.keys().next().value);
+    }
+    return body;
+  }
+
   return {
-    get: (url, config) => unwrap(http.get(url, config)),
+    get,
     delete: (url, config) => unwrap(http.delete(url, config)),
     post: (url, body, config) => unwrap(http.post(url, body, config)),
     put: (url, body, config) => unwrap(http.put(url, body, config)),
