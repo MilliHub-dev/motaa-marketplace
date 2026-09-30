@@ -5,6 +5,13 @@ import App from './App.jsx';
 import "animate.css/animate.compat.css";
 import reportWebVitals from './reportWebVitals';
 import { glassEnabled, isIOS } from './utils/platform';
+import { reloadForNewVersion } from './utils/lazyPage';
+
+// Vite fires this when a code-split chunk (or its CSS) fails to load — usually
+// because a new version was deployed. Reload once to pick it up.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewVersion()) event.preventDefault();
+});
 
 // Hooks for platform-specific CSS (see assets/index.css)
 if (isIOS) document.documentElement.classList.add('ios');

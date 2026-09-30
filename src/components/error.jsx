@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Box, Container, Card, CardHeader, CardBody, CardFooter, Heading, Text, Button, VStack } from '@chakra-ui/react';
-import { LuTriangleAlert } from 'react-icons/lu';
+import { LuTriangleAlert, LuRefreshCw } from 'react-icons/lu';
+import { isChunkLoadError } from '../utils/lazyPage';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -27,6 +28,28 @@ class ErrorBoundary extends Component {
   };
 
   render() {
+    if (this.state.hasError && isChunkLoadError(this.state.error)) {
+      // a new version was deployed while this tab was open
+      return (
+        <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center" bg="gray.50" p={4}>
+          <Container maxW="650px">
+            <Card>
+              <CardHeader textAlign="center">
+                <Box as={LuRefreshCw} w={14} h={14} mx="auto" color="primary" mb={4} />
+                <Heading as="h1" size="lg">Motaa was just updated</Heading>
+              </CardHeader>
+              <CardBody>
+                <Text textAlign="center" color="gray.600">Reload the page to get the latest version.</Text>
+              </CardBody>
+              <CardFooter justifyContent="center">
+                <Button w="100%" colorScheme="blue" bg="primary" onClick={this.handleRefresh}>Reload</Button>
+              </CardFooter>
+            </Card>
+          </Container>
+        </Box>
+      );
+    }
+
     if (this.state.hasError) {
       return (
         <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center" bg="gray.50" p={4}>

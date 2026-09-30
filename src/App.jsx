@@ -1,7 +1,8 @@
-import { createContext, Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { glassEnabled } from './utils/platform';
+import { lazyPage } from './utils/lazyPage';
 import { API_URL, GOOGLE_MAPS_API_KEY, MAINTENANCE_MODE } from './config';
 import { createApiClient, toApiError } from './api/client';
 import { glassTheme } from './theme/glass';
@@ -14,67 +15,67 @@ import {useJsApiLoader} from "@react-google-maps/api";
 
 // pages — the landing page, site layout and login load up front; everything
 // else is split into its own chunk and fetched when first visited.
-const HomePage = lazy(() => import('./pages/marketplace/HomePage'));
+const HomePage = lazyPage(() => import('./pages/marketplace/HomePage'));
 import LandingPage from './pages/LandingPage';
-const ComingSoon = lazy(() => import('./pages/ComingSoon'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
-const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
-const AboutPage = lazy(() => import('./pages/public/AboutPage'));
-const FeaturesPage = lazy(() => import('./pages/public/FeaturesPage'));
-const BusinessPage = lazy(() => import('./pages/public/BusinessPage'));
-const SupportPage = lazy(() => import('./pages/SupportPage'));
-const CheckoutStatus = lazy(() => import('./pages/marketplace/checkout/CheckoutStatus'));
-const WalletSettingsPage = lazy(() => import('./pages/marketplace/wallet/Settings'));
-const EditServiceOffering = lazy(() => import('./pages/dashboard/mechanic/services/EditServiceOffering'));
+const ComingSoon = lazyPage(() => import('./pages/ComingSoon'));
+const PrivacyPolicyPage = lazyPage(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazyPage(() => import('./pages/TermsOfServicePage'));
+const AboutPage = lazyPage(() => import('./pages/public/AboutPage'));
+const FeaturesPage = lazyPage(() => import('./pages/public/FeaturesPage'));
+const BusinessPage = lazyPage(() => import('./pages/public/BusinessPage'));
+const SupportPage = lazyPage(() => import('./pages/SupportPage'));
+const CheckoutStatus = lazyPage(() => import('./pages/marketplace/checkout/CheckoutStatus'));
+const WalletSettingsPage = lazyPage(() => import('./pages/marketplace/wallet/Settings'));
+const EditServiceOffering = lazyPage(() => import('./pages/dashboard/mechanic/services/EditServiceOffering'));
 
 
-const RentListing = lazy(() => import('./pages/marketplace/rent/RentListing'));
-const RentDetail = lazy(() => import('./pages/marketplace/rent/RentDetail'));
-const BuyListing = lazy(() => import('./pages/marketplace/buy/BuyListing'));
-const BuyDetail = lazy(() => import('./pages/marketplace/buy/BuyDetail'));
-const MechanicSearchPage = lazy(() => import('./pages/marketplace/search/MechanicSearch'));
-const CarSearchPage = lazy(() => import('./pages/marketplace/search/CarSearch'));
-const MechanicListPage = lazy(() => import('./pages/marketplace/mechanics/MechanicsListing'));
-const ConfirmMechanicBookingPage = lazy(() => import('./pages/marketplace/mechanics/ConfirmBooking'));
-const MechanicDetailPage = lazy(() => import('./pages/marketplace/mechanics/MechanicDetail'));
-const LoginView = lazy(() => import('./pages/auth/Login'));
-const SignupView = lazy(() => import('./pages/auth/Signup'));
-const BusinessSignupView = lazy(() => import('./pages/auth/BusinessProfile'));
-const ResetPasswordView = lazy(() => import('./pages/auth/ResetPassword'));
-const ChatLayout = lazy(() => import('./pages/marketplace/chat/Layout'));
-const ChatRoom = lazy(() => import('./pages/marketplace/chat/ChatRoom'));
-const CartPage = lazy(() => import('./pages/marketplace/CartPage'));
-const CheckoutPage = lazy(() => import('./pages/marketplace/checkout/CheckoutPage'));
-const CheckoutWithInspection = lazy(() => import('./pages/marketplace/checkout/CheckoutInspection'));
-const DocumentSigningPage = lazy(() => import('./pages/marketplace/checkout/DocumentSigningPage'));
-const NotificationsPage = lazy(() => import('./pages/marketplace/Notifications'));
+const RentListing = lazyPage(() => import('./pages/marketplace/rent/RentListing'));
+const RentDetail = lazyPage(() => import('./pages/marketplace/rent/RentDetail'));
+const BuyListing = lazyPage(() => import('./pages/marketplace/buy/BuyListing'));
+const BuyDetail = lazyPage(() => import('./pages/marketplace/buy/BuyDetail'));
+const MechanicSearchPage = lazyPage(() => import('./pages/marketplace/search/MechanicSearch'));
+const CarSearchPage = lazyPage(() => import('./pages/marketplace/search/CarSearch'));
+const MechanicListPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicsListing'));
+const ConfirmMechanicBookingPage = lazyPage(() => import('./pages/marketplace/mechanics/ConfirmBooking'));
+const MechanicDetailPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicDetail'));
+const LoginView = lazyPage(() => import('./pages/auth/Login'));
+const SignupView = lazyPage(() => import('./pages/auth/Signup'));
+const BusinessSignupView = lazyPage(() => import('./pages/auth/BusinessProfile'));
+const ResetPasswordView = lazyPage(() => import('./pages/auth/ResetPassword'));
+const ChatLayout = lazyPage(() => import('./pages/marketplace/chat/Layout'));
+const ChatRoom = lazyPage(() => import('./pages/marketplace/chat/ChatRoom'));
+const CartPage = lazyPage(() => import('./pages/marketplace/CartPage'));
+const CheckoutPage = lazyPage(() => import('./pages/marketplace/checkout/CheckoutPage'));
+const CheckoutWithInspection = lazyPage(() => import('./pages/marketplace/checkout/CheckoutInspection'));
+const DocumentSigningPage = lazyPage(() => import('./pages/marketplace/checkout/DocumentSigningPage'));
+const NotificationsPage = lazyPage(() => import('./pages/marketplace/Notifications'));
 
 // Mechanic Dashboard
-const MechanicDashboardLayout = lazy(() => import('./pages/dashboard/mechanic/Layout'));
-const MechanicDashboard = lazy(() => import('./pages/dashboard/mechanic/MechanicDashboard'));
-const BookingsAdmin = lazy(() => import('./pages/dashboard/mechanic/Bookings'));
-const ServiceOfferings = lazy(() => import('./pages/dashboard/mechanic/services/ServiceOfferings'));
-const MechanicAnalytics = lazy(() => import('./pages/dashboard/mechanic/Analytics'));
-const CreateServiceOffering = lazy(() => import('./pages/dashboard/mechanic/services/CreateServiceOffering'));
-const BusinessProfile = lazy(() => import('./pages/dashboard/mechanic/settings/BusinessProfile'));
+const MechanicDashboardLayout = lazyPage(() => import('./pages/dashboard/mechanic/Layout'));
+const MechanicDashboard = lazyPage(() => import('./pages/dashboard/mechanic/MechanicDashboard'));
+const BookingsAdmin = lazyPage(() => import('./pages/dashboard/mechanic/Bookings'));
+const ServiceOfferings = lazyPage(() => import('./pages/dashboard/mechanic/services/ServiceOfferings'));
+const MechanicAnalytics = lazyPage(() => import('./pages/dashboard/mechanic/Analytics'));
+const CreateServiceOffering = lazyPage(() => import('./pages/dashboard/mechanic/services/CreateServiceOffering'));
+const BusinessProfile = lazyPage(() => import('./pages/dashboard/mechanic/settings/BusinessProfile'));
 
 // Dealership Dashboard
-const DealerProfile = lazy(() => import('./pages/marketplace/DealerProfile'));
-const DealerDashboardLayout = lazy(() => import('./pages/dashboard/dealer/Layout'));
-const DealerDashboard = lazy(() => import('./pages/dashboard/dealer/Dashboard'));
-const ListingsAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/Listings'));
-const CreateListingAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/CreateListing'));
-const EditListingAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/EditListing'));
-const OrderListAdmin = lazy(() => import('./pages/dashboard/dealer/orders/OrderList'));
-const AnalyticsDashboard = lazy(() => import('./pages/dashboard/dealer/analytics/AnalyticsOverview'));
-const DealershipSettings = lazy(() => import('./pages/dashboard/dealer/settings/Settings'));
+const DealerProfile = lazyPage(() => import('./pages/marketplace/DealerProfile'));
+const DealerDashboardLayout = lazyPage(() => import('./pages/dashboard/dealer/Layout'));
+const DealerDashboard = lazyPage(() => import('./pages/dashboard/dealer/Dashboard'));
+const ListingsAdmin = lazyPage(() => import('./pages/dashboard/dealer/inventory/Listings'));
+const CreateListingAdmin = lazyPage(() => import('./pages/dashboard/dealer/inventory/CreateListing'));
+const EditListingAdmin = lazyPage(() => import('./pages/dashboard/dealer/inventory/EditListing'));
+const OrderListAdmin = lazyPage(() => import('./pages/dashboard/dealer/orders/OrderList'));
+const AnalyticsDashboard = lazyPage(() => import('./pages/dashboard/dealer/analytics/AnalyticsOverview'));
+const DealershipSettings = lazyPage(() => import('./pages/dashboard/dealer/settings/Settings'));
 
 // Wallet
-const WalletLayout = lazy(() => import('./pages/marketplace/wallet/Layout'));
-const WalletHomePage = lazy(() => import('./pages/marketplace/wallet/Dashboard'));
-const WalletDepositPage = lazy(() => import('./pages/marketplace/wallet/Deposit'));
-const WalletTransactionsPage = lazy(() => import('./pages/marketplace/wallet/Transactions'));
-const WalletWithdrawalPage = lazy(() => import('./pages/marketplace/wallet/Withdraw'));
+const WalletLayout = lazyPage(() => import('./pages/marketplace/wallet/Layout'));
+const WalletHomePage = lazyPage(() => import('./pages/marketplace/wallet/Dashboard'));
+const WalletDepositPage = lazyPage(() => import('./pages/marketplace/wallet/Deposit'));
+const WalletTransactionsPage = lazyPage(() => import('./pages/marketplace/wallet/Transactions'));
+const WalletWithdrawalPage = lazyPage(() => import('./pages/marketplace/wallet/Withdraw'));
 
 
 const BrandColors = extendTheme({

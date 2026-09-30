@@ -1,1 +1,3 @@
-/* ../index.html 200
+# hashed build files that no longer exist must 404, not fall through to the app shell
+/assets/*  /404  404
+/*  /index.html  200
