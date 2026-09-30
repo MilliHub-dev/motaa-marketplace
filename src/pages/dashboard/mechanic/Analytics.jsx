@@ -1,148 +1,79 @@
-import {
-  Box, Text, Stat, StatLabel, StatNumber, StatHelpText, StatArrow,
-  SimpleGrid, Table, Thead, Tbody, Tr, Th, Td, Badge, Button, Select,
-  Flex,
-} from "@chakra-ui/react";
-import { Line, Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import {GlobalStore} from '../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
-import { useState, useContext, useEffect, useRef} from 'react';
+import { useContext } from 'react';
+import { Box, Heading, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber, Text } from '@chakra-ui/react';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
+import { GlobalStore } from '../../../App';
+import { useApiQuery } from '../../../hooks/useApi';
+import { AsyncState } from '../../../components/states';
+import { SafeChart } from '../../../components/charts';
 
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-
-// **Register the required components**
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
-
-
-
-// import "chart.js/auto";
-
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { 
-    legend: { display: false },
-    tooltip: { enabled: true }
-  },
-  scales: {
-    x: { display: true, grid: { display: false } },
-    y: { display: true },
-  },
-  elements: {
-    bar: {
-      borderRadius: 8, // Makes the bars rounded
-    }
-  }
-};
-
-
-
-export default function MechanicAnalytics() {
-  const [charts, setCharts] = useState({});
-  const [loading, setLoadingState] = useState(true);
-  const [chartsData, setChartsData] = useState({
-    revenue_chart: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun",],
-      datasets: [{
-        label: "Revenue",
-        data: [0, 0, 0, 0, 0, 0, 0, null, null, null, null, null],
-        backgroundColor: "#3182CE",
-      }],
-    },
-    sales_chart: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-      datasets: [{
-        label: "Deals",
-        data: [0, 0, 0, 0, 0, 0, 0, null, null, null, null, null],
-        borderColor: "#E53E3E",
-        fill: false,
-      }],
-    }
-  });
-  const {axios, notify} = useContext(GlobalStore);
-
-  async function getChartData(){
-    const res = await axios.get('/admin/mechanics/analytics/?charts=all')
-    const data = objectifyJSON(res.data);
-
-    if (res.status === 200){
-      console.log("Analytics Data:", data.data);
-      setChartsData(data.data);
-    }else{
-      notify({
-        title: 'An error occured',
-        body: data?.message,
-        color: 'red'
-      })
-    }
-
-  }
-
-  function makeCharts(){
-
-  }
-
-
-  function init(){
-    getChartData();
-    setTimeout(() => setLoadingState(false), 2000)
-  }
-
-  useEffect(() => {
-    init();
-  }, [])
-
-
-  if (loading){
-    return null
-  }
-
+function StatBox({ label, value, help }) {
   return (
-    <Box p={5}>
-      <Text fontSize="2xl" fontWeight="bold">Analytics Dashboard</Text>
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5} my={5}>
-        <Stat>
-          <StatLabel>Total Revenue</StatLabel>
-          <StatNumber>₦{parseInt(chartsData?.revenue?.amount).toLocaleString()}</StatNumber>
-          {/*<StatHelpText>
-            <StatArrow type="increase" /> 10% increase this month
-          </StatHelpText>*/}
-        </Stat>
-      </SimpleGrid>
-
-
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5} my={5}>
-        <Stat borderColor="gray.200" px={5} py={5} borderRadius="lg" borderWidth={2}>
-          <StatLabel>Total Hires</StatLabel>
-          <StatNumber>{chartsData?.jobs?.hires}</StatNumber>
-        </Stat>
-        <Stat borderColor="gray.200" px={5} py={5} borderRadius="lg" borderWidth={2}>
-          <StatLabel>Pending Requests</StatLabel>
-          <StatNumber>{chartsData?.jobs?.pending}</StatNumber>
-        </Stat>
-        <Stat borderColor="gray.200" px={5} py={5} borderRadius="lg" borderWidth={2}>
-          <StatLabel>Canceled Jobs</StatLabel>
-          <StatNumber>{chartsData?.jobs?.canceled}</StatNumber>
-        </Stat>
-      </SimpleGrid>
-
-
-      <Box my={5} height="300px">
-         <Bar data={{...chartsData?.revenue?.chart_data}} options={chartOptions} /> 
-      </Box>
-
-    </Box>
+    <Stat borderColor="gray.200" bg="white" px={5} py={4} borderRadius="lg" borderWidth="1px">
+      <StatLabel color="gray.600">{label}</StatLabel>
+      <StatNumber>{value}</StatNumber>
+      {help && <StatHelpText mb={0}>{help}</StatHelpText>}
+    </Stat>
   );
 }
 
+export default function MechanicAnalytics() {
+  const { commaInt } = useContext(GlobalStore);
+  const analytics = useApiQuery((api, signal) => api.get('/admin/mechanics/analytics/', { signal }), [], {
+    select: (body) => body?.data || {},
+  });
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (ctx) => `₦${commaInt(ctx.parsed.y)}` } },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, ticks: { callback: (value) => `₦${commaInt(value)}` } },
+    },
+    elements: { bar: { borderRadius: 8 } },
+  };
+
+  return (
+    <Box py={4}>
+      <Heading as="h1" size="lg" mb={1}>Analytics</Heading>
+      <Text color="gray.600" mb={6}>Your earnings and job activity.</Text>
+
+      <AsyncState query={analytics} loadingLabel="Loading analytics…">
+        {(data) => {
+          const chart = data?.revenue?.chart_data;
+          const hasRevenue = (chart?.datasets?.[0]?.data || []).some((v) => Number(v) > 0);
+          return (
+            <>
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4} mb={8}>
+                <StatBox label="Total revenue" value={`₦${commaInt(data?.revenue?.amount)}`} help="From completed jobs" />
+                <StatBox label="Hires" value={commaInt(data?.jobs?.hires)} help={`${commaInt(data?.jobs?.completed)} completed`} />
+                <StatBox label="Pending requests" value={commaInt(data?.jobs?.pending)} />
+                <StatBox label="Canceled / declined" value={commaInt(data?.jobs?.canceled)} />
+              </SimpleGrid>
+
+              <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4}>
+                <Heading as="h2" size="sm" mb={4}>Revenue this year</Heading>
+                <Box height="300px">
+                  <SafeChart
+                    as={Bar}
+                    data={hasRevenue ? chart : null}
+                    options={chartOptions}
+                    emptyText="Revenue from completed jobs will be charted here."
+                    aria-label="Monthly revenue chart"
+                    role="img"
+                  />
+                </Box>
+              </Box>
+            </>
+          );
+        }}
+      </AsyncState>
+    </Box>
+  );
+}

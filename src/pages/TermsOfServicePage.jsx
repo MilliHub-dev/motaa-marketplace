@@ -1,4 +1,4 @@
-import { Box, Container, Heading, Text, VStack, Divider, UnorderedList, ListItem, Flex, Icon } from "@chakra-ui/react"
+import { Box, Container, Heading, Text, VStack, Divider, UnorderedList, ListItem, Flex, Icon, Link } from "@chakra-ui/react"
 import {
   BsFileEarmarkText,
   BsShieldCheck,
@@ -19,8 +19,10 @@ import {
   BsInstagram,
   BsGeoAlt,
 } from "react-icons/bs"
+import { usePageTitle } from "./LandingPage"
 
 const TermsAndConditions = () => {
+  usePageTitle("Terms of Service | Motaa")
   return (
     <Container maxW="900px" py={8} px={4}>
       <VStack spacing={6} align="stretch">
@@ -46,15 +48,15 @@ const TermsAndConditions = () => {
           </Heading>
           <Text mb={4}>
             We are Motaa Ltd ("Company," "we," "us," or "our"), a company registered in Nigeria with our principal
-            office at I5 Kawo road, Kawo, Kaduna state, Nigeria.
+            office at 15 Kawo Road, Kawo, Kaduna State, Nigeria.
           </Text>
           <Text mb={4}>
             We operate the website www.motaa.net (the "Site"), iOS and android apps as well as any related products and
             services that refer to these terms (collectively, the "Services").
           </Text>
           <Text mb={4}>
-            You can contact us by phone at +2348104484364, email at support@motaa.net or by mail to I5 Kawo road, Kawo,
-            Kaduna state, Nigeria.
+            You can contact us by phone at <Link href="tel:+2348104484364" color="primary" textDecoration="underline">+234 810 448 4364</Link>, email at <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link> or by mail to 15 Kawo Road, Kawo,
+            Kaduna State, Nigeria.
           </Text>
           <Text mb={4}>
             These Terms and Conditions constitute a legally binding agreement between you, whether personally or on
@@ -286,31 +288,31 @@ const TermsAndConditions = () => {
             <Flex align="center">
               <Icon as={BsEnvelope} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Email:</strong> support@motaa.net
+                <strong>Email:</strong> <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsTelephone} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Phone:</strong> +2348104484364
+                <strong>Phone:</strong> <Link href="tel:+2348104484364" color="primary" textDecoration="underline">+234 810 448 4364</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsGlobe} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Website:</strong> www.motaa.net
+                <strong>Website:</strong> <Link href="https://www.motaa.net" isExternal color="primary" textDecoration="underline">www.motaa.net</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsInstagram} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>IG/X:</strong> @motaaltd
+                <strong>Instagram / X:</strong> <Link href="https://www.instagram.com/motaaltd" isExternal color="primary" textDecoration="underline">@motaaltd</Link> / <Link href="https://x.com/motaaltd" isExternal color="primary" textDecoration="underline">@motaaltd</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsGeoAlt} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Address:</strong> I5 Kawo road, Kawo, Kaduna state, Nigeria.
+                <strong>Address:</strong> 15 Kawo Road, Kawo, Kaduna State, Nigeria.
               </Text>
             </Flex>
           </VStack>

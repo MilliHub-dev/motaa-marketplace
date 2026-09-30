@@ -2,26 +2,26 @@
     {
         "id": "1",
         "question": "What is Motaa?",
-        "answer": "Motaa is Nigeria’s largest car marketplace where you can buy, sell, or rent cars from verified dealerships, and find certified mechanics nearby"
+        "answer": "Motaa is one platform for all your car needs in Nigeria. You can buy, sell or rent cars from verified dealerships, find certified mechanics nearby, and pay securely with your Motaa wallet."
     },
     {
         "id": "2",
-        "question": "What documents do I need to register?",
-        "answer": "To register on Motaa, car sellers (both individuals and dealers) will need a valid government-issued ID, proof of car ownership such as a vehicle title or purchase receipt, detailed information about the car (make, model, year, mileage, and VIN), and clear photos of the vehicle. Dealers may also need to provide a business registration certificate. Car buyers are required to submit a valid ID, contact information, and a preferred payment method. Mechanics or service providers must present a valid ID, proof of trade such as a certification or relevant work experience, and details of their workshop or mobile services. Providing photos of their workspace or tools is optional but encouraged for better visibility."
+        "question": "What do I need to register?",
+        "answer": "Customers only need an email address to create an account. You may be asked to verify your identity with a government-issued ID (NIN, driver's licence, voter's card or international passport). Dealerships and mechanics create a business account, set up a business profile and verify the business with their CAC registration and Tax Identification Number (TIN)."
     },
     {
         "id": "3",
         "question": "How do I know a dealer is verified?",
-        "answer": "On Motaa, verified dealers have a “Verified Dealer” badge displayed on their profile and listings. This badge means the dealer has submitted and passed verification requirements, including: Valid government-issued ID, Proof of business registration, Verified contact details and location, Background and activity review by the Motaa team.You can also view their ratings, reviews, and response time to assess reliability. For added safety, always use the platform’s secure communication and payment systems."
+        "answer": "Businesses that have completed Motaa's business verification (CAC registration and TIN checks) are marked as verified on their profile and listings. For your safety, always chat and pay through the Motaa app."
     },
     {
         "id": "4",
         "question": "Can I rent a car for a special occasion like a wedding?",
-        "answer": "Yes, you can rent a car for a special occasion like a wedding through Motaa. The platform offers a variety of vehicles suitable for events such as weddings, corporate gatherings, and other special occasions."
+        "answer": "Yes. You can rent cars from verified dealers for events such as weddings, corporate functions and trips. Some dealers also offer a driver with the car."
     },
     {
         "id": "5",
-        "question": "How does the affiliate program work?",
-        "answer": "As of now, Motaa does not publicly advertise an affiliate program on its official platform. However, if you are interested in promoting Motaa or partnering with us, it is best to contact our support team directly through the website or app for any potential affiliate opportunities or partnerships they may offer."
+        "question": "How do payments work?",
+        "answer": "You fund your Motaa wallet through our payment partners and pay for orders, rentals and mechanic bookings from it. Payments are held securely until the transaction is completed. When buying a car, you can also choose to pay after it has been inspected."
     }
 ]

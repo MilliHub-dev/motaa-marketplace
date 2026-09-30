@@ -1,49 +1,37 @@
-import {useState, useEffect, useContext} from 'react'
-import {
-	Box,
-	Container,
-	Heading,
-	Text,
-} from '@chakra-ui/react'
-import { PreviewWithSignature } from "../../../components/documents";
-import { GlobalStore } from "../../../App";
-import {useSearchParams, useNavigate} from 'react-router-dom'
+import { Box, Container, Heading, Text } from '@chakra-ui/react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { PreviewWithSignature } from '../../../components/documents';
 
-export const DocumentSigningPage = ({ ...props }) => {
-	const {authUser, } = useContext(GlobalStore);
-	const [params] = useSearchParams();
-	const docType = params.get('docType');
-	const redirect = useNavigate()
+const TITLES = {
+  'order-slip': 'Order agreement',
+  'inspection-slip': 'Inspection agreement',
+};
 
-	function goBackToHomePage(){
-		setTimeot(() => redirect('/home'), 1500);
-	}
+export const DocumentSigningPage = () => {
+  const [params] = useSearchParams();
+  const docType = TITLES[params.get('docType')] ? params.get('docType') : 'inspection-slip';
+  // an order uuid (preferred) or, for older links, the listing uuid
+  const orderId = params.get('orderId') || params.get('order') || params.get('listingId');
+  const navigate = useNavigate();
 
+  return (
+    <Box minH="70vh">
+      <Box bg="primary" py={{ base: 6, md: 8 }} mb={8}>
+        <Container maxW="container.xl" textAlign="center">
+          <Heading as="h1" color="white" size="lg" fontWeight="500">{TITLES[docType]}</Heading>
+          <Text color="whiteAlpha.900" mt={2}>Review, sign and download your document</Text>
+        </Container>
+      </Box>
 
-	return(
-		<Box>
-			<Box bg="blue.600" py={8} mb={8}>
-		        <Container maxW="container.xl" textAlign="center">
-		          <Heading color="white" size="lg" className="subtitle" fontWeight="400">Checkout</Heading>
-		          <Text color="whiteAlpha.900" mt={2}>Download your Docs!</Text>
-		        </Container>
-	      	</Box>
-
-			<Box py={10}>
-	            <PreviewWithSignature docType={docType || "inspection-slip"}
-	            	onSignatureComplete={goBackToHomePage}
-	            	params={{
-		              client_name: `${authUser?.first_name} ${authUser?.last_name}`,
-		              vehicle_id: '21ei7dst7t73iorgjdifyu89',
-		              inspector: 'Joel Tanko',
-		              date: 'Today'
-		            }}
-
-	            />
-	        </Box>
-        </Box>
-	)
-}
-
+      <Box pb={12}>
+        <PreviewWithSignature
+          docType={docType}
+          orderId={orderId}
+          onSignatureComplete={(document) => navigate(document?.order_id ? `/checkout/status?order=${document.order_id}` : '/home')}
+        />
+      </Box>
+    </Box>
+  );
+};
 
 export default DocumentSigningPage;

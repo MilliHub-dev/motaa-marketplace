@@ -1,254 +1,142 @@
-import {useState, useEffect, useContext} from 'react';
-import {Link} from 'react-router-dom';
-import {GlobalStore} from '../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {DealerDashboardSideBar} from '../../../components/nav';
-import {StatCard} from '../../../components/charts';
+import { useContext, useState } from 'react';
+import { Link as RLink } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Flex,
-  VStack,
-  Image,
-  HStack,
-  Text,
-  Heading,
-  Button,
   Avatar,
-  AvatarGroup,
-  Progress,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
+  Box,
+  Button,
+  Flex,
+  Heading,
+  HStack,
   SimpleGrid,
-  Badge,
+  Table,
   TableContainer,
-  Stack,
-} from '@chakra-ui/react'
-import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
-import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
-import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
+  Tbody,
+  Td,
+  Text,
+  Th,
+  Thead,
+  Tr,
+  VisuallyHidden,
+} from '@chakra-ui/react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from 'chart.js';
-import {
-  MdSearch,
-  MdHome,
-  MdBarChart,
-  MdPeople,
-  MdSettings,
-  MdMoreVert,
-  MdFilterList,
-  MdShare,
-  MdMessage,
-  MdNotifications,
-  MdBolt,
-  MdLock,
-  MdLocationOn,
-  MdKeyboardArrowDown,
-  MdInventory,
-  MdCalendarMonth,
-  MdWarning,
-} from "react-icons/md"
-import { BsWallet2 } from "react-icons/bs"
-import {StatusBadge} from '../../../components'
-import {DealershipContext} from './Layout'
-
-
+import { ShoppingBag } from 'lucide-react';
+import { GlobalStore } from '../../../App';
+import { asList } from '../../../utils';
+import { StatCard, SafeChart } from '../../../components/charts';
+import { useApiQuery } from '../../../hooks/useApi';
+import { AsyncState, EmptyState } from '../../../components/states';
+import { OrderCarCell, OrderDate, OrderStatusBadge, OrderDetailsDrawer, ContactCustomerModal } from './orders/OrderList';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
-
-
-function Dashboard({ }) {
-  const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
-  const {dealership} = useContext(DealershipContext);
-  const [wallet, setWallet] = useState({});
-  const [loading, setLoadingState] = useState(true);
-  const [recentOrders, setRecentOrders] = useState([])
-  const [dashboardData, setDashboardData] = useState({})
-  const [chartData, setChartData] = useState({})
-  const formatCurrency = (value) => {
-    return `₦${parseInt(value).toLocaleString()}`;
-  };
-
-  const formatNumber = (value) => {
-    return parseFloat(value).toLocaleString();
-  };
+function Dashboard() {
+  const { authUser, commaInt } = useContext(GlobalStore);
+  const [selected, setSelected] = useState(null);
+  const [contact, setContact] = useState(null);
+  const dashboard = useApiQuery(
+    (api, signal) => api.get('/admin/dealership/dashboard/', { signal }),
+    [],
+    { select: (body) => body?.data || {} }
+  );
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { 
+    plugins: {
       legend: { display: false },
-      tooltip: { enabled: true }
+      tooltip: { enabled: true, callbacks: { label: (ctx) => `₦${commaInt(ctx.parsed.y)}` } },
     },
     scales: {
-      x: { display: true },
-      y: { display: true },
+      x: { display: true, grid: { display: false } },
+      y: { display: true, beginAtZero: true, ticks: { callback: (v) => `₦${compact(v)}` } },
     },
   };
 
-  async function getWalletBalance(){
-    const res = await axios.get('/wallet/balance/');
-    const data = objectifyJSON(res.data);
-    console.log("Wallet:", data)
-    setWallet(data?.data)
-  }
-  
-  async function getDashboardData(){
-    const res = await axios.get('/admin/dealership/dashboard/');
-    const data = objectifyJSON(res.data);
-    setDashboardData(data.data)
-    setChartData(data.data.chart_data)
-    console.log("Chart Data:", data.data.chart_data)
-    setRecentOrders(data.data.recent_orders)
-  }
-
-  async function getWalletTransactions(){
-    try{
-      const res = await axios.get('/wallet/transactions/');
-      const data = objectifyJSON(res.data);
-    }catch(error){
-      notify({
-        title: "Oops! An error occurred.",
-        body: error.message,
-        color: 'red',
-      })
-    }
-  }
-
-  function init(){
-    getWalletBalance();
-    getWalletTransactions();
-    getDashboardData();
-    setTimeout(() => setLoadingState(false), 2000);
-  }
-
-  useEffect(() => {
-    init();
-    
-  }, [])
-
-  if (loading){
-    return null
-  }
-
   return (
-    <Box w={'100%'}>
+    <Box w="100%">
       <Box py={6} borderBottom="2px solid lavender">
-        <Text size="md" className="text" fontWeight="600">Dashboard</Text>
-        <Text size="xs" className="small">Welcome back, {authUser?.first_name}👋</Text>
+        <Heading as="h1" size="md">Dashboard</Heading>
+        <Text color="gray.600" fontSize="sm">Welcome back{authUser?.first_name ? `, ${authUser.first_name}` : ''} 👋</Text>
       </Box>
 
-      <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>
-        
-        <StatCard
-          title={"Revenue"}
-          value={dashboardData?.total_revenue}
-          // change={10}
-          // data={sparklineData.revenue}
-          format={formatCurrency}
-        />
-        <StatCard
-          title={"Impressions"}
-          value={dashboardData?.impressions}
-          // change={-2}
-          // data={sparklineData.impressions}
-          format={(v) => {
-            if (v > 1000){
-              return `${(parseInt(v) / 1000).toFixed(3)}K`
-            }else{
-              return `${(parseInt(v))}`
-            }
-          }}
-        />
-        <StatCard
-          title={"Total Deals"}
-          value={dashboardData?.total_deals}
-          // change={14}
-          // data={sparklineData.deals}
-          format={formatNumber}
-        />
-      </SimpleGrid>
+      <AsyncState query={dashboard} loadingLabel="Loading your dashboard…">
+        {(data) => {
+          const recentOrders = asList(data?.recent_orders);
+          return (
+            <>
+              <SimpleGrid gap={4} my={5} columns={{ base: 1, sm: 2, xl: 4 }}>
+                <StatCard title="Revenue (paid orders)" value={data?.total_revenue} change={data?.revenue_change} format={(v) => `₦${commaInt(v)}`} />
+                <StatCard title="Deals closed" value={data?.total_deals} change={data?.deals_change} format={(v) => commaInt(v)} />
+                <StatCard title="Listing views" value={data?.impressions} format={(v) => compact(v)} />
+                <StatCard title="Live listings" value={data?.active_listings} format={(v) => commaInt(v)} />
+              </SimpleGrid>
 
-      <Box py={4} my={5}>
-        <Heading size={'sm'} fontWeight="500" my={3}> Revenue Earnings </Heading>
-        <Box h={'300px'}>
-          {chartData && <Line data={{...chartData, pointRadius: 20}} options={chartOptions} />}
-        </Box>
-      </Box>
+              <Box py={4} my={5}>
+                <Heading as="h2" size="sm" fontWeight="600" mb={3}>Revenue, last 6 months</Heading>
+                <Box h={{ base: '220px', md: '300px' }}>
+                  <SafeChart as={Line} data={data?.chart_data} options={chartOptions} hideWhenFlat emptyText="No paid orders in the last 6 months yet." />
+                </Box>
+              </Box>
 
-      {/* Transactions */}
-      <Heading size="sm" my={3} fontWeight="500"> Recent Orders </Heading>
-      <TableContainer w={'100%'} variant="simple" borderWidth={1} borderRadius="lg">
-        <Table variant="simple" textWrap="nowrap" overflow="auto">
-          <Thead bg="gray.50">
-            <Tr>
-              <Th columns={5}>Car Listings</Th>
-              <Th>Amount</Th>
-              <Th>Date</Th>
-              <Th>Status</Th>
-              <Th>Client</Th>
-              <Th></Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {recentOrders?.map((order) => (
-              <Tr key={order?.uuid}>
-                <Td columns={5}>
-                  <Flex gap={1} align="center">
-                    <Image
-                      src={order?.order_item?.vehicle?.images[0]?.url}
-                      alt={order?.order_item?.vehicle.name}
-                      boxSize="70px"
-                      objectFit="cover"
-                      borderRadius="md"
-                      mr={3}
-                    />
-                    <Box>
-                      <Text fontWeight="medium">{order?.order_item.vehicle.name}</Text>
-                      <Text color="gray.700" fontWeight="medium">
-                        {order?.order_type}
-                      </Text>
-                    </Box>
-                  </Flex>
-                </Td>
-                <Td>
-                  <Text color="green.500" fontWeight="medium">
-                    {parseInt(order?.order_item?.price/10**6).toFixed('2')}M
-                  </Text>
-                </Td>
-                <Td>
-                  <Text>{new Date(order?.last_updated).toLocaleDateString()}</Text>
-                  <Text color="gray.500" fontSize="sm">
-                    {new Date(order?.last_updated).toLocaleTimeString()}
-                  </Text>
-                </Td>
-                <Td>
-                  <StatusBadge status={order?.order_status} />
-                </Td>
-                <Td>
-                  <Avatar size="sm" name={order?.customer} />
-                </Td>
-                <Td>
+              <Flex justify="space-between" align="center" mb={3} gap={3}>
+                <Heading as="h2" size="sm" fontWeight="600">Recent orders</Heading>
+                {recentOrders.length > 0 && <Button as={RLink} to="/orders" size="sm" variant="link" color="primary">View all orders</Button>}
+              </Flex>
+              {recentOrders.length === 0 ? (
+                <EmptyState icon={ShoppingBag} title="No orders yet" description="When customers buy or rent your cars, their orders will appear here." action={{ label: 'Manage inventory', to: '/inventory' }} minH="180px" />
+              ) : (
+                <TableContainer w="100%" borderWidth={1} borderRadius="lg" bg="white">
+                  <Table variant="simple" size="sm">
+                    <Thead bg="gray.50">
+                      <Tr>
+                        <Th py={3}>Car</Th>
+                        <Th isNumeric>Amount</Th>
+                        <Th>Date</Th>
+                        <Th>Status</Th>
+                        <Th>Customer</Th>
+                        <Th><VisuallyHidden>Details</VisuallyHidden></Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {recentOrders.map((order) => (
+                        <Tr key={order?.uuid || order?.id}>
+                          <Td py={3}><OrderCarCell order={order} /></Td>
+                          <Td isNumeric><Text color="green.600" fontWeight="600">₦{commaInt(order?.order_item?.price)}</Text></Td>
+                          <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
+                          <Td><OrderStatusBadge status={order?.order_status} /></Td>
+                          <Td>
+                            <HStack spacing={2}>
+                              <Avatar size="xs" name={order?.customer_info?.name || order?.customer || 'Customer'} />
+                              <Text fontSize="sm" noOfLines={1} maxW="140px">{order?.customer_info?.name || order?.customer || 'Customer'}</Text>
+                            </HStack>
+                          </Td>
+                          <Td><Button size="xs" variant="outline" onClick={() => setSelected(order)}>Details</Button></Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              )}
+            </>
+          );
+        }}
+      </AsyncState>
 
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </TableContainer>
+      <OrderDetailsDrawer order={selected} onClose={() => setSelected(null)} onContact={(order) => { setSelected(null); setContact(order); }} />
+      <ContactCustomerModal order={contact} onClose={() => setContact(null)} />
     </Box>
-  )
+  );
+}
+
+// 1520 -> "1.5K", 2300000 -> "2.3M"
+function compact(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '0';
+  if (Math.abs(n) >= 1e9) return `${+(n / 1e9).toFixed(1)}B`;
+  if (Math.abs(n) >= 1e6) return `${+(n / 1e6).toFixed(1)}M`;
+  if (Math.abs(n) >= 1e3) return `${+(n / 1e3).toFixed(1)}K`;
+  return `${n}`;
 }
 
 export default Dashboard;
-

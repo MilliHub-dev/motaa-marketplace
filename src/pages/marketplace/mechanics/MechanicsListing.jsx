@@ -1,272 +1,244 @@
 import {
-    Box, Heading,
-    Button,
-    Container,
-    Flex,
-    Input,
-    InputGroup,
-    InputLeftElement,
-    Select,
-    Stack,
-    Text,
-    Avatar,
-    Badge,
-    Card,
-    CardBody,
-    Alert,
-    Icon,
-    VStack,
-    HStack,
-    Image,
-    Tag,
-    ButtonGroup,
-    Divider,
-    Checkbox,
-    useColorModeValue,
- } from "@chakra-ui/react";
-import { useContext, useEffect, useState, Fragment, useRef } from "react";
+    Box, Heading, Button, Container, Flex, Input, InputGroup, InputLeftElement, Text, Avatar, Badge,
+    Alert, AlertIcon, VStack, HStack, Tag, Divider, useColorModeValue,
+} from "@chakra-ui/react";
+import { useContext, useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SearchIcon, StarIcon } from '@chakra-ui/icons';
+import { RiFilterLine } from 'react-icons/ri'
+import { GrLocation } from 'react-icons/gr';
+import { Wrench } from "lucide-react";
 import { GlobalStore } from "../../../App";
-import { jsonifyObject, objectifyJSON } from "../../../utils";
-import { useSearchParams, Link } from "react-router-dom";
-import { SearchIcon, StarIcon,  ChevronDownIcon } from '@chakra-ui/icons';
-import {  RiFilterLine, } from 'react-icons/ri'
-import {BiBuildings} from 'react-icons/bi';
-import {GrLocation} from 'react-icons/gr';
 import { MechanicListSkeleton } from "../../../components/loaders";
-import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
+import { MapComponent, CustomPlacesAutocomplete, DEFAULT_MAP_CENTER } from "../../../components/maps";
 import { TopRatedBadgeIcon } from "../../../components/icons";
-import { 
-  ServiceFilter
-} from "../../../components/filters";
-import { Paginator } from "../../../components/nav";
+import { ServiceFilter } from "../../../components/filters";
+import { PageControls } from "../../../components";
+import { AsyncState, EmptyState } from "../../../components/states";
+import { useApiQuery } from "../../../hooks/useApi";
+import { asList } from "../../../utils";
 
+const PAGE_SIZE = 25;
 
+/** "3.3 km away" from the API's "3.27km", or null. */
+function distanceLabel(distance) {
+    const km = parseFloat(String(distance ?? ''));
+    if (!Number.isFinite(km)) return null;
+    return km < 1 ? 'Less than 1 km away' : `${km.toFixed(1)} km away`;
+}
 
-export const MechanicListPage = ({ props }) => {
-  const [searching, setSearching] = useState(false);
-  const [autocomplete, setAutocomplete] = useState(null);
-  const [locationName, setLocationName] = useState("Current Location");
-  const [inputValue, setInputValue] = useState("Your Current Location");
-  const [query, setQuery] = useState("");
-  const bgColor = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const [location, setLocation] = useState({ lat: 10, lng: 8, name: "Current Location" });
-  const [error, setError] = useState(null);
-  const [searchResults, setSearchResults] = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { axios, authUser, commaInt, notify, redirect } = useContext(GlobalStore);
-  const mapRef = useRef();
+export const MechanicListPage = () => {
+    const { commaInt } = useContext(GlobalStore);
+    const [params, setParams] = useSearchParams();
+    const navigate = useNavigate();
+    const [query, setQuery] = useState('');
+    const bgColor = useColorModeValue("white", "gray.800");
+    const borderColor = useColorModeValue("gray.200", "gray.700");
 
-  const onLoad = (auto) => setAutocomplete(auto);
+    // where to search from: a picked place (in the URL), else the device location, else Abuja
+    const urlLat = parseFloat(params.get('lat'));
+    const urlLng = parseFloat(params.get('lng'));
+    const [deviceLocation, setDeviceLocation] = useState(null);
+    const [geoStatus, setGeoStatus] = useState('locating');
+    const picked = Number.isFinite(urlLat) && Number.isFinite(urlLng) ? { lat: urlLat, lng: urlLng } : null;
+    const location = picked || deviceLocation || DEFAULT_MAP_CENTER;
+    const locationName = params.get('near') || (picked ? 'Selected location' : deviceLocation ? 'Your current location' : 'Abuja');
 
-  const onPlaceChanged = () => {
-    if (autocomplete) {
-      const place = autocomplete.getPlace();
-      if (place.geometry) {
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        setLocation({ lat, lng, name: place.name });
-        setInputValue(place.formatted_address || place.name);
-      }
-    }
-  };
+    useEffect(() => {
+        if (!("geolocation" in navigator)) { setGeoStatus('unsupported'); return; }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setDeviceLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+                setGeoStatus('ok');
+            },
+            () => setGeoStatus('denied'),
+            { timeout: 10000, maximumAge: 300000 }
+        );
+    }, []);
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-        },
-        (error) => {
-          setError("Unable to retrieve location.");
-          console.error("Geolocation error:", error);
+    const qs = new URLSearchParams({ lat: location.lat.toFixed(5), lng: location.lng.toFixed(5) });
+    if (params.get('services')) qs.set('services', params.get('services'));
+    if (params.get('offset')) qs.set('offset', params.get('offset'));
+    const apiQs = qs.toString();
+    // wait briefly for the device location so we don't load Abuja first and then jump
+    const ready = Boolean(picked) || geoStatus !== 'locating';
+
+    const mechanics = useApiQuery(
+        (api, signal) => api.get(`/mechanics/?${apiQs}`, { signal }),
+        [apiQs],
+        { enabled: ready, select: (body) => body?.data }
+    );
+
+    function update(changes) {
+        const next = new URLSearchParams(params);
+        for (const [key, value] of Object.entries(changes)) {
+            if (value === null || value === undefined || value === '') next.delete(key); else next.set(key, String(value));
         }
-      );
-    } else {
-      setError("Geolocation is not supported by your browser.");
+        if (!('offset' in changes)) next.delete('offset');
+        setParams(next);
     }
-  }, []);
 
-  function expandMap(e) {
-    e.preventDefault();
-    const control = document.querySelector("button.gm-fullscreen-control");
-    if (control) control.click();
-  }
-
-  const filters = [
-    <ServiceFilter onChange={console.log} />
-  ];
-
-  async function getData() {
-    try {
-      const res = await axios.get(`/mechanics/`);
-      const _data = objectifyJSON(res.data);
-      setSearchResults(_data.data);
-      setMatches(_data?.data?.results);
-      setData(_data?.data?.pagination);
-    } catch (error) {
-      console.error("Error fetching mechanics:", error);
+    function performSearch(e) {
+        e.preventDefault();
+        const text = query.trim();
+        if (text) navigate(`/search/mechanics/?find=${encodeURIComponent(text)}`);
     }
-  }
 
-  async function performSearch() {
-    try {
-      const res = await axios.get(`/mechanics/find/?find=${query}`);
-      const _data = objectifyJSON(res.data);
-      setSearchResults(_data.data);
-      setMatches(_data?.data?.results);
-      setData(_data?.data?.pagination);
-      setSearching(true)
-    } catch (error) {
-      console.error("Error fetching mechanics:", error);
-    }
-  }
+    const count = Number(mechanics.data?.pagination?.count);
+    const shown = asList(mechanics.data?.results).length;
 
-  function cancelSearch(){
-    setSearching(false);
-    setQuery("");
-    getData();
-  }
+    return (
+        <Box minH="100vh">
+            <Container maxW="container.xl" py={8}>
+                <Heading as="h1" size="lg" className="subtitle" mb={4}>Find a mechanic</Heading>
 
-  useEffect(() => {
-    getData();
-    setTimeout(() => setLoading(false), 2500);
-  }, []);
+                <Flex as="form" role="search" onSubmit={performSearch} gap={3} mb={4}>
+                    <InputGroup size="lg" flex={1}>
+                        <InputLeftElement pointerEvents="none"><SearchIcon aria-hidden="true" /></InputLeftElement>
+                        <Input type="search" value={query} aria-label="Search mechanics by name or service" placeholder="e.g. Engine service" bg={bgColor} onChange={e => setQuery(e.target.value)} />
+                    </InputGroup>
+                    <Button type="submit" isDisabled={!query.trim()} size="lg" bg="primary" color="white" colorScheme="blue">
+                        Search
+                    </Button>
+                </Flex>
 
-  if (loading) {
-    return <MechanicListSkeleton />;
-  }
+                <Flex my={2} py={2} gap={3} alignItems="center" flexWrap="wrap">
+                    <HStack spacing={1} color="gray.600" aria-hidden="true"><RiFilterLine /><Text>Filters</Text></HStack>
+                    <ServiceFilter value={params.get('services')} onChange={({ value }) => update({ services: value })} />
+                </Flex>
 
-  return (
-    <Box minH="100vh">
-        <Container maxW="container.xl" py={8}>
-          {/* Search and Location */}
-          <Container maxW={"container.xl"}>
-            <Flex gap={4} mb={6} flexWrap={"wrap"}>
-              <InputGroup size="lg" flex={1}>
-                <InputLeftElement>
-                  <SearchIcon className="w-5 h-5 text-gray-400" />
-                </InputLeftElement>
-                <Input value={query} placeholder="Engine Service" bg={bgColor} onInput={e => setQuery(e.target.value)} />
-              </InputGroup>
+                {!picked && (geoStatus === 'denied' || geoStatus === 'unsupported') && (
+                    <Alert status="info" rounded="md" my={3}>
+                        <AlertIcon />
+                        We couldn't get your location, so we're showing mechanics near Abuja. Pick your area on the map panel to see who's closest.
+                    </Alert>
+                )}
 
-              <Button onClick={performSearch} isDisabled={!query.trim()} borderRadius={5} size="lg" bg="primary" colorScheme="primary" >
-                Search
-              </Button>
-            </Flex>
-          </Container>
+                <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" my={4} role="status">
+                    {!mechanics.data
+                        ? `Looking for mechanics near ${locationName}…`
+                        : Number.isFinite(count)
+                        ? `${count} mechanic${count === 1 ? '' : 's'} within 30 km of ${locationName}`
+                        : `${shown} mechanic${shown === 1 ? '' : 's'} near ${locationName}`}
+                </Text>
 
-          {/* Filters */}
-          <Flex my={2} py={2} flexWrap={"nowrap"} gap={4} overflowX={"auto"} className="hidden-scroll">
-            <Button minW={"max-content"} size={"md"} borderRadius={"10px"} as={Box} bgColor="gray.100" leftIcon={<RiFilterLine />}>
-              Filters
-            </Button>
-            {filters.map((filter, idx) => <Fragment key={idx}>{filter}</Fragment>)}
-          </Flex>
+                <Flex gap={6} alignItems="flex-start" direction={{ base: 'column-reverse', md: 'row' }}>
+                    <Box w="100%" flex={1} minW={0}>
+                        <AsyncState
+                          query={ready ? mechanics : { ...mechanics, loading: true }}
+                          skeleton={<MechanicListSkeleton />}
+                          isEmpty={(data) => asList(data?.results).length === 0}
+                          empty={
+                            <EmptyState
+                              icon={Wrench}
+                              title={params.get('services') ? 'No mechanics offer these services nearby' : 'No mechanics near this location yet'}
+                              description="Try another area on the map, or search mechanics by name or service."
+                              action={params.get('services') ? { label: 'Clear services', onClick: () => update({ services: null }) } : { label: 'Search all mechanics', to: '/search/mechanics/' }}
+                            />
+                          }
+                        >
+                            {(data) => (
+                                <VStack w="100%" spacing={0} align="stretch" opacity={mechanics.loading ? 0.6 : 1} aria-busy={mechanics.loading}>
+                                    {asList(data?.results).map((mechanic) => {
+                                        const name = mechanic?.business_name || mechanic?.user?.name || 'Mechanic';
+                                        const distance = distanceLabel(mechanic?.distance);
+                                        const services = asList(mechanic?.services);
+                                        const rating = Number(mechanic?.rating);
+                                        return (
+                                            <Box key={mechanic?.uuid || mechanic?.id} w="full" bg={bgColor} py={6} px={{ base: 0, md: 4 }} borderBottomWidth={2} borderColor={borderColor}>
+                                                <Flex direction={{ base: 'column', sm: 'row' }} gap={4}>
+                                                    <Avatar size="lg" name={name} src={mechanic?.logo || undefined} />
+                                                    <Box flex={1} minW={0}>
+                                                        <Flex justify="space-between" align="flex-start" gap={2} flexWrap="wrap">
+                                                            <Box minW={0}>
+                                                                <Heading as="h2" size="md" fontWeight="600" mb={1}>
+                                                                    <Link to={`/mechanics/${mechanic?.uuid}`}>{name}</Link>
+                                                                </Heading>
+                                                                {mechanic?.headline && <Text color="gray.800" fontSize="sm">{mechanic.headline}</Text>}
+                                                            </Box>
+                                                            {mechanic?.level && (
+                                                                <Badge colorScheme="blue" fontSize="xs" p={'5px'} display="flex" alignItems="center" gap={1} rounded="lg">
+                                                                    <TopRatedBadgeIcon viewBox="0 0 27 28" w="20px" h="20px" aria-hidden="true" /> {mechanic.level}
+                                                                </Badge>
+                                                            )}
+                                                        </Flex>
 
-          {
-            searching &&
-            <Alert colorScheme="yellow" w="100%" gap={3} my={3} rounded="md" display={'flex'}>
-              <Text flex={1}> Showing results for "{query}" </Text>
-              <Button onClick={cancelSearch} colorScheme="yellow"> Cancel </Button>
-            </Alert>
-          }
+                                                        {(mechanic?.location || distance) && (
+                                                            <Flex align="center" gap={1} mt={2} color="gray.600" flexWrap="wrap">
+                                                                <GrLocation aria-hidden="true" />
+                                                                {mechanic?.location && <Text>{mechanic.location}</Text>}
+                                                                {distance && <Text color="gray.700">{mechanic?.location ? '• ' : ''}{distance}</Text>}
+                                                            </Flex>
+                                                        )}
 
-          {/* Results Count */}
-          <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" mb={6}>
-            {matches?.length} Mechanic{matches?.length > 1 && "s"} are available near you.
-          </Text>
+                                                        {services.length > 0 && (
+                                                            <HStack spacing={2} mt={4} flexWrap="wrap" rowGap={2}>
+                                                                {services.slice(0, 3).map((service) => (
+                                                                    <Tag key={service?.uuid || service?.service} size="md" borderRadius="30px" px={3}>{service?.service}</Tag>
+                                                                ))}
+                                                                {services.length > 3 && <Tag size="md" borderRadius="30px" px={3}>+{services.length - 3} more</Tag>}
+                                                            </HStack>
+                                                        )}
 
-          <Flex gap={6} alignItems="self-start" flexWrap="wrap-reverse">
-            {/* Mechanics List */}
-            <VStack w="100%" spacing={0} flex={1} maxW={{ md: "calc(100% - 350px)", lg: "calc(100% - 450px)" }}>
-              {matches?.map((mechanic) => (
-                <Box key={mechanic.id} w="full" bg={bgColor} p={6} borderBottomWidth={2} borderColor={borderColor}>
-                  <Box as={Flex} direction={{ base: 'column', md: 'row'}} gap={4} flexWrap="wrap">
-                    <Link to={`/mechanics/${mechanic?.uuid}`}>
-                      <Avatar size="lg" name={mechanic?.business_name || mechanic?.user?.name} src={mechanic?.logo} />
-                    </Link>
+                                                        <Divider my={4} />
 
-                    <Box flex={1}>
-                      <Flex justify="space-between" align="start">
-                        <Box>
-                          <Link to={`/mechanics/${mechanic?.uuid}`}>
-                            <Heading size="md" fontWeight="600" mb={1}>
-                              {mechanic?.business_name || mechanic?.user?.name}
-                              {mechanic?.mechanic_type === "business" && <Icon> <BiBuildings size={25} /> </Icon>}
-                            </Heading>
-                          </Link>
-                          <Text color="gray.800" fontWeight="md" fontSize="sm">
-                            {mechanic?.headline}
-                          </Text>
-                        </Box>
-                        <Badge colorScheme="blue" fontSize="xs" p={'5px'} display="flex" align="center" rounded="lg">
-                          <TopRatedBadgeIcon viewBox="0 0 27 28" w="20px" h="20px" /> {mechanic?.level}
-                        </Badge>
-                      </Flex>
-
-                      <Flex align="center" gap={1} mt={2} color="gray.600">
-                        <GrLocation />
-                        <Text fontSize="md">{mechanic?.location}</Text>
-                        <Text fontSize="md" color="gray.700">
-                          • {mechanic?.distance || "> 2km away"}
-                        </Text>
-                      </Flex>
-
-                      <HStack spacing={2} mt={4} flexWrap="wrap">
-                        {mechanic?.services?.map((service, idx) =>
-                          idx < 3 ? (
-                            <Tag key={idx} size="sm" variant="subtle" borderRadius="30px" px={4} py={2} bgColor="lightgrey" opacity={".9"}>
-                              {service?.service}
-                            </Tag>
-                          ) : (
-                            idx === 3 && (
-                              <Tag size="lg" py={3} px={4} variant="subtle" bgColor="lightgrey" opacity={0.9} borderRadius="30px">
-                                +{mechanic?.services?.length - idx}
-                              </Tag>
-                            )
-                          )
-                        )}
-                      </HStack>
-
-                      <Divider my={4} />
-
-                      <Flex justify="flex-start" columnGap={5} flexWrap="wrap" align="center">
-                        <Flex align="center" gap={1}>
-                          <Text color="gray.600">Services start from:</Text>
-                          <Text fontSize="lg" fontWeight="bold">{parseInt(mechanic?.price_start).toLocaleString()}</Text>
-                        </Flex>
-
-                        <Flex align="center" gap={1}>
-                          <Text color="gray.600">Average Rating: {mechanic?.rating}</Text>
-                          <StarIcon className="w-4 h-4" color="tertiary" />
-                        </Flex>
-                      </Flex>
+                                                        <Flex justify="flex-start" columnGap={5} rowGap={2} flexWrap="wrap" align="center">
+                                                            {Number(mechanic?.price_start) > 0 && (
+                                                                <Flex align="center" gap={1}>
+                                                                    <Text color="gray.600">Services from</Text>
+                                                                    <Text fontSize="lg" fontWeight="bold">₦{commaInt(mechanic.price_start)}</Text>
+                                                                </Flex>
+                                                            )}
+                                                            <Flex align="center" gap={1} color="gray.600">
+                                                                {Number.isFinite(rating) && rating > 0
+                                                                    ? <><Text>Rating {rating.toFixed(1)}</Text><StarIcon color="tertiary" aria-hidden="true" /></>
+                                                                    : <Text>No ratings yet</Text>}
+                                                            </Flex>
+                                                            <Button as={Link} to={`/mechanics/${mechanic?.uuid}`} size="sm" ml={{ sm: 'auto' }} variant="outline" colorScheme="blue">
+                                                                View &amp; book
+                                                            </Button>
+                                                        </Flex>
+                                                    </Box>
+                                                </Flex>
+                                            </Box>
+                                        );
+                                    })}
+                                    <PageControls
+                                      offset={data?.pagination?.offset}
+                                      limit={data?.pagination?.limit || PAGE_SIZE}
+                                      count={data?.pagination?.count}
+                                      isLoading={mechanics.loading}
+                                      onPage={(offset) => { update({ offset: offset || null }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    />
+                                </VStack>
+                            )}
+                        </AsyncState>
                     </Box>
-                  </Box>
-                </Box>
-              ))}
-            </VStack>
 
-            {/* Map Section */}
-            <Box className="map-wrapper" w="100%" maxW={{ md: "300px", lg: "400px" }} minH="500px" bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} px={4} py={4} top={4}>
-              <Box w="100%" as={MapComponent} ref={mapRef} data-map-id="mech" style={{ height: "320px", }} className="map-rounded" location={location} />      
-              <Flex my={5} gap={2} borderWidth="1px" alignItems="center" rounded="lg" px={2} py={1}>
-                <Text>Location:</Text>
-
-                <CustomPlacesAutocomplete
-                  onLoad={onLoad}
-                  onPlaceChanged={onPlaceChanged}
-                />
-              </Flex>
-              <Button w="100%" size="lg" colorScheme="blue" onClick={expandMap} p={4}>Expand Map</Button>
-            </Box>
-          </Flex>
-        </Container>
-    </Box>
-  );
+                    <Box w="100%" maxW={{ md: "300px", lg: "400px" }} bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} p={4} position={{ md: 'sticky' }} top={{ md: 4 }}>
+                        <MapComponent style={{ height: "320px" }} location={location} label={`Map around ${locationName}`} />
+                        <Box mt={4}>
+                            <Text as="label" htmlFor="mech-location" fontWeight="600" fontSize="sm">Search near</Text>
+                            <Box borderWidth="1px" rounded="lg" mt={1}>
+                                <CustomPlacesAutocomplete
+                                  id="mech-location"
+                                  value={params.get('near') || ''}
+                                  placeholder="Search an area or address"
+                                  aria-label="Search near this location"
+                                  onPlaceChange={(place) => update({ lat: place.lat, lng: place.lng, near: place.formatted_address })}
+                                />
+                            </Box>
+                            {picked && (
+                                <Button mt={2} size="sm" variant="link" color="primary" onClick={() => update({ lat: null, lng: null, near: null })}>
+                                    {deviceLocation ? 'Use my current location' : 'Clear location'}
+                                </Button>
+                            )}
+                        </Box>
+                    </Box>
+                </Flex>
+            </Container>
+        </Box>
+    );
 };
 
 export default MechanicListPage;
-

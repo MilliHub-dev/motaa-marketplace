@@ -1,172 +1,193 @@
-import { useState, useEffect, useContext } from "react"
-import {GlobalStore} from '../../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../../utils';
+import { useContext, useRef, useState } from 'react';
+import { Link as RLink } from 'react-router-dom';
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  Badge,
   Box,
   Button,
   Flex,
   Heading,
-  Avatar,
   HStack,
   IconButton,
-  Image,
-  Input,
-  InputGroup,
-  InputLeftElement,
   Menu,
   MenuButton,
   MenuItem,
   MenuList,
+  Switch,
   Table,
+  TableContainer,
   Tbody,
   Td,
   Text,
   Th,
   Thead,
   Tr,
-  TableContainer,
-  Badge,
-  Switch,
-} from "@chakra-ui/react"
-import {MoreVertical, Plus} from 'lucide-react';
-import {Link} from 'react-router-dom'
+} from '@chakra-ui/react';
+import { MoreVertical, Pencil, Plus, Trash2, Wrench } from 'lucide-react';
+import { GlobalStore } from '../../../../App';
+import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
+import { AsyncState, EmptyState } from '../../../../components/states';
+import { asList } from '../../../../utils';
 
-const BookingStatusColors = {
-  'accepted': 'blue',
-  'completed': 'green',
-  'declined': 'red',
-  'requested': 'yellow',
-}
-
-
-// Client Info Component
-const PreviewCard = ({ service, charge, images, charge_rate, description }) => (
-  <Flex align="center">
-    <Box mr={3} w="40px" h="40px" borderRadius="full" overflow="hidden">
-      <Avatar src={image} name={name} w="100%" h="100%" objectFit="cover" />
-    </Box>
-    
-    <Box>
-      <Text fontWeight="medium">{name}</Text>
-      <Flex align="center" color="gray.500" fontSize="xs">
-        {/*<MapPin size={12} style={{ marginRight: "4px" }} />*/}
-        {location}
-      </Flex>
-    </Box>
-  </Flex>
-)
+const RATE_LABELS = { flat: 'Flat rate', hourly: 'Per hour' };
 
 export const ServiceOfferings = () => {
-  const [services, setServices] = useState([]);
-  const [serviceOfferings, setServiceOfferings] = useState([]);
-  const {axios, notify, authUser } = useContext(GlobalStore);
+  const { commaInt } = useContext(GlobalStore);
+  const [toggling, setToggling] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const cancelRef = useRef();
 
-  async function init(){
-    const res = await axios.get('/admin/mechanics/services/');
-    const data = await objectifyJSON(res.data);
+  const offerings = useApiQuery((api, signal) => api.get('/admin/mechanics/services/', { signal }), [], {
+    select: (body) => asList(body?.data),
+  });
 
-    if (res.status === 200){
-      console.log("Bookings:", data);
-      // setServices(data.data);
-      setServiceOfferings(data.data);
+  const replaceOffering = (updated) => {
+    if (!updated?.uuid) return;
+    offerings.setData((list) => asList(list).map((o) => (o.uuid === updated.uuid ? { ...o, ...updated } : o)));
+  };
+
+  const toggle = useApiMutation(
+    (api, offering, isActive) => api.post(`/admin/mechanics/services/${offering.uuid}/`, { is_active: isActive }),
+    {
+      successMessage: (body) => (body?.data?.is_active ? 'Service is now visible to customers' : 'Service hidden from customers'),
+      errorTitle: "Couldn't update the service",
+      onSuccess: (body) => replaceOffering(body?.data),
     }
+  );
 
+  const remove = useApiMutation((api, offering) => api.delete(`/admin/mechanics/services/${offering.uuid}/`), {
+    successMessage: (body) => body?.message || 'Service deleted',
+    errorTitle: "Couldn't delete the service",
+    onSuccess: (body, offering) => {
+      if (body?.data?.deleted) offerings.setData((list) => asList(list).filter((o) => o.uuid !== offering.uuid));
+      else replaceOffering({ uuid: offering.uuid, is_active: false });
+    },
+  });
+
+  async function handleToggle(offering, isActive) {
+    setToggling(offering.uuid);
+    await toggle.mutate(offering, isActive);
+    setToggling(null);
   }
 
-  useEffect(() => {
-    init();
-  }, [])
-
-  // Filter bookings based on selected filter
-  const handleFilterChange = (filter) => {
-    setActiveFilter(filter)
-
-    if (filter === "All") {
-      setFilteredBookings(bookingHistory)
-    } else {
-      setFilteredBookings(bookingHistory.filter((booking) => booking.status === filter))
-    }
+  async function confirmDelete() {
+    await remove.mutate(deleting);
+    setDeleting(null);
   }
 
   return (
-    <Box p={4} maxW="1200px" mx="auto">
-      {/* Header */}
-      <Heading as="h1" size="lg" mb={6}>
-        My Services
-      </Heading>
-
-      <Flex justifyContent="flex-end" mb={6}>
-        <Button colorScheme="blue" bg="primary" leftIcon={<Plus />} as={Link} to="/services/add/"> Add Service </Button>
+    <Box py={4} maxW="1200px" mx="auto">
+      <Flex justify="space-between" align={{ base: 'stretch', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={4} mb={6}>
+        <Box>
+          <Heading as="h1" size="lg" mb={1}>My services</Heading>
+          <Text color="gray.600">Active services and prices are shown on your public profile.</Text>
+        </Box>
+        <Button as={RLink} to="/services/add" bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<Plus size={18} />} flexShrink={0}>
+          Add service
+        </Button>
       </Flex>
 
-      {/* Booking History */}
-      <Box>
-        <TableContainer>
-          <Table variant="simple">
-            <Thead bg="gray.50">
-              <Tr>
-                <Th>Service</Th>
-                <Th>Charge</Th>
-                <Th>Hires</Th>
-                <Th>Active</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {serviceOfferings.map((offering) => (
-                <Tr key={offering?.uuid}>
-                  <Td>{offering?.service} </Td>
-                  <Td>
-                    <Text>{parseInt(offering?.charge).toLocaleString()}</Text>
-                    <Badge
-                      colorScheme={'blue'}
-                      px={2}
-                      py={1}
-                      borderRadius="full"
-                      textTransform="Capitalize"
-                    >
-                      {offering?.charge_rate}
-                    </Badge>
-                  </Td>
-
-                  <Td>
-                    {offering?.hires}
-                  </Td>
-                  
-                  <Td>
-                    <Flex gap={4} alignItems="center">
-                      <Switch onChange={(e) => {
-                        notify({
-                          color: 'blue',
-                          level: 'info',
-                          title: e.target.checked ? 'Service Activated' : `Service Deactivated`
-                        })
-                      }} />
-
-                      <Menu>
+      <AsyncState
+        query={offerings}
+        loadingLabel="Loading your services…"
+        isEmpty={(list) => !list?.length}
+        empty={
+          <EmptyState
+            icon={Wrench}
+            title="You haven't added any services"
+            description="Add the services you offer with your prices so customers can book you."
+            action={{ label: 'Add your first service', to: '/services/add' }}
+          />
+        }
+      >
+        {(list) => (
+          <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="white">
+            <Table variant="simple" size="sm">
+              <Thead bg="gray.50">
+                <Tr>
+                  <Th py={3} px={{ base: 3, md: 4 }}>Service</Th>
+                  <Th isNumeric>Charge</Th>
+                  <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>Hires</Th>
+                  <Th>Visible</Th>
+                  <Th><Box as="span" srOnly>Options</Box></Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {list.map((offering) => (
+                  <Tr key={offering?.uuid}>
+                    <Td py={3} whiteSpace="normal" minW="120px">
+                      <Text fontWeight="medium">{offering?.service || 'Untitled service'}</Text>
+                      <Text fontSize="xs" color="gray.500" display={{ base: 'block', md: 'none' }}>
+                        {commaInt(offering?.hires)} hire{Number(offering?.hires) === 1 ? '' : 's'}
+                      </Text>
+                    </Td>
+                    <Td isNumeric>
+                      <Text>₦{commaInt(offering?.charge)}</Text>
+                      <Badge colorScheme="blue" borderRadius="full" px={2} textTransform="none">
+                        {RATE_LABELS[offering?.charge_rate] || offering?.charge_rate || 'Flat rate'}
+                      </Badge>
+                    </Td>
+                    <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>{commaInt(offering?.hires)}</Td>
+                    <Td>
+                      <HStack>
+                        <Switch
+                          isChecked={!!offering?.is_active}
+                          isDisabled={toggling === offering?.uuid}
+                          onChange={(e) => handleToggle(offering, e.target.checked)}
+                          aria-label={`Show ${offering?.service} to customers`}
+                        />
+                        <Text fontSize="xs" color="gray.500" display={{ base: 'none', md: 'block' }}>{offering?.is_active ? 'Active' : 'Hidden'}</Text>
+                      </HStack>
+                    </Td>
+                    <Td>
+                      <Menu placement="bottom-end">
                         <MenuButton
                           as={IconButton}
-                          aria-label="Options"
+                          aria-label={`Options for ${offering?.service}`}
                           icon={<MoreVertical size={16} />}
                           variant="ghost"
                           size="sm"
                         />
                         <MenuList>
-                          <MenuItem>View details</MenuItem>
-                          <MenuItem>Contact client</MenuItem>
-                          <MenuItem>Download invoice</MenuItem>
+                          <MenuItem as={RLink} to={`/services/edit/${offering?.uuid}`} icon={<Pencil size={14} />}>
+                            Edit
+                          </MenuItem>
+                          <MenuItem color="red.600" icon={<Trash2 size={14} />} onClick={() => setDeleting(offering)}>
+                            Delete
+                          </MenuItem>
                         </MenuList>
                       </Menu>
-                    </Flex>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </TableContainer>
-      </Box>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        )}
+      </AsyncState>
+
+      <AlertDialog isOpen={!!deleting} leastDestructiveRef={cancelRef} onClose={() => !remove.loading && setDeleting(null)} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent mx={4}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">Delete {deleting?.service}?</AlertDialogHeader>
+            <AlertDialogBody>
+              Customers will no longer be able to book this service. If it has any bookings, it will be
+              hidden instead of deleted so your booking history stays intact.
+            </AlertDialogBody>
+            <AlertDialogFooter gap={3}>
+              <Button ref={cancelRef} onClick={() => setDeleting(null)} isDisabled={remove.loading}>Keep service</Button>
+              <Button colorScheme="red" onClick={confirmDelete} isLoading={remove.loading}>Delete</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
-  )
-}
+  );
+};
 
-export default ServiceOfferings
-
+export default ServiceOfferings;

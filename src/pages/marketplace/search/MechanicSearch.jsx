@@ -1,214 +1,174 @@
 import {
-    Box, Heading,
-    Button,
-    Container,
-    Flex,
-    Input,
-    InputGroup,
-    InputLeftElement,
-    Select,
-    Stack,
-    Text,
-    Avatar,
-    Badge,
-    Card,
-    CardBody,
-    Icon,
-    VStack,
-    HStack,
-    Wrap,
-    WrapItem,
-    Menu,
-    MenuList,
-    MenuItem,
-    MenuButton,
-    MenuItemOption,
-    Checkbox,
- } from "@chakra-ui/react";
-import { useContext, useEffect, useState } from "react";
-import { GlobalStore } from "../../../App";
-import { jsonifyObject, objectifyJSON } from "../../../utils";
-import { useNavigate, useSearchParams } from "react-router-dom";
-// import { SearchIcon, StarIcon, ZapIcon } from '@chakra-ui/icons';
-import { RiGasStationLine, RiHeart2Fill, RiHeart2Line, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
-import { motion } from "framer-motion";
+    Box, Heading, Button, Container, Flex, HStack, Input, InputGroup, InputLeftElement, Stack, Text,
+    Avatar, Badge, Card, CardBody, Wrap, WrapItem, Switch, FormControl, FormLabel,
+} from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { RiFilterLine, RiMessage2Line, RiSearch2Line } from 'react-icons/ri'
+import { SearchX } from "lucide-react";
 import { MechanicListSkeleton } from "../../../components/loaders";
-import { LocationBreadcrumb } from "../../../components";
+import { LocationBreadcrumb, PageControls } from "../../../components";
+import { AsyncState, EmptyState } from "../../../components/states";
+import { ServiceFilter } from "../../../components/filters";
+import { ChatPopup } from "../../../components/chat";
+import { useApiQuery } from "../../../hooks/useApi";
+import { asList } from "../../../utils";
+import { resultsSummary } from "./CarSearch";
 
+const PAGE_SIZE = 25;
 
+export function mechanicName(mech) {
+    return mech?.business_name || mech?.user?.name || 'Mechanic';
+}
 
-export const MechanicSearchPage = ({ props }) => {
-    const find =  useSearchParams(window.location)[0].get('find');
-    const [searchResults, setSearchResults] = useState(null);
+export const MechanicSearchPage = () => {
+    const [params, setParams] = useSearchParams();
+    const find = params.get('find') || '';
     const [query, setQuery] = useState(find);
-    const [matches, setMatches] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const {axios, authUser, commaInt, notify, } = useContext(GlobalStore);
-    const redirect = useNavigate();
-    
-    function init(){
-        getData();
-        setTimeout(() => setLoading(false), 2500)
-    }
+    const [chatWith, setChatWith] = useState(null);
+    const navigate = useNavigate();
 
-    async function getData(){
-        const res = await axios.get(`/mechanics/find/?find=${find}`);
-        const data = objectifyJSON(res.data);
-        console.log("Search results:", data);
-        setSearchResults(data.data);
-        setMatches(data?.data?.results);
-    }
+    useEffect(() => { setQuery(find); }, [find]);
 
-    function handleSearch(){
-        // simply redirect to this page with the new params
-        redirect(`/search/mechanics/?find=${query}`)
-    }
+    const qs = new URLSearchParams();
+    if (find) qs.set('find', find);
+    for (const key of ['services', 'available', 'offset']) if (params.get(key)) qs.set(key, params.get(key));
+    const apiQs = qs.toString();
 
-    useEffect(() => {
-        init();
-        return () => {
+    const results = useApiQuery(
+        (api, signal) => api.get(`/mechanics/find/?${apiQs}`, { signal }),
+        [apiQs],
+        { select: (body) => body?.data }
+    );
 
+    function update(changes) {
+        const next = new URLSearchParams(params);
+        for (const [key, value] of Object.entries(changes)) {
+            if (!value) next.delete(key); else next.set(key, String(value));
         }
-    }, [find]);
+        if (!('offset' in changes)) next.delete('offset');
+        setParams(next);
+    }
 
-    if (loading){
-        return <MechanicListSkeleton />;
+    function handleSearch(e) {
+        e.preventDefault();
+        const text = query.trim();
+        if (!text) return;
+        navigate(`/search/mechanics/?find=${encodeURIComponent(text)}`);
     }
 
     return (
-        <Box px={4} py={4}>
+        <Box py={4}>
             <Container maxW="container.lg" py={4}>
-                <LocationBreadcrumb label={find} />
+                <LocationBreadcrumb label={find ? `“${find}”` : 'Mechanics'} />
 
-                <Heading className="subtitle" size={'md'} mt={3} mb={5}> Showing {searchResults?.pagination?.offset + 1} - {searchResults?.pagination?.limit} of {searchResults?.pagination?.count} results for "{find}" </Heading>
-                {/* Search Header */}
-                <Flex gap={4} mb={6}>
-                    <InputGroup flex={1} borderRadius={'30px !important'}>
-                        <InputLeftElement pointerEvents="none">
-                            <RiSearch2Line color="gray.300" />
-                        </InputLeftElement>
-                        
-                        <Input placeholder="Search here..." value={query} onInput={e => setQuery(e.target.value)} />
+                <Heading as="h1" className="subtitle" size={'md'} mt={3} mb={5} role="status">
+                    {results.data
+                        ? resultsSummary(results.data?.pagination, asList(results.data?.results).length, find)
+                        : find ? `Searching for “${find}”…` : 'Search mechanics'}
+                </Heading>
+
+                <Flex as="form" role="search" onSubmit={handleSearch} gap={3} mb={4}>
+                    <InputGroup flex={1}>
+                        <InputLeftElement pointerEvents="none"><RiSearch2Line aria-hidden="true" /></InputLeftElement>
+                        <Input type="search" aria-label="Search mechanics" placeholder="Name or service, e.g. oil change" value={query} onChange={e => setQuery(e.target.value)} />
                     </InputGroup>
-                    <Button onClick={handleSearch} variant="outline" color={'primary'} colorScheme="blue">Advanced search</Button>
+                    <Button type="submit" bg="primary" color="white" colorScheme="blue" isDisabled={!query.trim()}>Search</Button>
                 </Flex>
 
-                {/* Filters */}
-                <Flex gap={2} mb={6} flexWrap="wrap">
-                    <Menu placeholder="Location" w={'max-content'}>
-                        <Select as={MenuButton} maxW={'max-content'}>
-                            <option selected disabled> Services </option>
-                        </Select>
-                        <MenuList>
-                            <MenuItem gap={3} value="worldwide" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Engine Repair </Text>
-                            </MenuItem>
-
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Paint Job </Text>
-                            </MenuItem>
-                        </MenuList>
-                    </Menu>
-
-                    <Menu placeholder="Location" w={'max-content'}>
-                        <Select as={MenuButton} maxW={'max-content'}>
-                            <option selected disabled> Location </option>
-                        </Select>
-                        <MenuList>
-                            <MenuItem gap={3} value="worldwide" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Nearest to Me </Text>
-                            </MenuItem>
-
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Nationwide </Text>
-                            </MenuItem>
-
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Abuja </Text>
-                            </MenuItem>
-
-                            <MenuItem gap={3} value="us" closeOnSelect={false}>
-                                <Checkbox />
-                                <Text> Kaduna </Text>
-                            </MenuItem>
-                        </MenuList>
-                    </Menu>
+                <Flex gap={4} mb={6} flexWrap="wrap" alignItems="center">
+                    <HStack spacing={1} color="gray.600" aria-hidden="true"><RiFilterLine /><Text>Filters</Text></HStack>
+                    <ServiceFilter value={params.get('services')} onChange={({ value }) => update({ services: value })} />
+                    <FormControl display="flex" alignItems="center" w="auto">
+                        <Switch id="available-only" colorScheme="blue" isChecked={params.get('available') === 'true'} onChange={(e) => update({ available: e.target.checked ? 'true' : null })} />
+                        <FormLabel htmlFor="available-only" mb={0} ml={2}>Available now</FormLabel>
+                    </FormControl>
                 </Flex>
 
-                {/* Results */}
-                <Stack spacing={4}>
-                {
-                    matches?.map((mech, idx) =>
-                        <Card key={idx} shadow={'lg'} my={3}>
-                            <CardBody>
-                                <Flex gap={4} flexWrap={'wrap'}>
-                                    <Avatar size="lg" name={mech?.user?.name} src="/placeholder.svg?height=50&width=50" />
-                                    <Box flex={1}>
-                                        <Flex justify="space-between" alignItems={'center'} mb={2}>
-                                            <Box>
-                                                <Text fontWeight="semibold">{mech?.user?.name}</Text>
-                                                <Text fontSize="lg" fontWeight="medium">   </Text>
-                                                <Text fontSize="sm" color="gray.500">{mech?.location}</Text>
-                                            </Box>
-                                            <Badge title="Availablility"
-                                             textTransform={'capitalize'}
-                                             fontSize={'13px'}
-                                             rounded={'lg'}
-                                             colorScheme={mech?.available ? 'green' : 'gray'}
-                                            >
-                                                {mech?.available ? "Available" : "Not Available"}
-                                            </Badge>
-                                        </Flex>
-                                        {/* MIGHT DELETE LATER
-                                        <HStack spacing={4} mb={2}>
-                                            <Text fontWeight="medium">$147/hr</Text>
-                                            <Flex align="center">
-                                                <Icon as={RiGasStationLine} color="yellow.400" />
-                                                <Text ml={1}>98% Job Success</Text>
-                                            </Flex>
-                                            <Text>$800K+ earned</Text>
-                                        </HStack> 
-                                        */}
+                <AsyncState
+                  query={results}
+                  skeleton={<MechanicListSkeleton />}
+                  isEmpty={(data) => asList(data?.results).length === 0}
+                  empty={
+                    <EmptyState
+                      icon={SearchX}
+                      title={find ? `No mechanics match “${find}”` : 'No mechanics found'}
+                      description="Try another name or service, or see mechanics near you."
+                      action={{ label: 'Find mechanics near me', to: '/mechanics' }}
+                    />
+                  }
+                >
+                    {(data) => (
+                        <Box opacity={results.loading ? 0.6 : 1} aria-busy={results.loading}>
+                            <Stack spacing={4}>
+                                {asList(data?.results).map((mech) => {
+                                    const name = mechanicName(mech);
+                                    const jobs = asList(mech?.job_history).length;
+                                    return (
+                                        <Card key={mech?.uuid || mech?.id} shadow={'lg'} my={1}>
+                                            <CardBody>
+                                                <Flex gap={4} direction={{ base: 'column', sm: 'row' }}>
+                                                    <Avatar size="lg" name={name} src={mech?.logo || undefined} />
+                                                    <Box flex={1} minW={0}>
+                                                        <Flex justify="space-between" alignItems={'flex-start'} gap={2} mb={2} flexWrap="wrap">
+                                                            <Box minW={0}>
+                                                                <Heading as="h2" size="sm"><Link to={`/mechanics/${mech?.uuid}`}>{name}</Link></Heading>
+                                                                {mech?.headline && <Text fontSize="sm" color="gray.700">{mech.headline}</Text>}
+                                                                {mech?.location && <Text fontSize="sm" color="gray.500">{mech.location}</Text>}
+                                                            </Box>
+                                                            <Badge textTransform={'capitalize'} fontSize={'13px'} rounded={'lg'} colorScheme={mech?.available ? 'green' : 'gray'}>
+                                                                {mech?.available ? "Available" : "Not available"}
+                                                            </Badge>
+                                                        </Flex>
 
-                                        <Wrap spacing={2} mb={4}>
-                                            {/* Services offered */}
-                                            {mech?.services?.map((service, key) => 
-                                                <WrapItem key={key}>
-                                                    <Badge>{service.service}</Badge>
-                                                </WrapItem>
-                                            )}
-                                        </Wrap>
+                                                        {asList(mech?.services).length > 0 && (
+                                                            <Wrap spacing={2} mb={3}>
+                                                                {asList(mech.services).map((service) =>
+                                                                    <WrapItem key={service?.uuid || service?.service}><Badge>{service?.service}</Badge></WrapItem>
+                                                                )}
+                                                            </Wrap>
+                                                        )}
 
-                                        <Text fontSize="sm" color="gray.600" mb={2}>
-                                            {mech?.about || "No description available."}
-                                        </Text>
+                                                        <Text fontSize="sm" color="gray.600" mb={2} noOfLines={3}>
+                                                            {mech?.about || "No description available."}
+                                                        </Text>
 
-                                        {mech?.job_history &&
-                                            <Text fontSize="sm" color="green.500">
-                                                {mech?.user?.name} has worked {mech?.job_history?.length} jobs related to your search.
-                                            </Text>
-                                        }
+                                                        {jobs > 0 && (
+                                                            <Text fontSize="sm" color="green.600">{jobs} job{jobs === 1 ? '' : 's'} completed on Motaa</Text>
+                                                        )}
 
-                                        <Wrap gap={3} my={2}>
-                                            <Button w={{base: '100%', md: 'auto' }} variant={'ghost'} colorScheme={'yellow'} leftIcon={<RiMessage2Line />}>  Contact {mech?.user?.name.split(' ')[0]} </Button>
-                                            <Button w={{base: '100%', md: 'auto' }} colorScheme="blue" bg={'primary'}> Hire {mech?.user?.name} </Button>
-                                        </Wrap>
-                                    </Box>
-                                </Flex>
-                            </CardBody>
-                        </Card>
-                    )
-                }
-                </Stack>
+                                                        <Flex gap={3} mt={3} flexWrap="wrap">
+                                                            <Button flex={{ base: 1, md: 'none' }} variant={'outline'} colorScheme={'blue'} leftIcon={<RiMessage2Line />} onClick={() => setChatWith(mech)}>
+                                                                Message
+                                                            </Button>
+                                                            <Button flex={{ base: 1, md: 'none' }} as={Link} to={`/mechanics/${mech?.uuid}`} colorScheme="blue" bg={'primary'} aria-label={`View ${name} and book`}>
+                                                                View &amp; book
+                                                            </Button>
+                                                        </Flex>
+                                                    </Box>
+                                                </Flex>
+                                            </CardBody>
+                                        </Card>
+                                    );
+                                })}
+                            </Stack>
+                            <PageControls
+                              offset={data?.pagination?.offset}
+                              limit={data?.pagination?.limit || PAGE_SIZE}
+                              count={data?.pagination?.count}
+                              isLoading={results.loading}
+                              onPage={(offset) => { update({ offset: offset || null }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            />
+                        </Box>
+                    )}
+                </AsyncState>
             </Container>
+
+            {chatWith?.uuid && (
+                <ChatPopup isOpen onClose={() => setChatWith(null)} recipient_type="mechanic" recipient_id={chatWith.uuid} />
+            )}
         </Box>
     )
 }
 
 export default MechanicSearchPage;
-

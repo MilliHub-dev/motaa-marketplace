@@ -1,388 +1,347 @@
-import { Search, Bell, CloudUpload, ChevronDown, ArrowRight } from "lucide-react"
+// Business onboarding (last signup step for dealers and mechanics) at /signup/business.
+// The account already exists; its token lives in sessionStorage (see shared.jsx) until this
+// profile is saved, then the user is logged in and sent to their dashboard.
 import {
   Avatar,
   Box,
   Button,
-  Container,
-  InputGroup,
-  InputLeftAddon,
-  VStack,
-  IconButton,
-  FormErrorMessage,
-  Textarea,
-  Tag,
-  Card,
-  Checkbox,
-  Divider,
   Flex,
   FormControl,
+  FormErrorMessage,
+  FormHelperText,
   FormLabel,
-  Heading,
-  HStack,
-  Icon,
-  Image,
   Input,
-  Link,
-  ButtonGroup,
-  PinInput,
-  PinInputField,
-  Select,
-  SelectField,
+  InputGroup,
+  InputLeftAddon,
+  Radio,
+  RadioGroup,
   Stack,
   Text,
-} from "@chakra-ui/react";
-import { useContext, useRef, useState, createContext, useEffect } from "react";
-import { GlobalStore } from "../../App";
-import { SignupContext } from "./Signup";
-import {motion} from 'framer-motion';
-import { CenteredLayout, OTPField } from "../../components";
-import { CustomPlacesAutocomplete } from "../../components/maps";
-import { redirect, useNavigate, useParams, useSearchParams, Link as RLink } from "react-router-dom";
-import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
-import { FcSms, FcVoicemail } from "react-icons/fc";
-import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
-import { RxChatBubble, RxEnvelopeOpen } from "react-icons/rx";
-import { jsonifyObject, objectifyJSON } from "../../utils";
-import { auth } from "../../firebase";
-import firebase from 'firebase/compat/app';
+  Textarea,
+  VisuallyHidden,
+  Wrap,
+  WrapItem,
+} from '@chakra-ui/react';
+import { Check, CloudUpload } from 'lucide-react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Link as RLink, useNavigate } from 'react-router-dom';
+import { GlobalStore } from '../../App';
+import { toApiError } from '../../api/client';
+import { EmptyState } from '../../components/states';
+import { CustomPlacesAutocomplete } from '../../components/maps';
+import {
+  AuthShell,
+  authHeader,
+  clearOnboarding,
+  isAuthPayload,
+  normalizeNgPhone,
+  readOnboarding,
+  validateEmail,
+  validateNgPhone,
+} from './shared';
 
+// Must match DEALER_SERVICES / MECHANIC_SERVICES in accounts/api/serializers.py
+const SERVICES = {
+  dealer: ['Car Sale', 'Car Leasing', 'Drivers', 'Car Trade-in'],
+  mechanic: ['Oil Change', 'Engine Repair', 'Brake Service', 'Diagnostics', 'Electrical Repairs',
+    'Body Work', 'Paint Job', 'Tyre Service', 'AC Repair', 'Towing'],
+};
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const MIN_ABOUT = 50;
 
+export default function BusinessProfile() {
+  const { api, notify, notifyError, onAuthenticated } = useContext(GlobalStore);
+  const navigate = useNavigate();
+  const [account] = useState(readOnboarding);
+  const userType = account?.user_type;
+  const isDealer = userType === 'dealer';
 
-function BusinessProfile({onSubmit, ...props }) {
-  const {payload} = useContext(SignupContext);
-  const {onAuthenticated, axios, logout, notify} = useContext(GlobalStore);
-  const [logoPreview, setLogoPreview] = useState('')
-  const [params] = useSearchParams();
-  const user_type = params.get('user_type') || 'dealer'
-  const [businessProfile, setBusinessProfile] = useState({
-    logo: null,
+  const [form, setForm] = useState({
     business_name: '',
-    services: [],
-    location: {
-      lat: '',
-      lng: '',
-      country: '',
-      state: '',
-      city: '',
-      zip_code: '',
-      place_id: '',
-      street_address: '',
-    },
-    business_type: '',
-    about: '',
     headline: '',
+    about: '',
+    services: [],
+    business_type: 'business',
+    contact_email: account?.email || '',
     contact_phone: '',
-    contact_email: '',
+    street_address: '',
   });
+  const [logo, setLogo] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [place, setPlace] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const logoInput = useRef(null);
 
-  let mechServices = [
-    'Oil Change',
-    'Paint Job',
-    'Body Work',
-    'Engine Repair',
-  ]
+  useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview); }, [logoPreview]);
 
-  let dealerServices = [
-    'Car Rentals',
-    'Car Sales',
-    'Drivers',
-  ]
-
-  const servicesOffered = payload?.business_type === 'mechanic' ? mechServices : dealerServices;
-  const imageRef = useRef()
-  const imagesRef = useRef()
-
-  const changeValue = (key, value) => {
-    const oldValue = businessProfile
-    oldValue[`${key}`] = value;
-    setBusinessProfile({ ...oldValue })
+  if (!account) {
+    return (
+      <AuthShell title="Set up your business">
+        <EmptyState
+          title="Log in to continue"
+          description="We couldn't find a business signup in progress on this device. Log in to finish setting up your business profile, or create a new business account."
+          action={{ label: 'Log in', to: '/login' }}
+        />
+        <Button as={RLink} to="/signup?type=business" variant="ghost" w="100%" mt={2}>
+          Create a business account
+        </Button>
+      </AuthShell>
+    );
   }
 
-  function removeService(service){
-    const oldValue = businessProfile.services;
-    oldValue.pop(service)
-    changeValue('services', [...oldValue])
+  function setField(name, value) {
+    setForm((f) => ({ ...f, [name]: value }));
+    setErrors((e) => ({ ...e, [name]: '' }));
   }
 
-  async function setupBusinessProfile(e){
+  function toggleService(service) {
+    setForm((f) => ({
+      ...f,
+      services: f.services.includes(service) ? f.services.filter((s) => s !== service) : [...f.services, service],
+    }));
+    setErrors((e) => ({ ...e, services: '' }));
+  }
+
+  function pickLogo(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrors((x) => ({ ...x, logo: 'Choose an image file (PNG or JPG).' }));
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setErrors((x) => ({ ...x, logo: 'Your logo must be 2 MB or smaller.' }));
+      return;
+    }
+    setLogo(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setErrors((x) => ({ ...x, logo: '' }));
+  }
+
+  function validate() {
+    const about = form.about.trim();
+    return {
+      logo: logo ? '' : 'Upload your business logo.',
+      business_name: form.business_name.trim().length >= 2 ? '' : 'Enter your business name.',
+      headline: form.headline.trim() ? '' : 'Add a short headline or motto.',
+      about: about.length >= MIN_ABOUT ? '' : `Tell customers a bit more (at least ${MIN_ABOUT} characters — ${MIN_ABOUT - about.length} to go).`,
+      services: form.services.length ? '' : 'Select at least one service you offer.',
+      contact_email: validateEmail(form.contact_email),
+      contact_phone: validateNgPhone(form.contact_phone),
+      street_address: form.street_address.trim() ? '' : 'Enter your street address.',
+    };
+  }
+
+  async function submit(e) {
     e.preventDefault();
-
-    if (!businessProfile.logo){
-      return notify({
-        color: 'red',
-        title: 'Please Upload your Logo'
-      })
-    }
-    
-    // images must be < 2mb
-    if (businessProfile.logo && businessProfile.logo.size/10**6 > 2.048){
-      return notify({
-        color: 'red',
-        title: 'Your Logo file size exceeds 2mb',
-        timeout: 4500,
-      })
+    if (saving) return;
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    const firstInvalid = Object.keys(nextErrors).find((k) => nextErrors[k]);
+    if (firstInvalid) {
+      document.getElementById(`bp-${firstInvalid}`)?.focus();
+      return;
     }
 
-    try{
-      const authUser = objectifyJSON(localStorage.getItem('motaa-auth-user'));
-      const payload = new FormData();
-      payload.append('action', 'setup-business-profile')
-      payload.append('user_type', user_type)
-      payload.append('logo', businessProfile?.logo, businessProfile.logo?.name)
-      payload.append('business_type', businessProfile.business_type)
-      payload.append('about', businessProfile.about)
-      payload.append('headline', businessProfile.headline)
-      payload.append('business_name', businessProfile.business_name)
-      payload.append('contact_phone', businessProfile.contact_phone)
-      payload.append('contact_email', businessProfile.contact_email)
-      payload.append('services', businessProfile.services)
-      payload.append('location', JSON.stringify(businessProfile.location))
-      const res = await axios.post('/accounts/register/', payload, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Token ${authUser?.token}`
-        }
-      })
-      const data = objectifyJSON(res.data);
+    const payload = new FormData();
+    payload.append('action', 'setup-business-profile');
+    payload.append('logo', logo, logo.name);
+    payload.append('business_name', form.business_name.trim());
+    payload.append('headline', form.headline.trim());
+    payload.append('about', form.about.trim());
+    payload.append('contact_email', form.contact_email.trim());
+    payload.append('contact_phone', normalizeNgPhone(form.contact_phone));
+    form.services.forEach((service) => payload.append('services', service));
+    if (!isDealer) payload.append('business_type', form.business_type);
+    payload.append('location', JSON.stringify({ ...(place || {}), street_address: form.street_address.trim() }));
 
-      if (res.status === 200){
-        console.log("New business data:", data);
-        localStorage.removeItem('motaa-auth-user');
-        redirect('/login', 200)
-        setTimeout(() => notify({
-          title: 'Success',
-          body: "Welcome to Motaa, Please log in to continue."
-        }), 1200)
-      }else{
-        notify({
-          title: 'Error',
-          timeout: 5000,
-          body: data.message,
-          color: 'red'
-        })
+    setSaving(true);
+    try {
+      const body = await api.post('/accounts/register/', payload, authHeader(account.token));
+      // eslint-disable-next-line no-unused-vars
+      const { business, ...user } = body?.data || {};
+      if (!isAuthPayload(user)) throw new Error("We couldn't finish setting up your profile. Please try again.");
+      clearOnboarding();
+      onAuthenticated(user);
+      notify({ title: `Welcome to Motaa, ${form.business_name.trim()}!`, body: 'Your business profile is live. Verify your business from the dashboard to build trust with customers.' });
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      const error = toApiError(err);
+      const fields = error.fieldErrors;
+      if (fields.location) fields.street_address = fields.location;
+      if (Object.keys(fields).length) {
+        setErrors(fields);
+      } else if (error.status === 401) {
+        clearOnboarding();
+        notify({ title: 'Please log in again', body: 'Log in to finish setting up your business.', color: 'red' });
+        navigate('/login', { replace: true });
+      } else if (!error.isNetworkError && !(error.status >= 500)) {
+        notifyError(error, "Couldn't save your business profile");
       }
-    }catch(error){
-        notify({
-          title: 'Error',
-          timeout: 5000,
-          body: error.message,
-          color: 'red'
-        })
-
+    } finally {
+      setSaving(false);
     }
   }
+
+  function startOver() {
+    clearOnboarding();
+    navigate('/signup?type=business', { replace: true });
+  }
+
+  const aboutLength = form.about.trim().length;
 
   return (
-    <Box minH="100vh" bg="white">
-      <Container maxW="3xl" py={8} px={4}>
-      <form id="profileForm" method="post" onSubmit={setupBusinessProfile} encType="multipart/form-data">
-        {/* Profile Image */}
-        <Box bg="white" border="1px solid" borderColor="#d0d5dd" borderRadius="xl" p={6} mb={6}>
-          <VStack>
-            <Flex alignItems="center" justifyContent="center" mb={2}>
-              <Avatar
-               w="20" h="20"
-               borderRadius="full"
-               src={logoPreview}
-               name={businessProfile?.business_name}
-              />
-            </Flex>
-
-            <Button
-             onClick={() => imageRef.current.click()}
-             variant="link" color="#0460cc"
-             fontSize="sm" fontWeight="medium"
-             leftIcon={<CloudUpload size={16} />}
-            >
-              Upload your logo
-            </Button>
-            
-            <Input
-             hidden
-             ref={imageRef}
-             type="file"
-             allow="image/*"
-             isRequired
-             name="logo"
-             onInput={(e) => {
-              const file = e.target.files[0];
-              changeValue('logo', file);
-              setLogoPreview(URL.createObjectURL(businessProfile?.logo))
-             }}
-            />
-
-            <VStack mt={4} w="80%" maxW={"500px"} spacing={4}>
-            <FormControl isRequired>
-              <FormLabel> Business Name </FormLabel>
-              <Input
-               type="text" w="100%"
-               value={businessProfile.business_name}
-               placeholder="Business Name"
-               onInput={e => changeValue('business_name', e.target.value)}
-              />
-            </FormControl>
-            
-            <FormControl isRequired>
-              <FormLabel> Business Headline or Motto </FormLabel>
-              <Input
-               type="address" w="100%"
-               value={businessProfile.headline}
-               placeholder="Business Headline / Motto"
-               onInput={e => changeValue('headline', e.target.value)}
-              />
+    <AuthShell
+      maxW="640px"
+      title={isDealer ? 'Set up your dealership' : 'Set up your mechanic business'}
+      description="Final step · This is what customers see on Motaa."
+    >
+      <form onSubmit={submit} noValidate>
+        <Stack spacing={6}>
+          {/* Logo + name */}
+          <Box borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 4, md: 6 }}>
+            <FormControl isInvalid={Boolean(errors.logo)} isRequired textAlign="center">
+              <Flex direction="column" align="center" gap={2}>
+                <Avatar size="xl" src={logoPreview || undefined} name={form.business_name || undefined} bg="gray.200" />
+                <FormLabel htmlFor="bp-logo" m={0} requiredIndicator={null}>
+                  <VisuallyHidden>Business logo</VisuallyHidden>
+                </FormLabel>
+                <Button
+                  id="bp-logo"
+                  variant="link"
+                  color="primary"
+                  leftIcon={<CloudUpload size={16} />}
+                  onClick={() => logoInput.current?.click()}
+                >
+                  {logo ? 'Change logo' : 'Upload your logo'}
+                </Button>
+                <input ref={logoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={pickLogo} />
+                {errors.logo
+                  ? <FormErrorMessage mt={0}>{errors.logo}</FormErrorMessage>
+                  : <FormHelperText mt={0}>PNG or JPG, up to 2 MB.</FormHelperText>}
+              </Flex>
             </FormControl>
 
-            </VStack>
-          </VStack>
-        </Box>
-
-
-        {/* About Your Business */}
-        <Box mb={6}>
-          <FormLabel fontWeight="medium" mb={2}>
-            About your Business
-          </FormLabel>
-          <Textarea
-            onInput={(e) => changeValue('about', e.target.value)}
-           placeholder="Enter a brief description of your business. Minimum of 50 characters..."
-           minH="100px"
-           borderColor="#d0d5dd"
-          />
-        </Box>
-
-        {/* Choose Services */}
-        <Box mb={6}>
-          <FormLabel fontWeight="medium" mb={2}> Services Offered </FormLabel>
-          <Box border="1px solid" borderColor="#d0d5dd" borderRadius="lg" overflow="hidden">
-            <Box p={3} borderBottom="1px solid" borderColor="#d0d5dd">
-              <FormLabel fontWeight="medium" mb={2}> Choose services </FormLabel>
-              <Flex flexWrap="wrap" gap={2}>
-              {
-                servicesOffered?.map((service) => {
-                  const selected = businessProfile?.services?.includes(service);
-                  if (selected) return null;
-                  return (
-                    <Tag
-                      variant={selected ? "solid" : "outline"}
-                      size="lg"
-                      cursor="pointer"
-                      borderRadius="full"
-                      fontSize="sm"
-                      bg={selected ? "#f2f4f7" : "white"}
-                      color={selected ? "#101828" : "#667085"}
-                      borderColor="#d0d5dd"
-                      _hover={{ bg: selected ? "#e4e7ec" : "gray.50" }}
-                      onClick={() => changeValue('services', [...businessProfile?.services, service])}
-                    >
-                      {service}
-                    </Tag>
-                  )
-                }
-              )}
-              </Flex>
-            </Box>
-
-            <Box p={3}>
-              <Flex flexWrap="wrap" gap={2}>
-                {
-                  businessProfile?.services?.map((service) => 
-                    <Tag
-                      variant={"solid"}
-                      cursor="pointer"
-                      size="lg"
-                      borderRadius="full"
-                      fontSize="sm"
-                      bg={"#0460cc"}
-                      color={"white"}
-                      borderColor={"#0460cc"}
-                      _hover={{ bg: "#0354b4"}}
-                      onClick={() => removeService(service)}
-                    >
-                      {service}
-                    </Tag>
-                  )
-                }
-                {businessProfile?.services.length < 1 && <Text> Select at least one service you offer </Text>}
-              </Flex>
-            </Box>
+            <Stack spacing={4} mt={6}>
+              <FormControl isInvalid={Boolean(errors.business_name)} isRequired>
+                <FormLabel>Business name</FormLabel>
+                <Input id="bp-business_name" autoComplete="organization" value={form.business_name}
+                  onChange={(e) => setField('business_name', e.target.value)} placeholder={isDealer ? 'e.g. Lekki Autos' : 'e.g. Ade Auto Repairs'} />
+                <FormErrorMessage>{errors.business_name}</FormErrorMessage>
+              </FormControl>
+              <FormControl isInvalid={Boolean(errors.headline)} isRequired>
+                <FormLabel>Headline or motto</FormLabel>
+                <Input id="bp-headline" maxLength={200} value={form.headline}
+                  onChange={(e) => setField('headline', e.target.value)} placeholder={isDealer ? 'e.g. Clean, verified cars at fair prices' : 'e.g. Honest repairs, done right the first time'} />
+                <FormErrorMessage>{errors.headline}</FormErrorMessage>
+              </FormControl>
+            </Stack>
           </Box>
-        </Box>
 
-        {/* Contact Details */}
-        <Box mb={6}>
-          <FormLabel fontWeight="medium" mb={2}>
-            Contact details
-          </FormLabel>
-          <Text fontSize="sm" color="#667085" mb={4}>
-            This would be shown on inspection slips and transaction receipts.
-          </Text>
-
-          <FormControl isRequired mb={4}>
-            <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
-              Email
-            </FormLabel>
-            <Input type="email" placeholder="info@company.com" borderColor="#d0d5dd"
-                onInput={(e) => changeValue('contact_email', e.target.value)}
-             />
+          <FormControl isInvalid={Boolean(errors.about)} isRequired>
+            <FormLabel>About your business</FormLabel>
+            <Textarea id="bp-about" minH="120px" maxLength={2000} value={form.about}
+              onChange={(e) => setField('about', e.target.value)}
+              placeholder="What do you offer, where are you based and what makes you different?" />
+            {errors.about
+              ? <FormErrorMessage>{errors.about}</FormErrorMessage>
+              : <FormHelperText>{aboutLength < MIN_ABOUT ? `${aboutLength}/${MIN_ABOUT} characters minimum` : `${aboutLength} characters`}</FormHelperText>}
           </FormControl>
 
-          <FormControl isRequired isInvalid={true}>
-            <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
-              Phone Number
-            </FormLabel>
-            <InputGroup>
-              <InputLeftAddon
-                bg="white"
-                borderColor="#d0d5dd"
-                px={2}
-                children={
-                  <Flex alignItems="center">
-                    <Box w={6} h={4} position="relative">
-                      <Box position="absolute" inset={0} bg="#6da544" w="33.33%"></Box>
-                      <Box position="absolute" inset={0} left="33.33%" bg="white" w="33.33%"></Box>
-                      <Box position="absolute" inset={0} left="66.66%" bg="#6da544" w="33.33%"></Box>
-                    </Box>
-                    <ChevronDown size={16} ml={1} color="#667085" />
-                  </Flex>
-                }
-              />
-              <Input
-                type="tel"
-                placeholder="+2341234567890"
-                value={businessProfile.contact_phone}
-                onInput={(e) => changeValue('contact_phone', e.target.value)}
-              />
-            </InputGroup>
+          <FormControl isInvalid={Boolean(errors.services)} isRequired as="fieldset">
+            <FormLabel as="legend">Services you offer</FormLabel>
+            <Wrap spacing={2} id="bp-services" tabIndex={-1}>
+              {SERVICES[userType].map((service) => {
+                const selected = form.services.includes(service);
+                return (
+                  <WrapItem key={service}>
+                    <Button
+                      size="sm"
+                      borderRadius="full"
+                      aria-pressed={selected}
+                      variant={selected ? 'solid' : 'outline'}
+                      colorScheme="blue"
+                      bg={selected ? 'primary' : undefined}
+                      leftIcon={selected ? <Check size={14} /> : undefined}
+                      onClick={() => toggleService(service)}
+                    >
+                      {service}
+                    </Button>
+                  </WrapItem>
+                );
+              })}
+            </Wrap>
+            {errors.services
+              ? <FormErrorMessage>{errors.services}</FormErrorMessage>
+              : <FormHelperText>{isDealer ? 'You can change these later in Settings.' : 'Set your prices for each service from your dashboard.'}</FormHelperText>}
           </FormControl>
-        </Box>
 
-        <FormControl isRequired mb={4}>
-          <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
-            Street Address
-          </FormLabel>
-          <Input type="address" placeholder="e.g Suite 4. Acura Plaza" borderColor="#d0d5dd"
-              onInput={(e) => changeValue('location', {...businessProfile.location, street_address: e.target.value})}
-           />
-        </FormControl>
+          {!isDealer && (
+            <FormControl as="fieldset">
+              <FormLabel as="legend">How do you work?</FormLabel>
+              <RadioGroup value={form.business_type} onChange={(value) => setField('business_type', value)}>
+                <Stack direction={{ base: 'column', sm: 'row' }} spacing={{ base: 2, sm: 6 }}>
+                  <Radio value="business">Registered business</Radio>
+                  <Radio value="individual">Individual mechanic</Radio>
+                </Stack>
+              </RadioGroup>
+            </FormControl>
+          )}
 
-        <FormControl isRequired mb={4}>
-          <FormLabel fontSize="sm" fontWeight="medium" mb={1}>
-            Physical Location <small> Select a Location on Google </small>
-          </FormLabel>
-          <CustomPlacesAutocomplete onPlaceChange={({...data}) => changeValue('location', {...businessProfile.location, ...data})} />
-        </FormControl>
+          <Box>
+            <Text fontWeight="semibold">Contact details</Text>
+            <Text fontSize="sm" color="gray.600" mb={4}>Shown to customers and on inspection slips and receipts.</Text>
+            <Stack spacing={4}>
+              <FormControl isInvalid={Boolean(errors.contact_email)} isRequired>
+                <FormLabel>Business email</FormLabel>
+                <Input id="bp-contact_email" type="email" autoComplete="email" value={form.contact_email}
+                  onChange={(e) => setField('contact_email', e.target.value)} placeholder="info@yourbusiness.com" />
+                <FormErrorMessage>{errors.contact_email}</FormErrorMessage>
+              </FormControl>
+              <FormControl isInvalid={Boolean(errors.contact_phone)} isRequired>
+                <FormLabel>Business phone number</FormLabel>
+                <InputGroup>
+                  <InputLeftAddon>+234</InputLeftAddon>
+                  <Input id="bp-contact_phone" type="tel" inputMode="tel" autoComplete="tel-national" value={form.contact_phone}
+                    onChange={(e) => setField('contact_phone', e.target.value)} placeholder="803 123 4567" />
+                </InputGroup>
+                <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
+              </FormControl>
+            </Stack>
+          </Box>
 
-        {/* Submit Button */}
-        <Box mt={8}>
-          <Button form="profileForm" type="submit" w="full" bg="#0460cc" color="white" _hover={{ bg: "#0354b4" }}>
-            Create your Profile
+          <Box>
+            <Text fontWeight="semibold" mb={4}>Location</Text>
+            <Stack spacing={4}>
+              <FormControl isInvalid={Boolean(errors.street_address)} isRequired>
+                <FormLabel>Street address</FormLabel>
+                <Input id="bp-street_address" autoComplete="street-address" value={form.street_address}
+                  onChange={(e) => setField('street_address', e.target.value)} placeholder="e.g. Suite 4, Acura Plaza, Admiralty Way" />
+                <FormErrorMessage>{errors.street_address}</FormErrorMessage>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Find your business on the map</FormLabel>
+                <CustomPlacesAutocomplete
+                  placeholder="Search for your area or building"
+                  aria-label="Search for your business location"
+                  onPlaceChange={(data) => setPlace(data)}
+                />
+                <FormHelperText>Optional — helps nearby customers find you.</FormHelperText>
+              </FormControl>
+            </Stack>
+          </Box>
+
+          <Button type="submit" size="lg" colorScheme="blue" bg="primary" isLoading={saving} loadingText="Saving your profile">
+            Finish setup
           </Button>
-        </Box>
+          <Text textAlign="center" fontSize="sm" color="gray.600">
+            Signed up as {account.email}.{' '}
+            <Button variant="link" size="sm" color="primary" onClick={startOver} isDisabled={saving}>Not you? Start over</Button>
+          </Text>
+        </Stack>
       </form>
-      </Container>
-    </Box>
-  )
+    </AuthShell>
+  );
 }
-
-export default BusinessProfile;
-

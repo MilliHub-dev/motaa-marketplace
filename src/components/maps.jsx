@@ -1,154 +1,213 @@
-import {Map, Marker, APIProvider,  } from "@vis.gl/react-google-maps";
-import {
-    Box, Heading,
-    Button,
-    Container,
-    Flex,
-    Input,
-    InputGroup,
-    InputLeftElement,
-    Select,
-    Stack,
-    Text,
-    Avatar,
-    Badge,
-    Card,
-    CardBody,
-    Icon,
-    VStack,
-    HStack,
-    Image,
-    Tag,
-    ButtonGroup,
-    Divider,
-    Checkbox,
-    List,
-    ListItem,
-    Spinner,
-    useColorModeValue,
- } from "@chakra-ui/react";
-import { useContext, useEffect, useState, Fragment, useRef } from "react";
+import { GoogleMap, MarkerF } from "@react-google-maps/api";
+import { Box, Flex, Input, List, ListItem, Spinner, Text } from "@chakra-ui/react";
+import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { MapPin } from "lucide-react";
 import { GlobalStore } from "../App";
-import { jsonifyObject, objectifyJSON } from "../utils";
-import { useSearchParams, Link } from "react-router-dom";
 
+// Abuja city centre: used when we don't know where the user is yet.
+export const DEFAULT_MAP_CENTER = { lat: 9.0765, lng: 7.3986 };
 
+function validPoint(point) {
+  const lat = Number(point?.lat);
+  const lng = Number(point?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
 
-export const MapComponent = ({ location, style, ref, ...props }) => {
-  return (
-    <APIProvider
-     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0'}
-    >
-      <Map
-        mapId="fe2d2f3f932f354f"
-        style={{ width: "100%", height: "100%", color: 'green', ...style }}
-        center={location}
-        class="rounded"
-        zoom={11}
+/**
+ * Google map centred on `location` ({lat, lng}) with a marker.
+ * Uses the Maps script App already loads (useJsApiLoader), so no second loader.
+ * The centre only moves when `location` changes, so the user can pan freely.
+ */
+export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...props }) => {
+  const { mapsLoaded, mapsError } = useContext(GlobalStore);
+  const point = validPoint(location);
+  const lat = point?.lat;
+  const lng = point?.lng;
+  const center = useMemo(
+    () => (lat !== undefined ? { lat, lng } : DEFAULT_MAP_CENTER),
+    [lat, lng]
+  );
+
+  if (!mapsLoaded) {
+    return (
+      <Flex
+        align="center"
+        justify="center"
+        direction="column"
+        gap={2}
+        bg="gray.100"
+        color="gray.600"
+        borderRadius="lg"
+        minH="200px"
+        textAlign="center"
+        px={4}
+        style={style}
+        {...props}
       >
-        <Marker position={location} />
-      </Map>
-    </APIProvider>
+        {mapsError ? (
+          <>
+            <MapPin aria-hidden="true" />
+            <Text fontSize="sm">The map couldn't load. You can still search for an address.</Text>
+          </>
+        ) : (
+          <Spinner color="primary" aria-label="Loading map" />
+        )}
+      </Flex>
+    );
+  }
+
+  return (
+    <Box role="region" aria-label={label} borderRadius="lg" overflow="hidden" style={style} {...props}>
+      <GoogleMap
+        mapContainerStyle={{ width: "100%", height: "100%", minHeight: "200px" }}
+        center={center}
+        zoom={zoom}
+        options={{ streetViewControl: false, mapTypeControl: false, clickableIcons: false }}
+      >
+        {point && <MarkerF position={point} />}
+      </GoogleMap>
+    </Box>
   );
 };
 
 
+function component(result, type, key = 'long_name') {
+  return result?.address_components?.find((comp) => comp?.types?.includes(type))?.[key];
+}
 
-export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...props }) => {
-  const [inputValue, setInputValue] = useState(value);
+/**
+ * Address search backed by Google Places.
+ * onPlaceChange({ place_id, country, state, city, formatted_address, zip_code, lat, lng, name })
+ * fires once the chosen place's coordinates are known.
+ */
+export const CustomPlacesAutocomplete = ({
+  value,
+  onPlaceChange,
+  inputProps,
+  placeholder = "Search a place",
+  country = 'ng',
+  id,
+  'aria-label': ariaLabel = 'Search for an address',
+  ...props
+}) => {
+  const [inputValue, setInputValue] = useState(value || '');
   const [predictions, setPredictions] = useState([]);
+  const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [selectedPlace, setSelectedPlace] = useState(null);
-  const [selectedLatLng, setSelectedLatLng] = useState(null);
-
-  const {mapsLoaded} = useContext(GlobalStore);
+  const [message, setMessage] = useState('');
+  const { mapsLoaded } = useContext(GlobalStore);
   const autocompleteService = useRef(null);
   const placesService = useRef(null);
-  const mapRef = useRef(null);
+  const debounce = useRef(null);
+  const listId = useId();
 
-  // Re-runs when the Maps script finishes loading. With [] deps this silently
-  // never initialised if the script wasn't ready at mount, leaving a plain
-  // input that returns no predictions.
+  // keep the text in sync when the parent sets a new value (e.g. reverse-geocoded location)
+  useEffect(() => {
+    if (value !== undefined) setInputValue(value || '');
+  }, [value]);
+
   useEffect(() => {
     if (!mapsLoaded || !window.google?.maps?.places) return;
-
     if (!autocompleteService.current) {
       autocompleteService.current = new window.google.maps.places.AutocompleteService();
     }
-
-    if (mapRef.current && !placesService.current) {
-      const dummyMap = new window.google.maps.Map(mapRef.current);
-      placesService.current = new window.google.maps.places.PlacesService(dummyMap);
+    if (!placesService.current) {
+      placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
     }
   }, [mapsLoaded]);
 
+  useEffect(() => () => clearTimeout(debounce.current), []);
+
   const fetchPredictions = (input) => {
-    if (!autocompleteService.current || input.length < 2) {
+    clearTimeout(debounce.current);
+    setMessage('');
+    if (!autocompleteService.current || input.trim().length < 2) {
       setPredictions([]);
+      if (!mapsLoaded && input.trim().length >= 2) setMessage("Address search is unavailable right now.");
+      return;
+    }
+    debounce.current = setTimeout(() => {
+      setLoading(true);
+      const request = { input };
+      if (country) request.componentRestrictions = { country };
+      autocompleteService.current.getPlacePredictions(request, (results, status) => {
+        setLoading(false);
+        setPredictions(results || []);
+        setActive(-1);
+        if (!results?.length && status !== 'OK') setMessage('Address not found');
+      });
+    }, 250);
+  };
+
+  const handleSelect = (place) => {
+    if (!place) return;
+    setInputValue(place.description);
+    setPredictions([]);
+    setActive(-1);
+    if (!placesService.current) {
+      setMessage("Couldn't look up that address. Please try again.");
       return;
     }
 
     setLoading(true);
-    autocompleteService.current.getPlacePredictions({ input }, (results) => {
-      setPredictions(results || []);
-      setLoading(false);
-    });
-  };
-
-  const handleSelect = (place) => {
-    setInputValue(place.description);
-    setPredictions([]);
-    setSelectedPlace(place)
-
-    if (!placesService.current) return;
-
-    placesService.current.getDetails({ placeId: place.place_id }, (details, status) => {
-      if (status === "OK" && details.geometry) {
-        const lat = details.geometry.location.lat();
-        const lng = details.geometry.location.lng();
-        setSelectedLatLng({ lat, lng });
-
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          if (status === "OK" && results[0]) {
-            const location = results[0]
-            setSelectedAddress(location.formatted_address);
-
-            const postal_code = location.address_components.find(comp => comp.types.includes('postal_code'))
-            const country = location.address_components.find(comp => comp.types.includes('country'))
-            const city = location.address_components.find(comp => comp.types.includes('administrative_area_level_2'))
-            const state = location.address_components.find(comp => comp.types.includes('administrative_area_level_1'))
-            const coords = {
-              place_id: place.place_id,
-              country: country.short_name,
-              state: state.short_name,
-              city: city.long_name,
-              formatted_address: location.formatted_address,
-              zip_code: postal_code?.long_name,
-              lat,
-              lng,
-            }
-            console.log("Coords:", coords)
-            console.log("Postal code:", postal_code)
-            onPlaceChange(coords)
-          } else {
-            setSelectedAddress("Address not found");
-          }
+    placesService.current.getDetails(
+      { placeId: place.place_id, fields: ['geometry', 'formatted_address', 'address_components', 'name', 'place_id'] },
+      (details, status) => {
+        setLoading(false);
+        const location = details?.geometry?.location;
+        if (status !== 'OK' || !location) {
+          setMessage('Address not found');
+          return;
+        }
+        onPlaceChange?.({
+          place_id: place.place_id,
+          name: details.name || place.description,
+          country: component(details, 'country', 'short_name'),
+          state: component(details, 'administrative_area_level_1', 'short_name'),
+          city: component(details, 'administrative_area_level_2') || component(details, 'locality'),
+          formatted_address: details.formatted_address || place.description,
+          zip_code: component(details, 'postal_code'),
+          lat: location.lat(),
+          lng: location.lng(),
         });
       }
-    });
+    );
   };
+
+  function onKeyDown(e) {
+    if (!predictions.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive((i) => (i + 1) % predictions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive((i) => (i <= 0 ? predictions.length - 1 : i - 1));
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault();
+      handleSelect(predictions[active]);
+    } else if (e.key === 'Escape') {
+      setPredictions([]);
+    }
+  }
+
+  const open = predictions.length > 0;
 
   return (
     <Box position="relative" w="100%" {...props}>
-      <Box ref={mapRef} style={{ display: "none" }} />
-
       <Input
-        placeholder={props?.placeholder || "Search a place"}
+        id={id}
+        placeholder={placeholder}
         value={inputValue}
         borderWidth={0}
-        outline="none"
+        autoComplete="off"
+        role="combobox"
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+        onKeyDown={onKeyDown}
+        onBlur={() => setPredictions([])}
         onChange={(e) => {
           setInputValue(e.target.value);
           fetchPredictions(e.target.value);
@@ -156,10 +215,13 @@ export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...
         {...inputProps}
       />
 
-      {loading && <Spinner size="sm" mt={2} />}
+      {loading && <Spinner size="sm" position="absolute" right={2} top="50%" mt="-8px" aria-label="Searching" />}
+      {message && !open && <Text fontSize="xs" color="gray.600" mt={1} role="status">{message}</Text>}
 
-      {predictions.length > 0 && (
+      {open && (
         <List
+          id={listId}
+          role="listbox"
           position="absolute"
           width="100%"
           bg="white"
@@ -168,13 +230,20 @@ export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...
           mt={1}
           borderRadius="md"
           boxShadow="md"
+          maxH="260px"
+          overflowY="auto"
         >
-          {predictions.map((place) => (
+          {predictions.map((place, idx) => (
             <ListItem
               key={place.place_id}
+              id={`${listId}-${idx}`}
+              role="option"
+              aria-selected={idx === active}
               px={4}
               py={2}
+              bg={idx === active ? 'gray.100' : undefined}
               _hover={{ bg: "gray.100", cursor: "pointer" }}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(place)}
             >
               {place.description}
@@ -185,8 +254,3 @@ export const CustomPlacesAutocomplete = ({ value, onPlaceChange, inputProps, ...
     </Box>
   );
 };
-
-
-
-
-

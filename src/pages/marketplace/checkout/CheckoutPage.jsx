@@ -1,533 +1,538 @@
-import {useState, useEffect, useContext} from 'react';
-import {motion} from "framer-motion";
-import {useParams, useSearchParams, Link, useNavigate} from 'react-router-dom';
-import {GlobalStore} from "../../../App";
-import {objectifyJSON, jsonifyObject} from "../../../utils";
-import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { Link as RLink, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Heading,
-  VStack,
-  SimpleGrid,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  Tag,
-  Button,
-  Text,
-  Image,
-  HStack,
-  Flex,
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Badge,
+  Box,
+  Button,
+  Checkbox,
+  Collapse,
+  Container,
   Divider,
-  IconButton,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormHelperText,
+  FormLabel,
+  Heading,
+  HStack,
+  Icon,
+  Image,
+  Input,
   InputGroup,
   InputLeftAddon,
-  FormErrorMessage,
-  RadioGroup,
-  Checkbox,
-  Radio,
-  Icon,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-  ModalOverlay,
-  ModalContent,
-  ModalCloseButton,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Switch,
+  Text,
+  useDisclosure,
   useRadio,
   useRadioGroup,
-  useMediaQuery,
-  useDisclosure,
-} from '@chakra-ui/react'
-import { Clock, Gauge, Zap, MoreVertical, PiggyBank, Wallet, CreditCard, Warehouse, BanknoteIcon } from 'lucide-react';
-import { HiMiniReceiptPercent } from 'react-icons/hi2'
-import { LuMapPin } from 'react-icons/lu'
-import { RxCaretLeft, RxCaretRight, RxTimer } from 'react-icons/rx';
-import { RiGasStationLine } from 'react-icons/ri';
-import { TbManualGearbox } from 'react-icons/tb';
-import { BsFillPatchCheckFill } from 'react-icons/bs';
-import { Country, State, City }  from 'country-state-city';
-import {
-  FlutterwavePaymentModal,
-  WalletPaymentModal,
-  PaystackPaymentModal,
-} from '../../../components/wallet';
-import {
-  CashMoneyIcon,
-  CarFinancingIcon,
-  CarParkingIcon,
-  PayOnlineIcon,
-  EmptyWalletIcon
-} from '../../../components/icons';
-import {CalendarPicker} from '../../../components';
-import {CustomPlacesAutocomplete} from '../../../components/maps';
+  VStack,
+} from '@chakra-ui/react';
+import { Car, CreditCard, Fuel, Gauge, Lock, MapPin, Search, ShieldCheck, Wallet as WalletIcon, ClipboardCheck } from 'lucide-react';
+import { GlobalStore } from '../../../App';
+import { useApiQuery } from '../../../hooks/useApi';
+import { EmptyState, ErrorState } from '../../../components/states';
+import { CustomPlacesAutocomplete } from '../../../components/maps';
+import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
 
+const OPTION_META = {
+  card: { icon: CreditCard, title: 'Pay online', hint: 'Card, bank transfer or USSD via Paystack' },
+  wallet: { icon: WalletIcon, title: 'Motaa wallet', hint: 'Pay from your wallet balance' },
+  'pay-after-inspection': { icon: ClipboardCheck, title: 'Pay after inspection', hint: 'Pay only the inspection fee today' },
+};
+const PENDING_KEY = 'motaa:pending-checkout';
 
-
-
-const PaymentOptions = [
-  { icon: EmptyWalletIcon, label: 'Pay with Wallet', value: 'wallet' },
-  { icon: PayOnlineIcon, label: 'Pay Online', value: 'online-payment' },
-  { icon: CashMoneyIcon, label: 'Pay After Inspection', value: 'pay-after-inspection' },
-  { icon: CarParkingIcon, label: 'Reserve Vehicle', disabled: true, value: 'reserve-vehicle' },
-  { icon: CarFinancingIcon, label: 'Car Financing', disabled: true, value: 'finance-aid' },
-]
-
-
-const RadioCard = ({ option, onInput, ...props }) => {
-  const { getInputProps, getRadioProps } = useRadio(props);
-  const input = getInputProps();
-  const [order, setOrder] = useState({})
-  const checkbox = getRadioProps();
-
-  return(
-    <VStack as={'label'} isDisabled={option.disabled ? true : false}>
-      <Box
-        p={4} {...checkbox}
-        isDisabled={option.disabled ? true : false}
-        borderWidth={4}
-        borderRadius="20px"
-        opacity={option?.disabled && 0.7}
-        spacing={2}
-        cursor={option.disabled ? 'not-allowed' : 'pointer'}
-        position="relative"
-        width={'120px'}
-        height={'120px'}
-        display="flex"
-        alignItems="center"
-        // isChecked={checkoutPayload?.payment_option === option?.value}
-        justifyContent="center"
-        _checked={{
-          borderColor: 'primary',
-          color: 'white',
-        }}
-        _focus={{
-          boxShadow: 'outline',
-        }}
-      >
-      <option.icon width={'40px'} height="40px" viewBox="0 0 50 55" />
-      {option.disabled && (
-        <Text
-         color="white"
-         fontWeight="600"
-         position="absolute"
-         textAlign="center"
-         left={'0px'}
-         width={'100%'}
-         bottom={"0px"}
-         bgColor="primary"
-         fontSize="xs"
-         py={1.5}
-         borderRadius="0px 0px 20px 20px"
-        >Coming Soon!</Text>
-      )}
-      </Box>
-      <Text fontSize="sm" textAlign="center">
-        {option.label}
-      </Text>
-      <input {...input} />
-    </VStack>
-  )
+function readPending(listingId) {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(PENDING_KEY) || 'null');
+    return saved?.listingId === listingId ? saved : null;
+  } catch { return null; }
+}
+function writePending(value) {
+  try {
+    if (value) window.localStorage.setItem(PENDING_KEY, JSON.stringify(value));
+    else window.localStorage.removeItem(PENDING_KEY);
+  } catch { /* storage unavailable */ }
 }
 
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
-function CheckoutPage({ props }) {
-  const params = new URLSearchParams(document.location.search);
+function PaymentOptionCard({ option, meta, amountLabel, ...radioProps }) {
+  const { getInputProps, getRadioProps, state } = useRadio(radioProps);
+  const disabled = !option.available;
+  return (
+    <Box as="label" cursor={disabled ? 'not-allowed' : 'pointer'} opacity={disabled ? 0.6 : 1}>
+      <input {...getInputProps()} />
+      <Flex
+        {...getRadioProps()}
+        borderWidth="2px"
+        borderRadius="lg"
+        p={4}
+        gap={3}
+        align="start"
+        h="100%"
+        borderColor={state.isChecked ? 'primary' : 'gray.200'}
+        bg={state.isChecked ? 'blue.50' : 'white'}
+        _focusVisible={{ boxShadow: 'outline' }}
+      >
+        <Icon as={meta.icon} boxSize={6} color="primary" mt={0.5} aria-hidden="true" />
+        <Box flex={1} minW={0}>
+          <Text className="bold">{meta.title}</Text>
+          <Text fontSize="sm" color="gray.600">{meta.hint}</Text>
+          <Text fontSize="sm" mt={1} className="bold" color="secondary">{amountLabel}</Text>
+          {disabled && option.reason && <Text fontSize="xs" color="red.600" mt={1}>{option.reason}</Text>}
+        </Box>
+      </Flex>
+    </Box>
+  );
+}
+
+function SummaryRow({ label, value, bold, muted }) {
+  return (
+    <Flex justify="space-between" gap={4} fontWeight={bold ? 700 : 500} color={muted ? 'gray.600' : undefined}>
+      <Text>{label}</Text>
+      <Text textAlign="right" whiteSpace="nowrap">{value}</Text>
+    </Flex>
+  );
+}
+
+function CarCard({ listing, commaInt }) {
+  const vehicle = listing?.vehicle || {};
+  const dealer = listing?.dealer;
+  return (
+    <Box borderWidth={1} borderRadius="20px" overflow="hidden" bg="white">
+      <Box h={{ base: '180px', md: '220px' }} bg="gray.100">
+        {listing?.image
+          ? <Image src={listing.image} alt={listing?.title || 'Car'} w="100%" h="100%" objectFit="cover" />
+          : <Flex h="100%" align="center" justify="center" color="gray.400"><Icon as={Car} boxSize={12} aria-hidden="true" /></Flex>}
+      </Box>
+      <Box p={5}>
+        <Flex justify="space-between" align="start" gap={2}>
+          <Heading as="h2" size="md">{listing?.title}</Heading>
+          {vehicle.condition && <Badge flexShrink={0}>{vehicle.condition}</Badge>}
+        </Flex>
+        <Text mt={1} color="secondary" className="bold">
+          ₦{commaInt(listing?.price)}{listing?.listing_type === 'rental' && listing?.payment_cycle && listing.payment_cycle !== 'single' ? ` / ${listing.payment_cycle}` : ''}
+        </Text>
+        <HStack mt={3} spacing={4} flexWrap="wrap" color="gray.700" fontSize="sm">
+          {vehicle.mileage && <HStack spacing={1}><Icon as={Gauge} aria-hidden="true" /><Text>{/\d/.test(vehicle.mileage) && !/km|mi/i.test(vehicle.mileage) ? `${commaInt(String(vehicle.mileage).replace(/\D/g, ''))} km` : vehicle.mileage}</Text></HStack>}
+          {vehicle.transmission && <Text>{vehicle.transmission}</Text>}
+          {vehicle.fuel_system && <HStack spacing={1}><Icon as={Fuel} aria-hidden="true" /><Text>{vehicle.fuel_system}</Text></HStack>}
+        </HStack>
+        {dealer && (
+          <>
+            <Divider my={3} />
+            <Text fontSize="sm" className="bold">{dealer.business_name}</Text>
+            {dealer.location && <HStack spacing={1} color="gray.600" fontSize="sm"><Icon as={MapPin} aria-hidden="true" /><Text>{dealer.location}</Text></HStack>}
+          </>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+function CheckoutPage() {
+  const [params] = useSearchParams();
   const listingId = params.get('listingId');
-  const redirect = useNavigate();
-  const {axios, authUser, commaInt} = useContext(GlobalStore);
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const [listing, setListing] = useState();
-  const [order, setOrder] = useState({});
-  const [countryList, setCountryList] = useState([]);
-  const [stateList, setStateList] = useState([]);
-  const [cityList, setCityList] = useState([]);
-  const [checkoutPayload, setCheckoutPayload] = useState({
-    listing: listingId,
-    first_name: authUser?.first_name || '',
-    last_name: authUser?.last_name || '',
-    email: authUser?.email || '',
-    phone_number: authUser?.phone_number || '',
-    currency: 'NGN',
-    location:{
-      country: '', // get from phone number extension
-      state: '',
-      city: '', // also used as lga
-      lga: '', // also used as lga
-      lat: '',
-      lng: '',
-      address: '',
-      zip_code: '',
-      street_address: '',
-      formatted_address: '',
-      place_id: '',
-    },
-    payment_option: 'online-payment',
-    amount: 0.0,
+  const navigate = useNavigate();
+  const { api, commaInt, authUser, notifyError, naturalDate } = useContext(GlobalStore);
+  const pay = usePaystack();
+  const walletDialog = useDisclosure();
+  const escrowInfo = useDisclosure();
+
+  const [dates, setDates] = useState({ from: params.get('from') || '', until: params.get('until') || '' });
+  const [form, setForm] = useState({
+    area: params.get('location') || params.get('where') || '',
+    lat: params.get('lat') || '',
+    lng: params.get('lng') || '',
+    street: '',
+    postal_code: '',
+    phone: '',
+    with_driver: params.get('driver') === '1',
+    payment_option: 'card',
+    consent: false,
   });
+  const [submitted, setSubmitted] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [pending, setPending] = useState(() => readPending(listingId)); // { listingId, reference, payload, message }
+
+  const qs = new URLSearchParams();
+  if (dates.from) qs.set('from', dates.from);
+  if (dates.until) qs.set('until', dates.until);
+  const query = useApiQuery(
+    (api, signal) => api.get(`/listings/checkout/${listingId}/?${qs.toString()}`, { signal }),
+    [listingId, dates.from, dates.until],
+    { enabled: Boolean(listingId), select: (body) => body?.data }
+  );
+  const data = query.data;
+  const listing = data?.listing;
+  const pricing = data?.pricing;
+  const isRental = listing?.listing_type === 'rental';
+  const customerPhone = data?.customer?.phone_number || authUser?.phone_number || '';
+
+  const options = useMemo(() => (data?.payment_options || [])
+    .filter((o) => OPTION_META[o.value])
+    .filter((o) => !(isRental && o.value === 'pay-after-inspection')), [data, isRental]);
+  const selected = options.find((o) => o.value === form.payment_option);
+  const amountDue = selected?.amount_due ?? pricing?.total;
+
+  // keep the choice valid when options change (e.g. wallet becomes unavailable)
+  useEffect(() => {
+    if (options.length && (!selected || !selected.available)) {
+      const first = options.find((o) => o.available);
+      if (first && first.value !== form.payment_option) setForm((f) => ({ ...f, payment_option: first.value }));
+    }
+  }, [options, selected, form.payment_option]);
 
   const { getRootProps, getRadioProps } = useRadioGroup({
     name: 'payment-option',
-    onChange: val => {
-      let payload = checkoutPayload;
-      payload.payment_option = val;
-      if (val === 'pay-after-inspection'){
-        payload.amount = order.inspection_fee
-      }
-      setCheckoutPayload({...payload})
-    },
+    value: form.payment_option,
+    onChange: (value) => setForm((f) => ({ ...f, payment_option: value })),
   });
-  
-  const groupy = getRootProps();
-  const {onClose, onOpen, isOpen} = useDisclosure();
 
-  function redeemCoupon(e){
-    e.preventDefault();
+  const phoneDigits = form.phone.replace(/\D/g, '').replace(/^234/, '').replace(/^0/, '');
+  const errors = {
+    area: !form.area.trim() ? (isRental ? 'Choose the pickup or delivery area' : 'Choose the delivery area') : '',
+    street: !form.street.trim() ? 'Enter the street address' : '',
+    postal_code: form.postal_code && !/^\d{4,8}$/.test(form.postal_code) ? 'Postal codes are 4–8 digits' : '',
+    phone: !customerPhone && phoneDigits.length !== 10 ? 'Enter a valid Nigerian phone number' : '',
+    dates: isRental ? (data?.dates_error || (!dates.from || !dates.until ? 'Choose your rental dates' : '')) : '',
+    consent: !form.consent ? 'Please confirm you understand how escrow works' : '',
+    option: !selected?.available ? 'Choose an available payment option' : '',
+  };
+  const valid = Object.values(errors).every((e) => !e);
+  const blocked = Boolean(data?.unavailable_reason);
+
+  const [placing, setPlacing] = useState(false);
+
+  function payload(reference) {
+    const phone = customerPhone || (phoneDigits ? `+234${phoneDigits}` : '');
+    return {
+      payment_option: form.payment_option,
+      reference,
+      delivery_address: [form.street.trim(), form.area.trim()].filter(Boolean).join(', '),
+      postal_code: form.postal_code.trim(),
+      lat: form.lat || undefined,
+      lng: form.lng || undefined,
+      phone_number: phone,
+      rent_from: isRental ? dates.from : undefined,
+      rent_until: isRental ? dates.until : undefined,
+      with_driver: isRental && form.with_driver,
+    };
   }
 
-  function changeValue(val){
-    let data = checkoutPayload;
-    setCheckoutPayload({...data, ...val})
-  }
-
-  function init(){
-    getData();
-  }
-
-  async function getData(){
-    const res = await axios.get(`/listings/checkout/${listingId}/`);
-    const data = objectifyJSON(res.data);
-    if(res.status === 200){
-      setListing(data.listing);
-      changeValue({amount: parseInt(data.listing.price)})
-    }
-    setOrder(data.fees);
-  }
-
-  function onLocationChanged({ lat, lng, ...location }){
-    console.log('Location', {lat, lng, ...location});
-  }
-  
-  function proceedToCheckout(e){
-    e.preventDefault();
-    switch(checkoutPayload.payment_option){
-      case 'pay-after-inspection':{
-        // setCheckoutPayload({ ...checkoutPayload, amount: order.inspection_fee })
-        onOpen();
-        break;
-      }
-      case 'wallet':{
-        onOpen();
-        break;
-      }
-      default:{
-        onOpen();
-        break;
-      }
-    }
-    console.table("Checking out with: ", checkoutPayload);
-    // onOpen();
-  }
-  
-  async function onSuccess(response){
-    const res = await axios.post(`/listings/checkout/${listingId}/`, JSON.stringify({
-      ...checkoutPayload
-    }));
-    const data = objectifyJSON(res.data);
-    if(res.status === 200){
-      if (checkoutPayload.payment_option === 'pay-after-inspection'){
-        onClose();
-        console.log("Time for Inspection")
-        return redirect(`/checkout/inspection/?listingId=${listingId}`);
-      }
-      return redirect('/');
+  /** POST the order. Resolves the order, or throws the ApiError. */
+  async function submitOrder(body) {
+    setPlacing(true);
+    try {
+      const result = await api.post(`/listings/checkout/${listingId}/`, body);
+      const order = result?.data?.order;
+      writePending(null);
+      setPending(null);
+      if (order?.order_status === 'awaiting-inspection') navigate(`/checkout/inspection?order=${order.uuid}`);
+      else navigate(`/checkout/status?order=${order?.uuid}&placed=1`);
+      return order;
+    } finally {
+      setPlacing(false);
     }
   }
 
-  useEffect(() => {
-    setCountryList(Country.getAllCountries());
-  }, []);
+  async function proceed(e) {
+    e?.preventDefault();
+    setSubmitted(true);
+    if (!valid || blocked || !pricing) return;
+    if (form.payment_option === 'wallet') return walletDialog.onOpen();
 
-  useEffect(() => {
-    if (checkoutPayload.country) {
-      const selectedCountry = Country.getAllCountries().find(c => c.name === checkoutPayload.country);
-      setStateList(selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : []);
-      setCityList([]);
+    setPaying(true);
+    const reference = newReference('mtord');
+    const response = await pay({
+      amount: amountDue,
+      reference,
+      metadata: { purpose: 'order', listing_id: listingId, payment_option: form.payment_option },
+    });
+    setPaying(false);
+    if (!response) return; // closed the popup without paying
+    const body = payload(response.reference || reference);
+    // remember the charge until the server records it (survives a reload)
+    const record = { listingId, reference: body.reference, payload: body };
+    writePending(record);
+    setPending(record);
+    try {
+      await submitOrder(body);
+    } catch (error) {
+      const next = { ...record, message: error?.message };
+      writePending(next);
+      setPending(next);
     }
-  }, [checkoutPayload.country]);
+  }
 
-  useEffect(() => {
-    init();
-  }, []);
+  async function retryPending() {
+    try {
+      await submitOrder(pending.payload);
+    } catch (error) {
+      const next = { ...pending, message: error?.message || 'Still no luck. Check your connection, or contact support with this reference.' };
+      writePending(next);
+      setPending(next);
+    }
+  }
 
-  let total = 0.0;
-  total += Number(listing?.price)
-  total += Number(order?.motaa_fee)
-  total += Number(order?.tax)
-  total += Number(order?.inspection_fee)
+  async function payWithWallet() {
+    try {
+      await submitOrder(payload(undefined));
+    } catch (error) {
+      if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't place your order");
+    } finally {
+      walletDialog.onClose();
+    }
+  }
 
+  if (!listingId) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <EmptyState icon={Search} title="No car selected" description="Choose a car to buy or rent, then come back to check out." action={{ label: 'Browse cars', to: '/buy' }} />
+      </Container>
+    );
+  }
+
+  const header = (
+    <Box bg="primary" py={{ base: 6, md: 8 }} mb={{ base: 6, md: 8 }}>
+      <Container maxW="container.xl" textAlign="center">
+        <Heading as="h1" color="white" size="lg" fontWeight="500">Checkout</Heading>
+        <Text color="whiteAlpha.900" mt={2}>{isRental ? 'Set up your rental' : 'Get ready to own your car'}</Text>
+      </Container>
+    </Box>
+  );
+
+  if (query.error && !data) {
+    return (
+      <Box minH="70vh">{header}
+        <Container maxW="container.md"><ErrorState error={query.error} onRetry={query.reload} title={query.error.isNotFound ? 'This car is no longer available' : undefined} /></Container>
+      </Box>
+    );
+  }
+
+  const loadingFirst = query.loading && !data;
+  const optionAmount = (o) => o.value === 'pay-after-inspection'
+    ? `₦${commaInt(o.amount_due)} today`
+    : `₦${commaInt(o.amount_due)}`;
 
   return (
     <Box bg="white" minH="100vh">
-      <Box bg="blue.600" py={8} mb={8}>
-        <Container maxW="container.xl" textAlign="center">
-          <Heading color="white" size="lg" className="subtitle" fontWeight="400">Checkout</Heading>
-          <Text color="whiteAlpha.900" mt={2}>
-            {listing?.listing_type === 'sale' ? 'Get Ready to own a Car!' : 'Setup Your Rental'}
-          </Text>
-        </Container>
-      </Box>
+      {header}
+      <Container maxW="container.xl" pb={16}>
+        {pending && (
+          <Box mb={6}>
+            <PaymentRecoveryNotice reference={pending.reference} message={pending.message} onRetry={retryPending} retrying={placing} />
+          </Box>
+        )}
 
-      <Container maxW="container.xl" pb={10}>
-        <Flex gap={8} flexWrap={{base: 'wrap', lg: 'unset'}}>
-          {/* Form Section */}
-          <Box pb={10} w={'100%'}>
-            <Text className="bold" fontSize="22px" mb={6}>Confirm your details</Text>
-            <VStack spacing={6} align="stretch">
-              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl isDisabled flex={1}>
-                  <FormLabel>First name</FormLabel>
-                  <Input onInput={(e) => changeValue({ first_name: e.target.value})} defaultValue={checkoutPayload?.first_name} px={4} py={5} />
-                </FormControl>
+        <Flex gap={8} direction={{ base: 'column', lg: 'row' }} align="start">
+          {/* Car summary first on phones */}
+          <Box w="100%" maxW={{ lg: '360px' }} order={{ base: 0, lg: 1 }} position={{ lg: 'sticky' }} top={{ lg: '90px' }}>
+            {loadingFirst ? <Skeleton h="360px" borderRadius="20px" /> : <CarCard listing={listing} commaInt={commaInt} />}
+          </Box>
 
-                <FormControl isDisabled flex={1}>
-                  <FormLabel>Last name</FormLabel>
-                  <Input onInput={(e) => changeValue({ last_name: e.target.value})} defaultValue={checkoutPayload?.last_name} px={4} py={5} />
-                </FormControl>
-              </SimpleGrid>
+          <Box as="form" noValidate onSubmit={proceed} flex={1} w="100%" minW={0} order={{ base: 1, lg: 0 }}>
+            {blocked && (
+              <Alert status="error" borderRadius="md" mb={6}><AlertIcon /><AlertDescription>{data.unavailable_reason}</AlertDescription></Alert>
+            )}
 
-              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl isRequired={!authUser?.phone_number} isDisabled={authUser?.phone_number}>
-                  <FormLabel>Phone Number</FormLabel>
+            <Heading as="h2" size="md" mb={4}>Your details</Heading>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <FormControl isReadOnly>
+                <FormLabel>Name</FormLabel>
+                <Input value={`${authUser?.first_name || ''} ${authUser?.last_name || ''}`.trim()} readOnly bg="gray.50" />
+              </FormControl>
+              <FormControl isReadOnly>
+                <FormLabel>Email</FormLabel>
+                <Input value={authUser?.email || ''} readOnly bg="gray.50" />
+              </FormControl>
+              <FormControl isRequired={!customerPhone} isInvalid={submitted && Boolean(errors.phone)}>
+                <FormLabel>Phone number</FormLabel>
+                {customerPhone ? (
+                  <Input value={customerPhone} readOnly bg="gray.50" />
+                ) : (
                   <InputGroup>
-                    <InputLeftAddon px={0} w="70px">
-                      <Select
-                        minW="auto"
-                        flexShrink={1}
-                        onChange={(e) => {
-                          const selectedCountry = countryList.find(c => c.name === e.target.value);
-                          setCheckoutPayload({ ...checkoutPayload, country: e.target.value, state: '', city: '' });
-                          setStateList(selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : []);
-                          setCityList([]);
-                        }}
-                      >
-                        {countryList.map((place) => (
-                          <option key={place.isoCode} value={place.name}>
-                            <Icon as={'svg'} xmlns="http://www.w3.org/2000/svg">{place.flag}</Icon>
-                            {" " + place.name}
-                          </option>
-                        ))}
-                      </Select>
-                    </InputLeftAddon>
-                    <Input placeholder={'+'} flex={1} value={checkoutPayload.phone_number} onChange={(e) => setCheckoutPayload({ ...checkoutPayload, phone_number: e.target.value })} />
+                    <InputLeftAddon>🇳🇬 +234</InputLeftAddon>
+                    <Input type="tel" inputMode="tel" autoComplete="tel-national" placeholder="803 123 4567"
+                      value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
                   </InputGroup>
-                </FormControl>
+                )}
+                <FormErrorMessage>{errors.phone}</FormErrorMessage>
+              </FormControl>
+            </SimpleGrid>
 
-                <FormControl isDisabled>
-                  <FormLabel>Email</FormLabel>
-                  <Input onInput={(e) => changeValue({ email: e.target.value})} defaultValue={checkoutPayload?.email} type="email" px={4} py={5} />
-                </FormControl>
-              </SimpleGrid>
+            <Heading as="h2" size="md" mt={8} mb={4}>{isRental ? 'Pickup & trip' : 'Delivery'}</Heading>
+            <VStack spacing={4} align="stretch">
+              {isRental && (
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                  <FormControl isRequired isInvalid={submitted && Boolean(errors.dates)}>
+                    <FormLabel htmlFor="rent-from">Pick-up date</FormLabel>
+                    <Input id="rent-from" type="date" min={todayISO()} value={dates.from}
+                      onChange={(e) => setDates((d) => ({ ...d, from: e.target.value }))} />
+                  </FormControl>
+                  <FormControl isRequired isInvalid={submitted && Boolean(errors.dates)}>
+                    <FormLabel htmlFor="rent-until">Return date</FormLabel>
+                    <Input id="rent-until" type="date" min={dates.from || todayISO()} value={dates.until}
+                      onChange={(e) => setDates((d) => ({ ...d, until: e.target.value }))} />
+                    <FormErrorMessage>{errors.dates}</FormErrorMessage>
+                  </FormControl>
+                </SimpleGrid>
+              )}
+              {isRental && data?.dates_error && !submitted && (
+                <Text fontSize="sm" color="orange.600" role="status">{data.dates_error}</Text>
+              )}
 
-              <FormControl isRequired>
-                <FormLabel>Delivery Location</FormLabel>
-                <CustomPlacesAutocomplete
-                  value={checkoutPayload?.location?.formatted_address}
-                  onPlaceChange={onLocationChanged}
-                  inputProps={{border: '1px solid lavender', name: 'address', type: 'address'}}
-                />
+              <FormControl isRequired isInvalid={submitted && Boolean(errors.area)}>
+                <FormLabel htmlFor="checkout-area">{isRental ? 'Pickup / delivery area' : 'Delivery area'}</FormLabel>
+                <Box borderWidth="1px" borderRadius="md" borderColor={submitted && errors.area ? 'red.500' : 'inherit'}>
+                  <CustomPlacesAutocomplete
+                    id="checkout-area"
+                    aria-label={isRental ? 'Pickup or delivery area' : 'Delivery area'}
+                    placeholder="Search your area, e.g. Lekki Phase 1"
+                    value={form.area}
+                    onPlaceChange={(p) => setForm((f) => ({ ...f, area: p.formatted_address || '', lat: p.lat ?? '', lng: p.lng ?? '', postal_code: f.postal_code || p.zip_code || '' }))}
+                    inputProps={{ onInput: (e) => setForm((f) => ({ ...f, area: e.target.value, lat: '', lng: '' })) }}
+                  />
+                </Box>
+                <FormErrorMessage>{errors.area}</FormErrorMessage>
               </FormControl>
 
-              <SimpleGrid spacing={4} columns={{base: 1, md: 2}}>
-                <FormControl isRequired>
-                  <FormLabel>Street Address</FormLabel>
-                  <Input name="street-address" px={4} py={5} />
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl isRequired isInvalid={submitted && Boolean(errors.street)}>
+                  <FormLabel htmlFor="checkout-street">Street address</FormLabel>
+                  <Input id="checkout-street" autoComplete="street-address" placeholder="House number and street"
+                    value={form.street} onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))} />
+                  <FormErrorMessage>{errors.street}</FormErrorMessage>
                 </FormControl>
-
-                <FormControl>
-                  <FormLabel>Postal Code (optional)</FormLabel>
-                  <Input name="postal-code" px={4} py={5} />
+                <FormControl isInvalid={Boolean(errors.postal_code)}>
+                  <FormLabel htmlFor="checkout-postal">Postal code (optional)</FormLabel>
+                  <Input id="checkout-postal" inputMode="numeric" autoComplete="postal-code" maxLength={8}
+                    value={form.postal_code} onChange={(e) => setForm((f) => ({ ...f, postal_code: e.target.value.replace(/\D/g, '') }))} />
+                  <FormErrorMessage>{errors.postal_code}</FormErrorMessage>
                 </FormControl>
               </SimpleGrid>
 
-              {
-                listing?.listing_type === 'rental' &&
-                <Box>
-                  <FormControl>
-                    <FormLabel>Rental Period</FormLabel>
-                    <CalendarPicker
-                     defaultValue={null}
-                     onSelect={(val) => {
-                      console.log("Rental Range", val)
-                      changeValue({ start_date: val })
-                     }}
-                     mode='range'
-                     border={'1px solid lavender'}
-                     rounded="md"
-                     // fromDate={''} // get from url params
-                     // toDate={''}
-                    />
-                  </FormControl>
-                </Box>
-              }
-
-              <Divider my={4} />
-
-              <Box>
-                <SimpleGrid columns={2} spacing={4} mb={4}>
-                  <Text fontWeight="600">Price:</Text>
-                  <Text fontWeight="600" textAlign="right">₦{commaInt(listing?.price)}</Text>
-                  <Text fontWeight="600">0.5% fee + Tax </Text>
-                  <Text fontWeight="600" textAlign="right">₦{commaInt(order?.tax + order?.motaa_fee)}</Text>
-                  <Text fontWeight="600">Inspection fee:</Text>
-                  <Text fontWeight="600" textAlign="right">₦{commaInt(order?.inspection_fee)}</Text>
-                </SimpleGrid>
-
-                <form method="POST" onSubmit={redeemCoupon}>
-                  <Flex gap={8}>
-                    <Input placeholder="Enter Promo Code" px={4} py={5} />
-                    <Button w={'100px'} colorScheme="blue" bg="primary"> Apply </Button>
-                  </Flex>
-                </form>
-
-                <Divider my={4} />
-                <Flex justify="space-between" fontWeight="bold">
-                  <Heading size="md">Total:</Heading>
-                  <Heading size="md">₦{commaInt(total)}</Heading>
-                </Flex>
-              </Box>
-
-              <Box>
-                <Text fontWeight="medium" mb={4}>Choose a payment option</Text>
-                <Flex flexWrap="nowrap" w="100%" overflowX="auto" py={2} px={2} flexDirection="row" className="hidden-scroll" gap={4}>
-                  {PaymentOptions.map((option, index) => {
-                    const radio = getRadioProps({ value: option.value, isDisabled: option.disabled });
-                    return (
-                      <RadioCard key={index} option={option} value={option.value} {...radio} />
-                    )}
-                  )}
-                </Flex>
-              </Box>
-
-              <Divider my={3} />
-
-              <Text fontSize="sm" color="gray.600">
-                {
-                  checkoutPayload.payment_option === 'wallet' ?
-                  "The amount for this order will be charged from your wallet balance. \
-                  If your balance is not sufficient to cover the charge, you will not be able to complete your order." :
-                  checkoutPayload.payment_option === 'online-payment' ? 
-                  "You will be redirected to a Flutterwave payment page where you can pay with your card or bank transfer." :
-                  checkoutPayload.payment_option === 'pay-after-inspection' ?
-                  "You will be redirected to a Flutterwave payment page to pay a small inspection fee."
-                  : "Select a payment option"
-                }
-              </Text>
-
-              <Box placeItems="center">
-                <HStack spacing={4} p={4} borderWidth={1} borderColor="primary" bg="blue.50" borderRadius="lg">
-                  <Checkbox defaultChecked />
-                  <Text fontSize="sm">
-                    Motaa does not sell cars. If you're buying online, any funds deducted from your card or
-                    wallet are kept in an escrow account until you are satisfied with the dealer.
-                  </Text>
-                </HStack>
-                <Button variant="link" colorScheme="blue" mt={2} textDecoration="underline" size="sm">
-                  What is escrow?
-                </Button>
-              </Box>
-
-              <VStack spacing={4}>
-                <Button onClick={proceedToCheckout} colorScheme="blue" bg="primary" size="lg" width="100%">
-                  PROCEED
-                </Button>
-
-                <Button bgColor="blue.50" p="12px" color="primary" variant="ghost" width="100%" as={Link} to="/">
-                  CANCEL
-                </Button>
-              </VStack>
+              {isRental && data?.driver_available && (
+                <FormControl display="flex" alignItems="center" gap={3}>
+                  <Switch id="with-driver" isChecked={form.with_driver} onChange={(e) => setForm((f) => ({ ...f, with_driver: e.target.checked }))} />
+                  <FormLabel htmlFor="with-driver" mb={0}>Request a driver <Text as="span" color="gray.600" fontSize="sm">(the dealer confirms driver charges)</Text></FormLabel>
+                </FormControl>
+              )}
             </VStack>
-          </Box>
 
-          {/* Car Details Section */}
-          <Box w="100%" maxW="350px">
-            <Box
-              borderWidth={1}
-              borderRadius="30px"
-              position="relative"
-            >
-              <Box w="100%" h="250px" px={3} py={3} >
-                <Image
-                  src={listing?.vehicle?.images[0]?.url}
-                  alt={listing?.title}
-                  w="100%"
-                  h="100%"
-                  borderRadius={'20px'}
-                />
-              </Box>
-              <Box p={6}>
-                <Flex justifyContent={'space-between'} alignItems={'center'}>
-                    <Heading size="md" className="subtitle"> {listing?.title} </Heading>
-                    <Badge color="grey.500" className="bold"> {listing?.vehicle?.condition} </Badge>
-                </Flex>
-
-                <Flex justifyContent={'flex-start'} alignItems={'center'} gap={2} my={2}>
-                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <RxTimer /> {commaInt(listing?.vehicle?.mileage) || 0} miles</Text>
-                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <TbManualGearbox /> {listing?.vehicle?.transmission}</Text>
-                    <Text as={Flex} gap={1} alignItems={'center'} fontWeight="600"> <RiGasStationLine /> {listing?.vehicle?.fuel_system}</Text>
-                </Flex>
-
-                <Divider my={3} />
-
-                <Flex justifyContent={'space-between'} alignItems={'center'} my={2}>
-                    <Text className="small bold" color="gray.600" as={Flex} alignItems="baseline" gap={1}> <Icon> <LuMapPin size={25} /> </Icon> {listing?.vehicle?.dealer?.location} </Text>
-                    {
-                      listing?.vehicle?.custom_duty &&
-                      <Tag fontWeight={'bold'} gap={1.5}> <span> Custom Duty </span> <Icon> <BsFillPatchCheckFill color="#de06bc" size={25} /> </Icon> </Tag>
-                    }
-                </Flex>
-              </Box>
+            <Heading as="h2" size="md" mt={8} mb={4}>Summary</Heading>
+            <Box borderWidth={1} borderRadius="lg" p={{ base: 4, md: 5 }}>
+              {loadingFirst || !pricing ? (
+                <VStack align="stretch" spacing={3}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} h="18px" />)}</VStack>
+              ) : (
+                <VStack align="stretch" spacing={2}>
+                  {isRental ? (
+                    <SummaryRow
+                      label={`₦${commaInt(pricing.price)} × ${pricing.units} ${pricing.unit_label || 'period'}${Number(pricing.units) === 1 ? '' : 's'}${pricing.days && pricing.unit_label !== 'day' ? ` (${pricing.days} day${pricing.days === 1 ? '' : 's'})` : ''}`}
+                      value={`₦${commaInt(pricing.sub_total)}`}
+                    />
+                  ) : (
+                    <SummaryRow label="Car price" value={`₦${commaInt(pricing.sub_total)}`} />
+                  )}
+                  <SummaryRow muted label={`VAT (${Number(pricing.tax_rate) * 100}%)`} value={`₦${commaInt(pricing.tax)}`} />
+                  <SummaryRow muted label={`Motaa service fee (${Number(pricing.motaa_fee_rate) * 100}%)`} value={`₦${commaInt(pricing.motaa_fee)}`} />
+                  <SummaryRow muted label="Inspection fee" value={`₦${commaInt(pricing.inspection_fee)}`} />
+                  <Divider my={2} />
+                  <SummaryRow bold label="Total" value={`₦${commaInt(pricing.total)}`} />
+                  {form.payment_option === 'pay-after-inspection' && (
+                    <>
+                      <SummaryRow bold label="Due today (inspection fee)" value={`₦${commaInt(pricing.inspection_fee)}`} />
+                      <Text fontSize="sm" color="gray.600">You'll pay the remaining ₦{commaInt(Number(pricing.total) - Number(pricing.inspection_fee))} after the inspection.</Text>
+                    </>
+                  )}
+                  {isRental && dates.from && dates.until && !data?.dates_error && (
+                    <Text fontSize="sm" color="gray.600">{naturalDate(new Date(`${dates.from}T00:00`))} → {naturalDate(new Date(`${dates.until}T00:00`))}</Text>
+                  )}
+                </VStack>
+              )}
             </Box>
+
+            <Heading as="h2" size="md" mt={8} mb={4}>Payment</Heading>
+            {loadingFirst ? <Skeleton h="96px" borderRadius="lg" /> : (
+              <FormControl isInvalid={submitted && Boolean(errors.option)}>
+                <FormLabel srOnly>Payment option</FormLabel>
+                <SimpleGrid columns={{ base: 1, md: options.length }} spacing={3} {...getRootProps()}>
+                  {options.map((option) => (
+                    <PaymentOptionCard
+                      key={option.value}
+                      option={option}
+                      meta={OPTION_META[option.value]}
+                      amountLabel={option.value === 'wallet' ? `Balance ₦${commaInt(data?.wallet_balance)}` : optionAmount(option)}
+                      {...getRadioProps({ value: option.value, isDisabled: !option.available })}
+                    />
+                  ))}
+                </SimpleGrid>
+                <FormErrorMessage>{errors.option}</FormErrorMessage>
+                {form.payment_option === 'wallet' && selected && !selected.available && (
+                  <Button as={RLink} to="/wallet/deposit" size="sm" variant="link" color="primary" mt={2}>Top up your wallet</Button>
+                )}
+              </FormControl>
+            )}
+
+            <FormControl isRequired isInvalid={submitted && Boolean(errors.consent)} mt={6}>
+              <HStack align="start" spacing={3} p={4} borderWidth={1} borderColor="primary" bg="blue.50" borderRadius="lg">
+                <Checkbox mt={1} isChecked={form.consent} onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))} aria-describedby="escrow-copy" />
+                <Box>
+                  <Text id="escrow-copy" fontSize="sm">
+                    I understand that Motaa doesn't sell cars. My payment is held in escrow and only released to the dealer after I confirm I've received the car.
+                  </Text>
+                  <Button variant="link" size="sm" color="primary" mt={1} onClick={escrowInfo.onToggle} aria-expanded={escrowInfo.isOpen}>
+                    What is escrow?
+                  </Button>
+                  <Collapse in={escrowInfo.isOpen} animateOpacity>
+                    <Text fontSize="sm" color="gray.700" mt={2}>
+                      Escrow means Motaa holds your money safely while the deal happens. The dealer is paid only when you tap
+                      “I’ve received my car” on your order. If the dealer can’t deliver, your money isn’t released to them.
+                    </Text>
+                  </Collapse>
+                </Box>
+              </HStack>
+              <FormErrorMessage>{errors.consent}</FormErrorMessage>
+            </FormControl>
+
+            <Stack direction={{ base: 'column', sm: 'row' }} spacing={3} mt={6}>
+              <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" flex={1}
+                isLoading={paying || placing} loadingText={paying ? 'Opening Paystack' : 'Placing order'}
+                isDisabled={loadingFirst || blocked || Boolean(pending)} leftIcon={<Lock size={18} />}>
+                {pricing ? (form.payment_option === 'wallet' ? `Pay ₦${commaInt(amountDue)} from wallet` : `Pay ₦${commaInt(amountDue)}`) : 'Pay'}
+              </Button>
+              <Button as={RLink} to={listing ? `/${isRental ? 'rent' : 'buy'}/${listing.uuid}` : '/home'} variant="ghost" size="lg" color="primary">
+                Cancel
+              </Button>
+            </Stack>
+            <HStack mt={3} spacing={2} color="gray.600" fontSize="sm">
+              <Icon as={ShieldCheck} aria-hidden="true" />
+              <Text>Online payments are processed securely by Paystack. Motaa never stores your card details.</Text>
+            </HStack>
           </Box>
         </Flex>
-
-        {
-          (listing && (
-            checkoutPayload?.payment_option === 'online-payment' || 
-            checkoutPayload?.payment_option === 'pay-after-inspection' 
-            )
-          ) ? ( isOpen &&
-            <PaystackPaymentModal
-             isOpen={isOpen}
-             onClose={onClose}
-             onSuccess={onSuccess}
-             payload={checkoutPayload}
-             customizations={{
-                title: "Motaa Checkout",
-                logo: listing?.vehicle?.dealer?.logo,
-                description: `Payment for ${listing?.title}`,
-             }}
-            />
-          ): checkoutPayload?.payment_option === 'wallet' ? ( isOpen &&
-            <WalletPaymentModal
-              payload={{amount: total, recipient: listing?.vehicle?.dealer}}
-              isOpen={isOpen}
-              onClose={onClose}
-              onSuccess={onSuccess}
-            />
-          ):(null)
-        }
-
       </Container>
+
+      <WalletPayDialog
+        isOpen={walletDialog.isOpen}
+        onClose={walletDialog.onClose}
+        onConfirm={payWithWallet}
+        isLoading={placing}
+        amount={amountDue}
+        balance={data?.wallet_balance}
+        title="Pay for this car from your wallet"
+      />
     </Box>
-  )
+  );
 }
 
-
-
-
 export default CheckoutPage;
-

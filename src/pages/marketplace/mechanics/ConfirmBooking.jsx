@@ -1,419 +1,301 @@
-import { useState, useEffect, useContext } from "react"
+import { useContext, useState } from 'react';
+import { Link as RLink, useParams, useSearchParams } from 'react-router-dom';
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Avatar,
   Box,
   Button,
-  Container,
   Flex,
+  FormControl,
+  FormErrorMessage,
+  FormHelperText,
+  FormLabel,
   Heading,
-  Text,
-  Avatar,
   HStack,
-  VStack,
-  Image,
-  Alert,
-  Wrap,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  WrapItem,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  AlertIcon,
+  Icon,
+  Input,
+  Radio,
+  RadioGroup,
+  Stack,
+  Text,
   Textarea,
-} from "@chakra-ui/react"
-import {
-  BsCash,
-  BsGeoAlt,
-  BsTools,
-  BsCreditCard,
-  BsInfoCircle,
-  BsStarFill,
-  BsChevronDown,
-  BsSend,
-  BsAward,
-} from "react-icons/bs"
-import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
-import { BackButton } from "../../../components/nav";
-import { ChatPopup } from "../../../components/chat";
-import { objectifyJSON, jsonifyObject } from "../../../utils";
-import { GlobalStore } from "../../../App";
-import {useParams, useSearchParams, useNavigate} from "react-router-dom";
-import { usePaystackPayment, PaystackButton } from 'react-paystack';
-import { CashMoneyIcon, EmptyWalletIcon, TopRatedBadgeIcon } from "../../../components/icons";
+  useDisclosure,
+  VStack,
+  Wrap,
+  WrapItem,
+} from '@chakra-ui/react';
+import { Check, CheckCircle2, CreditCard, Info, MapPin, Send, Star, Wallet as WalletIcon } from 'lucide-react';
+import { GlobalStore } from '../../../App';
+import { useApiQuery } from '../../../hooks/useApi';
+import { MapComponent } from '../../../components/maps';
+import { BackButton } from '../../../components/nav';
+import { ChatPopup } from '../../../components/chat';
+import { AsyncState } from '../../../components/states';
+import { MechanicListSkeleton } from '../../../components/loaders';
+import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { asList } from '../../../utils';
 
+/** Toggleable service chips — real buttons, so they work with keyboard and screen readers. */
+const ServicePicker = ({ options, selected, onChange, invalid }) => (
+  <Wrap spacing={2} role="group" aria-label="Services">
+    {options.map((option) => {
+      const on = selected.includes(option);
+      return (
+        <WrapItem key={option}>
+          <Button
+            size="sm"
+            borderRadius="full"
+            variant={on ? 'solid' : 'outline'}
+            bg={on ? 'primary' : undefined}
+            color={on ? 'white' : 'gray.700'}
+            borderColor={invalid ? 'red.400' : 'gray.300'}
+            _hover={{ bg: on ? 'secondary' : 'gray.50' }}
+            aria-pressed={on}
+            leftIcon={on ? <Check size={14} /> : undefined}
+            onClick={() => onChange(on ? selected.filter((s) => s !== option) : [...selected, option])}
+          >
+            {option}
+          </Button>
+        </WrapItem>
+      );
+    })}
+  </Wrap>
+);
 
-const PAYSTACK_LIVE_KEY = (import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY);
+function BookingForm({ mechanic }) {
+  const { mechId } = useParams();
+  const [params] = useSearchParams();
+  const { api, commaInt, notifyError } = useContext(GlobalStore);
+  const pay = usePaystack();
+  const walletDialog = useDisclosure();
+  const chat = useDisclosure();
 
-const PaymentButton = ({ config, onSuccess, onClose }) => {
-  const handlePayment = usePaystackPayment(config);
-  const componentProps = {
-    ...config,
-    text: 'Confirm Booking',
-    onSuccess: (reference) => onSuccess(reference),
-    onClose: () => onClose(),
+  const lat = Number(params.get('lat'));
+  const lng = Number(params.get('lng'));
+  const hasPoint = Number.isFinite(lat) && Number.isFinite(lng) && params.get('lat') !== null && params.get('lng') !== null;
+  const [address, setAddress] = useState(params.get('address') || '');
+  const [description, setDescription] = useState('');
+  const [services, setServices] = useState([]);
+  const [method, setMethod] = useState('card');
+  const [submitted, setSubmitted] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState(null); // { reference, payload, message }
+  const [booked, setBooked] = useState(null);
+
+  const fee = mechanic?.booking?.fee ?? mechanic?.booking_fee;
+  const name = mechanic?.business_name || mechanic?.user?.name || 'this mechanic';
+  const serviceOptions = asList(mechanic?.services).map((s) => s?.service).filter(Boolean);
+  const wallet = useApiQuery((a, signal) => a.get('/wallet/balance/', { signal }), [], { select: (b) => b?.data });
+  const walletBalance = wallet.data?.balance;
+
+  const errors = {
+    services: services.length === 0 ? 'Choose at least one service' : '',
+    description: description.trim().length < 10 ? 'Describe the problem in a few words (at least 10 characters)' : '',
+    address: !address.trim() ? 'Enter where the mechanic should meet you' : '',
+  };
+  const valid = !errors.services && !errors.description && !errors.address;
+
+  function payload(reference) {
+    return {
+      payment_method: method,
+      reference,
+      services,
+      problem_description: description.trim(),
+      address: address.trim(),
+      lat: hasPoint ? lat : undefined,
+      lng: hasPoint ? lng : undefined,
+    };
   }
 
-  return(
-    <Button
-     as={PaystackButton}
-     colorScheme="blue"
-     bg="primary" size="lg"
-     w="full" {...componentProps}
-    />
-  )
+  async function send(body) {
+    setSending(true);
+    try {
+      const result = await api.post(`/mechanics/${mechId}/`, body);
+      setPending(null);
+      setBooked(result?.data || {});
+      return true;
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function confirm(e) {
+    e.preventDefault();
+    setSubmitted(true);
+    if (!valid || fee === undefined) return;
+    if (method === 'wallet') return walletDialog.onOpen();
+
+    setPaying(true);
+    const reference = newReference('mtbk');
+    const response = await pay({ amount: fee, reference, metadata: { purpose: 'booking', mechanic_id: mechId } });
+    setPaying(false);
+    if (!response) return;
+    const body = payload(response.reference || reference);
+    setPending({ reference: body.reference, payload: body });
+    try {
+      await send(body);
+    } catch (error) {
+      setPending({ reference: body.reference, payload: body, message: error?.message });
+    }
+  }
+
+  async function retry() {
+    try {
+      await send(pending.payload);
+    } catch (error) {
+      setPending((p) => ({ ...p, message: error?.message }));
+    }
+  }
+
+  async function payFromWallet() {
+    try {
+      await send(payload(undefined));
+    } catch (error) {
+      if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't book this mechanic");
+    } finally {
+      walletDialog.onClose();
+    }
+  }
+
+  if (booked) {
+    return (
+      <Flex direction="column" align="center" textAlign="center" gap={4} py={16} px={6}>
+        <Icon as={CheckCircle2} boxSize={14} color="green.500" aria-hidden="true" />
+        <Heading as="h1" size="lg">Booking request sent</Heading>
+        <Text maxW="440px" color="gray.700">
+          We've told {name} you need help with {services.join(', ')}. Your ₦{commaInt(fee)} booking fee is held in escrow until the job is done.
+          You'll get a notification when they respond.
+        </Text>
+        <Stack direction={{ base: 'column', sm: 'row' }} spacing={3}>
+          <Button onClick={chat.onOpen} leftIcon={<Send size={16} />} bg="primary" color="white" _hover={{ bg: 'secondary' }}>Message {name}</Button>
+          <Button as={RLink} to="/mechanics" variant="outline" color="primary" borderColor="primary">Find more mechanics</Button>
+        </Stack>
+        <ChatPopup isOpen={chat.isOpen} onClose={chat.onClose} recipient_type="mechanic" recipient_id={mechanic?.uuid} />
+      </Flex>
+    );
+  }
+
+  return (
+    <Flex direction={{ base: 'column', md: 'row' }} minH={{ md: 'calc(100vh - 80px)' }}>
+      <Box as="form" onSubmit={confirm} noValidate w={{ base: '100%', md: '45%', xl: '40%' }} p={{ base: 4, md: 6 }} borderRightWidth={{ md: 1 }}>
+        <VStack align="stretch" spacing={5}>
+          <Box><BackButton /></Box>
+          <Heading as="h1" size="lg">Confirm your booking</Heading>
+
+          {pending && <PaymentRecoveryNotice reference={pending.reference} message={pending.message} onRetry={retry} retrying={sending} />}
+
+          <Flex align="center" gap={4}>
+            <Avatar size="lg" src={mechanic?.logo || undefined} name={name} />
+            <Box minW={0}>
+              <Heading as="h2" size="md" noOfLines={1}>{name}</Heading>
+              <HStack spacing={2} color="gray.700" fontSize="sm" flexWrap="wrap">
+                {mechanic?.level && <Text textTransform="capitalize">{mechanic.level}</Text>}
+                {Number(mechanic?.rating) > 0 && (
+                  <HStack spacing={1}><Icon as={Star} color="yellow.400" fill="currentColor" aria-hidden="true" /><Text className="bold">{mechanic.rating}</Text>
+                    <Text color="gray.500">({asList(mechanic?.reviews).length} review{asList(mechanic?.reviews).length === 1 ? '' : 's'})</Text></HStack>
+                )}
+              </HStack>
+            </Box>
+          </Flex>
+
+          <FormControl isRequired isInvalid={submitted && Boolean(errors.address)}>
+            <FormLabel htmlFor="booking-address">Where should they meet you?</FormLabel>
+            <Input id="booking-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address and area" autoComplete="street-address" />
+            <FormErrorMessage>{errors.address}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isRequired isInvalid={submitted && Boolean(errors.services)}>
+            <FormLabel>Services you need</FormLabel>
+            {serviceOptions.length
+              ? <ServicePicker options={serviceOptions} selected={services} onChange={setServices} invalid={submitted && Boolean(errors.services)} />
+              : <Text color="gray.600" fontSize="sm">This mechanic hasn't listed any services yet. Message them before booking.</Text>}
+            <FormErrorMessage>{errors.services}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isRequired isInvalid={submitted && Boolean(errors.description)}>
+            <FormLabel htmlFor="booking-description">Describe the problem</FormLabel>
+            <Textarea id="booking-description" value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. The engine light came on and the car shakes when idling" rows={4} maxLength={2000} />
+            <FormErrorMessage>{errors.description}</FormErrorMessage>
+          </FormControl>
+
+          <Box borderWidth={1} borderRadius="lg" p={4}>
+            <Flex justify="space-between" align="center">
+              <Text className="bold">Booking fee</Text>
+              <Text className="bold" fontSize="lg">{fee !== undefined ? `₦${commaInt(fee)}` : '—'}</Text>
+            </Flex>
+            <HStack align="start" spacing={2} mt={2} color="gray.600" fontSize="sm">
+              <Icon as={Info} mt={0.5} aria-hidden="true" />
+              <Text>This consultation fee is held in escrow and paid to the mechanic when the job is done. It doesn't cover repairs — you agree those with the mechanic.</Text>
+            </HStack>
+          </Box>
+
+          <FormControl>
+            <FormLabel>Pay with</FormLabel>
+            <RadioGroup value={method} onChange={setMethod}>
+              <Stack spacing={3}>
+                <Radio value="card"><HStack spacing={2}><Icon as={CreditCard} aria-hidden="true" /><Text>Card, transfer or USSD (Paystack)</Text></HStack></Radio>
+                <Radio value="wallet">
+                  <HStack spacing={2}><Icon as={WalletIcon} aria-hidden="true" />
+                    <Text>Motaa wallet {walletBalance !== undefined && <Text as="span" color="gray.600">(₦{commaInt(walletBalance)} available)</Text>}</Text>
+                  </HStack>
+                </Radio>
+              </Stack>
+            </RadioGroup>
+            {method === 'wallet' && walletBalance !== undefined && Number(walletBalance) < Number(fee) && (
+              <FormHelperText color="red.600">Your wallet balance is too low. <Button as={RLink} to="/wallet/deposit" variant="link" size="sm" color="primary">Top up</Button></FormHelperText>
+            )}
+          </FormControl>
+
+          <VStack spacing={3}>
+            <Button type="submit" w="full" size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }}
+              isLoading={paying || sending} loadingText={paying ? 'Opening Paystack' : 'Sending request'}
+              isDisabled={fee === undefined || Boolean(pending) || serviceOptions.length === 0}>
+              {fee !== undefined ? `Pay ₦${commaInt(fee)} & book` : 'Book'}
+            </Button>
+            <Button w="full" variant="outline" size="lg" color="gray.700" leftIcon={<Send size={16} />} onClick={chat.onOpen}>
+              Message {name}
+            </Button>
+          </VStack>
+        </VStack>
+      </Box>
+
+      <Box w={{ base: '100%', md: '55%', xl: '60%' }} minH={{ base: '280px', md: 'auto' }} position="relative">
+        {hasPoint ? (
+          <MapComponent location={{ lat, lng, name: address || 'Your location' }} label="Map of your location" w="100%" h="100%" minH="280px" />
+        ) : (
+          <Alert status="info" m={{ base: 4, md: 6 }} borderRadius="md" w="auto">
+            <AlertIcon /><AlertDescription>Your address is shared with {name} when you book.</AlertDescription>
+          </Alert>
+        )}
+      </Box>
+
+      <WalletPayDialog
+        isOpen={walletDialog.isOpen}
+        onClose={walletDialog.onClose}
+        onConfirm={payFromWallet}
+        isLoading={sending}
+        amount={fee}
+        balance={walletBalance}
+        title={`Book ${name}`}
+        description="The booking fee is held in escrow and released to the mechanic when the job is done."
+      />
+      <ChatPopup isOpen={chat.isOpen} onClose={chat.onClose} recipient_type="mechanic" recipient_id={mechanic?.uuid} />
+    </Flex>
+  );
 }
 
 const ConfirmBooking = () => {
-  const [paymentMethod, setPaymentMethod] = useState("cash")
-  const [description, setDescription] = useState("")
-  const [services, setServices] = useState([])
-  const [location, setLocation] = useState({lat: 10, lng: 8, name: 'Current Location'});
-  const [mechanic, setMechanic] = useState()
-  const [loading, setLoading] = useState(true)
-  const [showChatPopup, setChatPopupState] = useState(false)
-  const {axios, notify, authUser} = useContext(GlobalStore);
-  const redirect = useNavigate();
-
-
-  const {mechId} = useParams();
-  const [params] = useSearchParams();
-  const address = params.get('address');
-  const lat = params.get('lat')
-  const lng = params.get('lng')
-
-
-  const getFinalAmount = (amt) => {
-    return (amt * 100)
-  }
-
-  const onModalClose = (ev) => {
-    console.log("modal closed", ev)
-  }
-
-  const onPaymentComplete = async (response) => {
-
-    if (response && response.status === 'success'){
-      const payload = {
-        services,
-        transaction_id: response.reference,
-        problem_description: description,
-      }
-
-      const res = await axios.post(`/mechanics/${mechId}/`, jsonifyObject(payload));
-      const data = objectifyJSON(res.data);
-      console.log("Payload:", payload)
-
-      if (res.status === 200){
-        setTimeout(() => redirect('/home'), 300);
-        setTimeout(() => notify({
-          title: 'Booking Request sent!',
-          color: 'green',
-          level: 'success'
-        }))
-
-        return
-      }
-
-      return notify({
-        title: "Error",
-        body: data.message,
-        color: 'red'
-      })
-    }
-
-    return notify({
-      title: "Payment failed",
-      body: response.message,
-      color: 'red'
-    })
-
-
-  }
-
-  function init(){
-    getData();
-    setTimeout(() => setLoading(false), 2000)
-  }
-
-  async function getData(){
-    const res = await axios.get(`/mechanics/${mechId}`);
-    const data = objectifyJSON(res.data);
-    if (res.status === 200){
-      console.log("Got Mechanic:", data.data)
-      setMechanic(data?.data);
-    }
-  }
-
-
-  const toggleIssue = (issue) => {
-    if (selectedIssues.includes(issue)) {
-      setSelectedIssues(selectedIssues.filter((i) => i !== issue))
-    } else {
-      setSelectedIssues([...selectedIssues, issue])
-    }
-  }
-
-  const config = {
-    publicKey: PAYSTACK_LIVE_KEY,
-    reference: 'mch-bk-'.concat((new Date()).getTime().toString()),
-    amount: getFinalAmount(100),
-    email: authUser?.email,
-    onSuccess: onPaymentComplete,
-    metadata: {
-      display_name: 'Transaction Type',
-      variable_name: 'Transaction_Type',
-      value: 'Mechanic Booking Fee',
-    }
-  };
-
-  useEffect(() => {
-    init();
-  }, [])
-
-  if (loading){
-    return null
-  }
-
+  const { mechId } = useParams();
+  const query = useApiQuery((api, signal) => api.get(`/mechanics/${mechId}/`, { signal }), [mechId], { select: (b) => b?.data });
   return (
-    <Container maxW="full" p={0}>
-      <Flex direction={{ base: "column", md: "row" }} minH="100vh">
-        {/* Left Side - Booking Details */}
-        <Box w={{ base: "100%", md: "40%" }} p={6} borderRight="1px solid" borderColor="gray.200">
-          <VStack align="stretch" spacing={3}>
-            <Box>
-              <BackButton />
-            </Box>
-
-            <Box>
-              <Heading as="h1" size="lg" fontWeight="bold" mb={4}>
-                Confirm your booking
-              </Heading>
-            </Box>
-
-            {/* Mechanic Profile */}
-            <Flex align="center">
-              <Avatar size="lg" src={mechanic?.logo} name={mechanic?.business_name ? mechanic?.business_name : mechanic?.user?.name} mr={4} />
-              <Box>
-                <Heading as="h2" size="md" fontWeight="semibold">
-                  {mechanic?.business_name ? mechanic?.business_name : mechanic?.user?.name}
-                </Heading>
-                <HStack spacing={2} mt={1}>
-                  <Flex alignItems="center">
-                    <TopRatedBadgeIcon viewBox="0 0 25 24" width="20px" height="20px" />
-                    <Text fontWeight="600" color="gray.700" fontSize="sm">{mechanic?.level}</Text>
-                  </Flex>
-
-                  <Text color="gray.400">•</Text>
-                  
-                  <HStack spacing={1}>
-                    <Text fontWeight="bold">{mechanic?.rating}</Text>
-                    <Icon as={BsStarFill} color="yellow.400" />
-                    <Text color="gray.500" fontSize="sm">
-                      ({mechanic?.reviews?.length} Reviews)
-                    </Text>
-                  </HStack>
-                </HStack>
-              </Box>
-            </Flex>
-
-            {/* Location */}
-            <HStack my={1}>
-              <Icon as={BsGeoAlt} color="blue.500" boxSize={5} />
-              <Text>{address}</Text>
-            </HStack>
-
-            {/* Booking Fee */}
-            <HStack my={1}>
-              <Box
-                bg="green.500"
-                color="white"
-                p={1}
-                borderRadius="md"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <BsCreditCard size={16} />
-              </Box>
-              <Text>
-                <Text as="span" fontWeight="medium">
-                  Booking Fee:
-                </Text>{" "}
-                <Text as="span" fontWeight="bold">
-                  ₦5,000
-                </Text>
-              </Text>
-            </HStack>
-
-            {/* Info Box */}
-            <Alert colorScheme="blue" status="info" borderRadius="md" py={3}>
-              <AlertIcon as={BsInfoCircle} />
-              <Text fontSize="sm" colorScheme="blue">
-                The Booking fee is a consultation fee charged by all mechanics, this fee does not cover services
-                delivered by the mechanics.
-              </Text>
-            </Alert>
-
-            <Box my={2}>
-              <Text mb={1} fontWeight="600"> Problem Description </Text>
-              <Textarea value={description} onInput={e => setDescription(e.target.value)} placeholder="Please describe your problem"> </Textarea>
-            </Box>
-
-            <MultiSelectPills options={mechanic?.services?.map(service => service?.service)} onChange={setServices}  />
-
-            {/* Payment Method */}
-            <Box>
-              <Text fontWeight="medium" mb={2}>
-                Choose payment method
-              </Text>
-              <Menu
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="md"
-                p={3}
-                cursor="pointer"
-                width="100%"
-                _hover={{ borderColor: "gray.300" }}
-              >
-                <MenuButton as={Button} textAlign="left" w="100%" align="center" size="lg" rightIcon={<BsChevronDown />}>
-                  {
-                    paymentMethod === 'cash' ?
-                    <> <CashMoneyIcon size={16} /> Cash </>
-                    :
-                    <> <EmptyWalletIcon size={16} /> Wallet </>
-                  }
-                </MenuButton>
-
-                <MenuList w="100%">
-                  <MenuItem onClick={e => setPaymentMethod('wallet')} borderRadius="md" display="flex" alignItems="center" justifyContent="center">
-                    <EmptyWalletIcon size={16} /> Wallet
-                  </MenuItem>
-                  <MenuItem onClick={e => setPaymentMethod('cash')} borderRadius="md" display="flex" alignItems="center" justifyContent="center">
-                    <CashMoneyIcon size={16} /> Cash
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            </Box>
-
-
-            {/* Action Buttons */}
-            <VStack spacing={3} mt={4}>
-              <PaymentButton onSuccess={onPaymentComplete} onClose={onModalClose} config={config} />
-              
-              <Button
-                w="full"
-                variant="outline"
-                size="lg"
-                borderColor="gray.300"
-                color="gray.600"
-                borderRadius="md"
-                leftIcon={<BsSend />}
-                onClick={() => setChatPopupState(true)}
-              >
-                Contact
-              </Button>
-            </VStack>
-          </VStack>
-        </Box>
-
-        {/* Right Side - Map */}
-        <Box w={{ base: "100%", md: "60%" }} position="relative">
-          <MapComponent
-            alt="Map showing location"
-            objectFit="cover"
-            w="100%"
-            h="100%"
-            location={location}            
-          />
-        </Box>
-      </Flex>
-
-      <ChatPopup
-       isOpen={showChatPopup}
-       onClose={() => setChatPopupState(false)}
-       recipient_type="mechanic" 
-       recipient_id={mechanic?.uuid}
-      />
-    </Container>
-  )
-}
-
-// Helper component for icons
-const Icon = ({ as, color, boxSize }) => {
-  const Component = as
-  return (
-    <Box color={color} mr={2}>
-      {<Component size={boxSize ? boxSize * 4 : 16} />}
-    </Box>
-  )
-}
-
-
-
-const MultiSelectPills = ({ options = [], onChange }) => {
-  const [selected, setSelected] = useState([]);
-
-  const handleSelect = (option) => {
-    if (!selected.includes(option)) {
-      const updated = [...selected, option];
-      setSelected(updated);
-      onChange(updated);
-    }
-  };
-
-  const handleUnselect = (option) => {
-    const updated = selected.filter((item) => item !== option);
-    setSelected(updated);
-    onChange(updated);
-  };
-
-  const availableOptions = options.filter((opt) => !selected.includes(opt));
-
-  return (
-    <Box rounded="md" border="1px solid lavender" p={3} my={3}>
-      <Text fontWeight="bold" mb={2}>
-        Services
-      </Text>
-      <Wrap mb={2}>
-        {availableOptions.length < 1 && <Text> Nothing more to choose from. </Text>}
-        {availableOptions.map((option, idx) => (
-          <WrapItem key={idx}>
-            <Tag
-              size="lg"
-              variant="subtle"
-              colorScheme="gray"
-              cursor="pointer"
-              onClick={() => handleSelect(option)}
-              borderRadius="full"
-            >
-              <TagLabel>{option}</TagLabel>
-            </Tag>
-          </WrapItem>
-        ))}
-      </Wrap>
-
-      <Text fontWeight="bold" mb={2} borderBottom={'1px solid gray'} pb={3}></Text>
-      <Wrap>
-        {selected.length < 1 && <Text> Select at least 1 service you need </Text>}
-        {selected.map((option, idx) => (
-          <WrapItem key={idx}>
-            <Tag
-              size="lg"
-              variant="solid"
-              colorScheme="blue"
-              borderRadius="full"
-            >
-              <TagLabel>{option}</TagLabel>
-              <TagCloseButton onClick={() => handleUnselect(option)} />
-            </Tag>
-          </WrapItem>
-        ))}
-      </Wrap>
-    </Box>
+    <AsyncState query={query} skeleton={<Box p={6}><MechanicListSkeleton /></Box>} errorTitle={query.error?.isNotFound ? "We couldn't find this mechanic" : undefined}>
+      {(mechanic) => <BookingForm mechanic={mechanic} />}
+    </AsyncState>
   );
 };
 
-
-export default ConfirmBooking
+export default ConfirmBooking;

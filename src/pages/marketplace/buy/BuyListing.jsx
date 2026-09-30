@@ -1,327 +1,245 @@
-import { ChevronDownIcon } from "@chakra-ui/icons"
 import {
-    Badge, Box, Button, Card, CardBody, CardHeader,
-    Container, Divider, Flex, Heading, HStack, Image,
-    Menu, MenuButton, MenuItem, MenuList, Switch, Text,
-    ButtonGroup, Checkbox, Input, SimpleGrid,
-    useMediaQuery, Tag, TagLabel, TagCloseButton,
-
-
+    Box, Button, Container, Flex, Heading, HStack,
+    ButtonGroup, SimpleGrid, Tag, TagLabel, TagCloseButton, Text,
 } from "@chakra-ui/react"
-import { Fragment, useContext, useEffect, useState } from "react"
+import { useContext, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { RiFilterLine } from "react-icons/ri"
 import { GlobalStore } from "../../../App"
-import { RiClockwiseLine, RiGasStationLine, RiFilterLine } from "react-icons/ri"
-import { RxTimer } from "react-icons/rx"
-import { TbManualGearbox } from "react-icons/tb"
-import { ListingItemCard } from "../../../components"
-import { Paginator } from "../../../components/nav"
-import { objectifyJSON } from "../../../utils"
+import { Car } from "lucide-react"
+import { ListingItemCard, PageControls } from "../../../components"
 import { ListingSkeleton } from "../../../components/loaders"
-import {
-CarBrandFilter,
-PriceFilter,
-LocationFilter,
-TransmissionFilter,
-} from "../../../components/filters";
+import { AsyncState, EmptyState, InlineError } from "../../../components/states"
+import { useApiQuery } from "../../../hooks/useApi"
+import { asList } from "../../../utils"
+import { CarBrandFilter, PriceFilter, TransmissionFilter, TRANSMISSIONS } from "../../../components/filters"
 
-const BuyListing = ({ }) => {
-    const [listings, setListings] = useState([]);
-    const [matches, setMatches] = useState([]);
-    const [appliedFilters, setAppliedFilters] = useState({});
-    const [data, setData] = useState(null);
-    const [carType, setCarType] = useState('new');
-    const {axios, notify, commaInt} = useContext(GlobalStore);
-    const [loading, setLoadingState] = useState(true);
-    const [isMobile] = useMediaQuery('(max-width: 768px)')
+const PAGE_SIZE = 25;
+const CONDITIONS = [
+    { value: '', label: 'All' },
+    { value: 'new', label: 'New' },
+    { value: 'used', label: 'Used' },
+];
+
+/** URL (?brands=&transmission=&min_price=&max_price=&condition=&page=) → /listings/buy/ query string. */
+function apiQuery(params) {
+    const qs = new URLSearchParams();
+    for (const key of ['brands', 'transmission', 'condition']) {
+        if (params.get(key)) qs.set(key, params.get(key));
+    }
+    const min = params.get('min_price');
+    const max = params.get('max_price');
+    // CarSaleFilter expects price=<min>-<max>, with 0 meaning "no bound"
+    if (min || max) qs.set('price', `${Number(min) || 0}-${Number(max) || 0}`);
+    const page = Math.max(1, parseInt(params.get('page'), 10) || 1);
+    if (page > 1) qs.set('offset', String((page - 1) * PAGE_SIZE));
+    return qs.toString();
+}
+
+/** Human labels for the applied-filter chips. */
+function appliedChips(params, commaInt) {
+    const chips = [];
+    if (params.get('brands')) chips.push({ keys: ['brands'], label: `Brand: ${params.get('brands').split(',').join(', ')}` });
+    if (params.get('transmission')) {
+        const names = params.get('transmission').split(',').map((v) => TRANSMISSIONS.find((t) => t.value === v)?.label || v);
+        chips.push({ keys: ['transmission'], label: `Transmission: ${names.join(', ')}` });
+    }
+    const min = params.get('min_price');
+    const max = params.get('max_price');
+    if (min || max) {
+        const label = min && max ? `₦${commaInt(min)} – ₦${commaInt(max)}` : min ? `From ₦${commaInt(min)}` : `Up to ₦${commaInt(max)}`;
+        chips.push({ keys: ['min_price', 'max_price'], label: `Price: ${label}` });
+    }
+    return chips;
+}
+
+const BuyListing = () => {
+    const { commaInt } = useContext(GlobalStore);
+    const [params, setParams] = useSearchParams();
+    const qs = apiQuery(params);
+    const condition = params.get('condition') || '';
+    const listings = useApiQuery(
+        (api, signal) => api.get(`/listings/buy/${qs ? `?${qs}` : ''}`, { signal }),
+        [qs],
+        { select: (body) => body?.data }
+    );
+
     const banners = [
-        {
-            url: '/assets/images/workshop.png',
-            caption: 'Get Priority Access'
-        },
-        {
-            url: '/assets/images/mechanic-image.png',
-            caption: 'Get Vetted Professionals'
-        },
-    ]
+        { url: '/assets/images/workshop.png', caption: 'Get Priority Access' },
+        { url: '/assets/images/mechanic-image.png', caption: 'Get Vetted Professionals' },
+    ];
 
-    function gotoPage(pageNum){
-        console.log("Page:", pageNum)
-        getData(`/listings/buy/?offset${pageNum*25}`)
-        // const res = await axios.get(`/listings/buy/`,);
-        // let data = objectifyJSON(res.data);
-    }
-
-    async function gotoNextPage(){
-        await setLoadingState(true)
-        const next = data?.pagination?.next || null;
-        if (next){
-            const res = await axios.get(`${next}`,);
-            const _data = objectifyJSON(res.data);
-
-
-            if (res.status === 200){
-                setData(_data?.data);
-                setListings(_data?.data?.results);
-                setTimeout(() => setLoadingState(false), 500)
-            }
+    /** Update URL params (null/'' removes); any filter change goes back to page 1. */
+    function updateParams(changes, { keepPage = false } = {}) {
+        const next = new URLSearchParams(params);
+        for (const [key, value] of Object.entries(changes)) {
+            if (value === null || value === undefined || value === '') next.delete(key);
+            else next.set(key, String(value));
         }
+        if (!keepPage) next.delete('page');
+        setParams(next);
     }
 
-    async function gotoPrevPage(){
-        await setLoadingState(true)
-        const prev = data?.pagination?.previous || null;
-        if (prev){
-            const res = await axios.get(`${prev}`,);
-            const _data = objectifyJSON(res.data);
-
-            if (res.status === 200){
-                setData(_data?.data);
-                setListings(_data?.data?.results);
-                setTimeout(() => setLoadingState(false), 500)
-            }
-        }
-    }
-
-    async function getData(url=`/listings/buy/`){
-        const res = await axios.get(url,);
-        let _data = objectifyJSON(res.data);
-
-        setData(_data.data);
-        setListings(_data?.data?.results);
-        
-        if (!res.status === 200){
-            notify({
-                title: 'Error',
-                body: data?.message || "Something went wrong"
-            })
-        }
-    }
-    
-    /**
-     * @param filter: filter object
-     * e.g { filter: 'brands', value : 'bmw', 'audi'}
-     * e.g { filter: 'price', value: 1200000-5000000}
-     * 
-     * */
     function applyFilter({ filter, value }) {
-        const params = new URLSearchParams();
-
-        // Create a new copy of appliedFilters to avoid mutations
-        let updatedFilters = { ...appliedFilters };
-
-        if (Boolean(value)) {
-            // Add/update the filter value
-            updatedFilters[filter] = value;
+        if (filter === 'price') {
+            updateParams({ min_price: value?.min ?? null, max_price: value?.max ?? null });
         } else {
-            // Remove the filter if the value is falsy
-            delete updatedFilters[filter];
+            updateParams({ [filter]: value });
         }
-
-        // Convert appliedFilters to URL parameters
-        Object.entries(updatedFilters).forEach(([key, val]) => {
-            params.set(key, val);
-        });
-
-        setAppliedFilters(updatedFilters);
-        console.log("Applied filters", appliedFilters)
-
-        // Send updated filter parameters to the server
-        getData(`/listings/buy/?${params.toString()}`);
     }
 
-    function removeFilter(filter) {
-        applyFilter({ filter, value: null }); // Pass a falsy value to trigger removal logic
+    function gotoOffset(offset) {
+        updateParams({ page: offset > 0 ? Math.floor(offset / PAGE_SIZE) + 1 : null }, { keepPage: true });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-
-
-    function init(){
-        getData();
-        setTimeout(() => setLoadingState(false), 2500);
-    }
-
-    useEffect(() => {
-        init()
-    }, [])
-
-    useEffect(() => {
-
-    }, [listings, carType,])
-
-    const filters = [
-        <CarBrandFilter onChange={applyFilter} />,
-        <PriceFilter onChange={applyFilter} />,
-        <LocationFilter onChange={applyFilter} />,
-        <TransmissionFilter onChange={applyFilter} />,
-    ]
-
-    if (loading){
-        return <ListingSkeleton />
-    }
+    const chips = appliedChips(params, commaInt);
+    const pagination = listings.data?.pagination;
+    const total = pagination?.results_count ?? pagination?.count;
+    // CarSaleFilter.condition can't be applied by the server yet (see report); say so instead of failing
+    const conditionUnsupported = condition && listings.error?.status === 400;
 
     return(
-        <Fragment>
-            <Container maxWidth={'container.xl'} py={4}>
-                <Flex align="center" mb={5} flexWrap="wrap-reverse" gap={{base: 2, md:8}} justify="space-between">
-                    <Box>
-                        <Heading size={'lg'} className="subtitle"> Cars for Sale </Heading>
-                        <ButtonGroup size='md' isAttached variant='outline' mt={3}>
-                            <Button onClick={() => setCarType('new')} 
-                             bgColor={carType === 'new' ? 'primary' : 'transparent'}
-                             color={carType === 'new' ? 'white' : 'primary'}
-                             borderTopWidth={2} borderBottomWidth={2}
-                             borderLeftWidth={2}
-                             colorScheme={'blue'}
-                             borderColor="cornflowerblue"
-                             borderRadius="30px" px={'35px'}
-                            >New</Button>
+        <Container maxWidth={'container.xl'} py={4}>
+            <Flex align="center" mb={5} flexWrap="wrap-reverse" gap={{base: 4, md: 8}} justify="space-between">
+                <Box>
+                    <Heading as="h1" size={'lg'} className="subtitle">Cars for Sale</Heading>
+                    <ButtonGroup size='md' isAttached variant='outline' mt={3} role="group" aria-label="Condition">
+                        {CONDITIONS.map((option) => {
+                            const selected = condition === option.value;
+                            return (
+                                <Button
+                                  key={option.value || 'all'}
+                                  onClick={() => updateParams({ condition: option.value })}
+                                  aria-pressed={selected}
+                                  bgColor={selected ? 'primary' : 'transparent'}
+                                  color={selected ? 'white' : 'primary'}
+                                  borderWidth={2}
+                                  borderColor="cornflowerblue"
+                                  _hover={{ bgColor: selected ? 'primary' : 'blue.50' }}
+                                  borderRadius="30px"
+                                  px={{ base: '20px', sm: '30px' }}
+                                >
+                                    {option.label}
+                                </Button>
+                            );
+                        })}
+                    </ButtonGroup>
+                </Box>
 
-                            <Button onClick={() => setCarType('used')}
-                             bgColor={carType === 'used' ? 'primary' : 'transparent'}
-                             color={carType === 'used' ? 'white' : 'primary'}
-                             borderTopWidth={2} borderBottomWidth={2}
-                             borderRightWidth={2}
-                             colorScheme={'blue'}
-                             borderColor="cornflowerblue"
-                             borderRadius="30px" px={'35px'}
-                            >Used</Button>
-                        </ButtonGroup>
-                    </Box>
+                <BannerCarousel images={banners} />
+            </Flex>
 
-                    <BannerCarousel images={banners} />
+            <Flex my={2} py={2} flexWrap={'nowrap'} gap={3} overflowX={'auto'} className="hidden-scroll" alignItems="center">
+                <HStack spacing={1} color="gray.600" flexShrink={0} aria-hidden="true"><RiFilterLine /><Text>Filters</Text></HStack>
+                <CarBrandFilter param="brands" value={params.get('brands')} onChange={applyFilter} />
+                <PriceFilter value={{ min: params.get('min_price'), max: params.get('max_price') }} onChange={applyFilter} />
+                <TransmissionFilter value={params.get('transmission')} onChange={applyFilter} />
+            </Flex>
+
+            {chips.length > 0 && (
+                <Flex my={2} py={2} flexWrap={'wrap'} gap={3} alignItems="center">
+                    {chips.map((chip) => (
+                        <Tag size="lg" key={chip.keys[0]} variant="outline" colorScheme="blue" borderColor="primary" maxW="100%">
+                            <TagLabel>{chip.label}</TagLabel>
+                            <TagCloseButton aria-label={`Remove ${chip.label}`} onClick={() => updateParams(Object.fromEntries(chip.keys.map((k) => [k, null])))} />
+                        </Tag>
+                    ))}
+                    <Button size="sm" variant="link" color="primary" onClick={() => setParams(new URLSearchParams(condition ? { condition } : {}))}>
+                        Clear all
+                    </Button>
                 </Flex>
+            )}
 
-                <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
-                    <Button
-                     minW={'max-content'}
-                     size={'md'} borderRadius={'10px'}
-                     as={Box}
-                     bgColor="gray.100"
-                     leftIcon={<RiFilterLine />}
-                    > Filters </Button>
-                    {
-                        filters.map((filter, idx) => (filter))
-                    }
-                </Flex>
-                
-                <FilterList appliedFilters={appliedFilters} onRemove={removeFilter} />
-
-                <SimpleGrid
-                 placeItems={isMobile ? 'center' : 'unset'}
-                 gap={8}
-                 spacing={8}
-                 columns={{base: 1, md: 2, lg: 3, xl: 4}}
+            {conditionUnsupported ? (
+                <Box my={6}>
+                    <InlineError error={{ message: "Filtering by new or used isn't available yet." }} />
+                    <Button mt={3} variant="outline" color="primary" onClick={() => updateParams({ condition: null })}>Show all cars</Button>
+                </Box>
+            ) : (
+                <AsyncState
+                  query={listings}
+                  skeleton={<ListingSkeleton />}
+                  isEmpty={(data) => asList(data?.results).length === 0}
+                  empty={
+                    <EmptyState
+                      icon={Car}
+                      title={qs ? 'No cars match these filters' : 'No cars for sale yet'}
+                      description={qs ? 'Try removing a filter or widening your price range.' : 'Verified dealers add new cars every week. Check back soon.'}
+                      action={qs ? { label: 'Clear filters', onClick: () => setParams(new URLSearchParams()) } : undefined}
+                    />
+                  }
                 >
-                    {
-                        carType === 'new' ? (
-                            listings?.filter((listing) => ['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
-                                <ListingItemCard
-                                 listing={listing}
-                                 key={idx}
-                                 w="100%"
-                                 maxW={'350px'}
-                                />
-                            )
-                        ):(
-                            listings?.filter((listing) => !['new', 'New'].includes(listing?.vehicle?.condition)).map((listing, idx) =>
-                                <ListingItemCard
-                                 listing={listing}
-                                 key={idx}
-                                 w="100%"
-                                 maxW={'350px'}
-                                />
-                            )
-                        )
-                    }
-                </SimpleGrid>
-
-                <Paginator pagination={data?.pagination} onNext={gotoNextPage} onPrevious={gotoPrevPage} onClick={console.log} />
-            </Container>
-        </Fragment>
+                    {(data) => (
+                        <Box opacity={listings.loading ? 0.6 : 1} transition="opacity .2s" aria-busy={listings.loading}>
+                            {Number.isFinite(Number(total)) && (
+                                <Text color="gray.600" mb={4} role="status">
+                                    {Number(total) === 1 ? '1 car' : `${commaInt(total)} cars`} for sale
+                                </Text>
+                            )}
+                            <SimpleGrid spacing={{ base: 6, md: 8 }} columns={{base: 1, sm: 2, lg: 3, xl: 4}}>
+                                {asList(data?.results).map((listing) =>
+                                    <ListingItemCard listing={listing} key={listing?.uuid || listing?.id} />
+                                )}
+                            </SimpleGrid>
+                            <PageControls
+                              offset={pagination?.offset}
+                              limit={pagination?.limit || PAGE_SIZE}
+                              count={total}
+                              isLoading={listings.loading}
+                              onPage={gotoOffset}
+                            />
+                        </Box>
+                    )}
+                </AsyncState>
+            )}
+        </Container>
     )
 }
 
-
-const FilterList = ({ appliedFilters, onRemove }) => {
-    useEffect(() => {
-
-    }, [appliedFilters]);
-
-    return(
-        <Flex my={2} py={2} flexWrap={'nowrap'} gap={4} overflowX={'auto'} className="hidden-scroll">
-            {
-                Object.keys(appliedFilters)?.map((key, idx) => 
-                    <Tag size="lg" key={idx} variant="outline" colorScheme="blue" borderColor="primary">
-                        <TagLabel textTransform="capitalize">{key}: {appliedFilters[key]}</TagLabel>
-                        <TagCloseButton onClick={() => onRemove(key)} />
-                    </Tag>
-                )
-            }
-        </Flex>
-    )
-
-}
-
-// Image Carousel Component
 function BannerCarousel({ images }) {
   const [currentImage, setCurrentImage] = useState(0)
+  const banner = images[currentImage]
 
   return (
     <Box
         w="100%"
         position="relative"
         flex={{ base: 'unset', md: 3.8 / 4, lg: 3.5 / 4 }}
-        backgroundImage={`url('${images[currentImage].url}')`}
+        backgroundImage={`url('${banner.url}')`}
         backgroundRepeat="no-repeat"
         backgroundSize="cover"
         backgroundPosition="center top"
-        h="210px"
+        h={{ base: '160px', md: '210px' }}
         borderRadius="20px"
         display="flex"
         alignItems="center"
         justifyContent="center"
-        px={2}  // Ensures some padding on smaller screens
+        px={2}
+        role="img"
+        aria-label={banner.caption}
     >
-        {images[currentImage]?.caption && (
-            <Box
-            position="absolute"
-            // bottom="18%"  // Adjusted distance from bottom
-            left="50%"
-            w={'100%'}
-            transform="translateX(-50%)"
-            maxW="80%"  // Ensures the caption doesn't stretch too wide
-            maxH="50%"  // Prevents overflow for long captions
-            overflowY="auto"  // Allows scrolling if needed
-            textAlign="center"
-            p={2}
-            >
-            <Heading
-                color="white"
-                size="lg"
-                textShadow="-2px 2px 10px black"
-            >
-                {images[currentImage].caption}
-            </Heading>
-            </Box>
-        )}
-        <HStack position="absolute" bottom={4} left="50%" transform="translateX(-50%)" spacing={2}>
-            {images.map((_, index) => (
-            <Box
-                key={index}
-                w={index === currentImage ? 8 : 2}
-                h={2}
-                borderRadius="full"
-                bg={index === currentImage ? 'primary' : 'whiteAlpha.600'}
-                cursor="pointer"
-                onClick={() => setCurrentImage(index)}
-            />
+        <Heading as="p" color="white" size="lg" textAlign="center" textShadow="-2px 2px 10px black" px={4} aria-hidden="true">
+            {banner.caption}
+        </Heading>
+        <HStack position="absolute" bottom={3} left="50%" transform="translateX(-50%)" spacing={1}>
+            {images.map((item, index) => (
+                <Box
+                    as="button"
+                    type="button"
+                    key={item.url}
+                    aria-label={`Show banner ${index + 1}: ${item.caption}`}
+                    aria-current={index === currentImage ? 'true' : undefined}
+                    onClick={() => setCurrentImage(index)}
+                    p={2}
+                >
+                    <Box w={index === currentImage ? 8 : 2} h={2} borderRadius="full" bg={index === currentImage ? 'primary' : 'whiteAlpha.800'} />
+                </Box>
             ))}
         </HStack>
     </Box>
   )
 }
-
-
 
 
 export default BuyListing

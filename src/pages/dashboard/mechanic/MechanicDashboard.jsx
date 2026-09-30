@@ -1,375 +1,135 @@
+import { useContext, useState } from 'react';
+import { Link as RLink } from 'react-router-dom';
 import {
-  Avatar,
   Box,
   Button,
   Flex,
   Heading,
-  HStack,
-  Icon,
-  IconButton,
-  Image,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  Progress,
-  Table,
-  Tbody,
-  Td,
+  SimpleGrid,
   Text,
-  Th,
-  Thead,
-  Tr,
-  Badge,
-  Tag,
-} from "@chakra-ui/react"
+} from '@chakra-ui/react';
+import { CalendarCheck, Inbox } from 'lucide-react';
+import { GlobalStore } from '../../../App';
+import { useApiQuery } from '../../../hooks/useApi';
+import { AsyncState, EmptyState } from '../../../components/states';
+import { asList } from '../../../utils';
 import {
-  FaChevronDown,
-  FaChevronRight,
+  BookingActionButtons,
+  BookingDetailsModal,
+  BookingTable,
+  ClientInfo,
+  servicesSummary,
+  useBookingActions,
+} from './bookingParts';
 
-} from 'react-icons/fa6'
-// import { ChevronDownIcon, ChevronRightIcon, ClockIcon, Filter, MapPin, MoreVertical, Search, Star, User, X } from "react-feather"
-import {useState, useEffect, useContext, Fragment} from 'react';
-import {GlobalStore} from '../../../App';
-import { Link } from 'react-router-dom';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {MapPin, Search, MoreVertical} from 'lucide-react'
-
-// Metric Card Component
-const MetricCard = ({ title, value, change, trend, icon, suffix }) => {
-  const isPositive = change > 0
-  const trendColor = isPositive ? "green.500" : "red.500"
-  const changeText = `${isPositive ? "+" : ""}${change}% ${isPositive ? "increase" : "decrease"} this month`
-
+function MetricCard({ title, value }) {
   return (
-    <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4} position="relative" bg="white">
-      <Flex justify="space-between" align="center" mb={2}>
-        <Text fontSize="sm" fontWeight="medium" color="gray.600">
-          {title}
-        </Text>
-      </Flex>
-      <Flex align="center" mb={2}>
-        <Text fontSize="2xl" fontWeight="bold">
-          {value}
-        </Text>
-        {suffix && <Box ml={1}>{suffix}</Box>}
-      </Flex>
-
-      {
-        change &&
-        <Fragment>
-        <Flex align="center">
-          <Text fontSize="sm" color={trendColor} fontWeight="medium">
-            {changeText}
-          </Text>
-        </Flex>
-        <Box position="absolute" bottom="0" left="0" right="0" h="40px" overflow="hidden">
-          <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
-            <path d={trend} fill="none" stroke={isPositive ? "green" : "red"} strokeWidth="1.5" opacity="0.5" />
-          </svg>
-        </Box>
-        </Fragment>
-      }
+    <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+      <Text fontSize="sm" fontWeight="medium" color="gray.600" mb={2}>{title}</Text>
+      <Text fontSize="2xl" fontWeight="bold" noOfLines={1}>{value}</Text>
     </Box>
-  )
+  );
 }
-
-// Client Info Component
-const ClientInfo = ({ customer, location, }) => (
-  <Flex align="center">
-    <Box mr={3} w="40px" h="40px" borderRadius="full" overflow="hidden">
-      <Avatar src={customer?.image} name={customer?.name} w="100%" h="100%" objectFit="cover" />
-    </Box>
-    <Box>
-      <Text fontWeight="medium">{customer?.name}</Text>
-      <Flex align="center" color="gray.500" fontSize="xs">
-        <MapPin size={12} style={{ marginRight: "4px" }} />
-        {location}
-      </Flex>
-    </Box>
-  </Flex>
-)
-
-
-const StatusColor = {
-  'accepted': 'blue',
-  'working': 'purple',
-  'requested': 'cyan',
-  'completed': 'green',
-  'declined': 'yellow',
-  'expired': 'red',
-  'canceled': 'red',
-}
-
 
 export const MechanicOverview = () => {
-  const {authUser, axios, notify, naturalDate, naturalTime} = useContext(GlobalStore);
-  const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState();
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [bookingHistory, setBookingHistory] = useState([]);
-
-  async function getData(){
-    const res = await axios.get('/admin/mechanics/dashboard/');
-    const data = objectifyJSON(res.data);
-
-    if (res.status === 200){
-      // console.log("Dashboard Data:", data.data)
-      setDashboardData(data.data)
-      setPendingRequests(data.data.pending_requests)
-      setBookingHistory(data.data.booking_history)
-    }
-  }
-
-  function init(){
-    setLoading(true);
-    getData();
-    setTimeout(() => setLoading(false), 2000);
-  }
-
-
-
-
-  async function handleAcceptRequest(requestId){
-    const res = await axios.post(`/admin/mechanics/bookings/${requestId}/`, jsonifyObject({
-      action: 'accept'
-    }));
-    const data = await objectifyJSON(res.data);
-    if (res.status === 200){
-      notify({
-        title: 'Success',
-        body: 'Request Accepted!',
-        level: 'info'
-      });
-
-      init();
-
-    }
-  }
-  
-  async function handleDeclineRequest(requestId){
-    const res = await axios.post(`/admin/mechanics/bookings/${requestId}/`, jsonifyObject({
-      action: 'decline'
-    }));
-    const data = await objectifyJSON(res.data);
-    if (res.status === 200){
-      notify({
-        title: 'Success',
-        body: 'Request Declined!',
-        level: 'info'
-      });
-
-      init();
-
-    }
-  }
-
-
-  useEffect(() => {
-    init()
-  }, []);
-
-  if (loading){
-    return null
-  }
+  const { authUser, commaInt } = useContext(GlobalStore);
+  const [details, setDetails] = useState(null);
+  const dashboard = useApiQuery((api, signal) => api.get('/admin/mechanics/dashboard/', { signal }), [], {
+    select: (body) => body?.data || {},
+  });
+  const actions = useBookingActions({
+    onDone: (updated) => {
+      dashboard.reload();
+      setDetails((current) => (current && updated && current.uuid === updated.uuid ? updated : current));
+    },
+  });
 
   return (
-    <Box p={4} maxW="1200px" mx="auto">
-      {/* Header */}
+    <Box py={4} maxW="1200px" mx="auto">
       <Box mb={6}>
         <Heading as="h1" size="lg" mb={1}>
-          Welcome back, {authUser?.first_name}
-          <span role="img" aria-label="wave">
-            👋
-          </span>
+          Welcome back{authUser?.first_name ? `, ${authUser.first_name}` : ''} <span role="img" aria-label="wave">👋</span>
         </Heading>
-        <Text color="gray.600">Track, manage and forecast your customers and orders.</Text>
+        <Text color="gray.600">Manage your booking requests, jobs and earnings.</Text>
       </Box>
 
-      {/* Metrics */}
-      <Flex flexWrap="wrap" gap={4} mb={6}>
-        <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard
-            title="Total Revenue"
-            value={`₦${parseInt(dashboardData?.total_revenue).toFixed(2)}`}
-            // change={10}
-            // trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
-          />
-        </Box>
-        
-        <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard
-           title="Total Hires"
-           value={parseInt(dashboardData?.total_hires)}
-           // change={-2} 
-           // trend="M0,5 Q40,10 60,15 T100,20 T150,25 T200,30"
-          />
-        </Box>
+      <AsyncState query={dashboard} loadingLabel="Loading your dashboard…">
+        {(data) => {
+          const pending = asList(data?.pending_requests);
+          const history = asList(data?.booking_history);
+          const current = data?.current_job;
+          return (
+            <>
+              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={8}>
+                <Box gridColumn={{ base: 'span 2', md: 'auto' }}>
+                  <MetricCard title="Revenue (completed)" value={`₦${commaInt(data?.total_revenue)}`} />
+                </Box>
+                <MetricCard title="Hires" value={commaInt(data?.total_hires)} />
+                <MetricCard title="Bookings" value={commaInt(data?.total_bookings)} />
+                <MetricCard title="Pending requests" value={commaInt(data?.total_pending ?? pending.length)} />
+              </SimpleGrid>
 
-        <Box flex={{ base: "1 1 100%", md: "1 1 calc(25% - 12px)" }}>
-          <MetricCard
-           title="Bookings"
-           value={`${parseInt(dashboardData?.total_bookings)}`}
-           // change={14}
-           // trend="M0,30 Q40,25 60,20 T100,15 T150,5 T200,0"
-          />
-        </Box>
-        
-      </Flex>
+              {current?.uuid && (
+                <Box mb={8} p={4} borderWidth="1px" borderColor="purple.200" bg="purple.50" borderRadius="lg">
+                  <Text fontSize="sm" fontWeight="semibold" color="purple.700" mb={3}>Current job</Text>
+                  <Flex gap={4} align={{ base: 'start', md: 'center' }} justify="space-between" direction={{ base: 'column', md: 'row' }}>
+                    <Box>
+                      <ClientInfo customer={current.customer} location={current.location} />
+                      <Text mt={2} fontSize="sm" color="gray.700">{servicesSummary(current)} · ₦{commaInt(current.sub_total)}</Text>
+                    </Box>
+                    <BookingActionButtons booking={current} actions={actions} onDetails={setDetails} />
+                  </Flex>
+                </Box>
+              )}
 
-      {/* Pending Requests */}
-      <Box mb={8}>
-        <Heading as="h2" size="md" mb={4}>
-          Pending Requests
-        </Heading>
-        <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="hidden">
-          <Table variant="simple">
-            <Thead bg="gray.50">
-              <Tr>
-                <Th>ID</Th>
-                <Th>Client</Th>
-                <Th>Services</Th>
-                <Th>Date</Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {pendingRequests.map((request, idx) => (
-                <Tr key={request?.id}>
-                  <Td>{idx+1}</Td>
-                  <Td>
-                    <Avatar name={request?.customer?.name} src={request?.customer?.image} size="md" />
-                    {/*<ClientInfo name={request?.client} location={request.location} hasAvatar={request.hasAvatar} />*/}
-                  </Td>
-                  <Td>{request?.services?.map((service, idx) => <Tag> {service} </Tag> )}</Td>
-                  <Td>
-                    <Text>{naturalDate(new Date(request?.date_created))} | 
-                       {naturalTime(new Date(request?.date_created))}
-                    </Text>
-                  </Td>
-                  <Td>
-                    <HStack spacing={2}>
-                      <Button onClick={(e) => handleAcceptRequest(request?.uuid)} colorScheme="blue" size="sm">
-                        Accept
-                      </Button>
-                      <Button onClick={(e) => handleDeclineRequest(request?.uuid)} colorScheme="red" size="sm">
-                        Decline
-                      </Button>
-                    </HStack>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-      </Box>
+              <Box as="section" mb={8} aria-labelledby="pending-heading">
+                <Heading as="h2" id="pending-heading" size="md" mb={4}>Pending requests</Heading>
+                {pending.length ? (
+                  <BookingTable bookings={pending} actions={actions} onDetails={setDetails} />
+                ) : (
+                  <EmptyState
+                    icon={Inbox}
+                    minH="160px"
+                    title="No pending requests"
+                    description="New booking requests from customers will appear here for you to accept or decline."
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    borderRadius="lg"
+                  />
+                )}
+              </Box>
 
-      {/* Booking History */}
-      <Box>
-        <Heading as="h2" size="md" mb={4}>
-          Booking History
-        </Heading>
-       
-        <Flex justify="space-between" mb={4} flexDir={{ base: "column", sm: "row" }} gap={3}>
-          <HStack>
-            <Menu>
-              <MenuButton as={Button} rightIcon={<FaChevronDown size={16} />} variant="outline" size="sm">
-                Recents
-              </MenuButton>
-              <MenuList>
-                <MenuItem>Last 7 days</MenuItem>
-                <MenuItem>Last 30 days</MenuItem>
-                <MenuItem>Last 90 days</MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
+              <Box as="section" aria-labelledby="history-heading">
+                <Flex justify="space-between" align="center" mb={4} gap={3}>
+                  <Heading as="h2" id="history-heading" size="md">Recent bookings</Heading>
+                  {history.length > 0 && (
+                    <Button as={RLink} to="/bookings" size="sm" variant="outline">View all</Button>
+                  )}
+                </Flex>
+                {history.length ? (
+                  <BookingTable bookings={history} actions={actions} onDetails={setDetails} showStatus />
+                ) : (
+                  <EmptyState
+                    icon={CalendarCheck}
+                    minH="160px"
+                    title="No bookings yet"
+                    description="Bookings you accept will show up here. Keep your services up to date so customers can find you."
+                    action={{ label: 'Manage services', to: '/services' }}
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    borderRadius="lg"
+                  />
+                )}
+              </Box>
+            </>
+          );
+        }}
+      </AsyncState>
 
-          <InputGroup maxW={{ base: "full", sm: "300px" }}>
-            <InputLeftElement pointerEvents="none">
-              <Search size={18} color="#667085" />
-            </InputLeftElement>
-            <Input placeholder="Search" />
-          </InputGroup>
-        </Flex>
-
-        <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" overflow="hidden">
-          <Table variant="simple">
-            <Thead bg="gray.50">
-              <Tr>
-                <Th>Client</Th>
-                <Th>Service</Th>
-                <Th>Date</Th>
-                <Th>Status</Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {bookingHistory?.map((booking) => (
-                <Tr key={booking.id}>
-                  <Td>
-                    <ClientInfo customer={booking?.customer} location={booking?.location} />
-                  </Td>
-                  <Td>{booking?.services[0]} {booking?.services?.length > 1 && `+ ${booking?.services?.length - 1} other services`}</Td>
-                  <Td>
-                    <Text>{naturalDate(new Date(booking?.date_created))} | 
-                       {naturalTime(new Date(booking?.date_created))}
-                    </Text>
-                  </Td>
-                  <Td>
-                    <Badge
-                      colorScheme={StatusColor[booking?.status?.toLowerCase()]}
-                      px={2}
-                      py={1}
-                      borderRadius="full"
-                      textTransform="capitalize"
-                    >
-                      {booking?.status}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Flex gap={3}>
-                      {
-                        booking?.status === 'accepted' ?
-                        <Button size="sm" colorScheme="blue"> Start Job </Button>
-                        : booking?.status === 'working' ?
-                        <Fragment>
-                          <Button size="sm" colorScheme="blue"> Finish Job </Button>
-                          <Button size="sm" colorScheme="red"> Cancel Job </Button>
-                        </Fragment>
-                        : null
-                      }
-
-                      {
-                        !['expired', 'canceled', 'declined'].includes(booking?.status) &&
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            aria-label="Options"
-                            icon={<MoreVertical size={16} />}
-                            variant="ghost"
-                            size="sm"
-                          />
-                          <MenuList>
-                            <MenuItem>View details</MenuItem>
-                            <MenuItem>Contact client</MenuItem>
-                            <MenuItem>Download invoice</MenuItem>
-                          </MenuList>
-                        </Menu>
-                      }
-                    </Flex>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-      </Box>
+      <BookingDetailsModal booking={details} onClose={() => setDetails(null)} actions={actions} />
+      {actions.dialog}
     </Box>
-  )
-}
+  );
+};
 
-export default MechanicOverview
-
+export default MechanicOverview;

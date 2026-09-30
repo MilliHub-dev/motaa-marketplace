@@ -1,445 +1,304 @@
-import { Country } from 'country-state-city';
+// Order result / status page: /checkout/status?order=<uuid>
+// Shows what was paid, what's held in escrow, and the next step (inspection,
+// paying the balance, confirming receipt to release the dealer's payment).
+import { useContext, useRef, useState } from 'react';
+import { Link as RLink, useSearchParams } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Grid,
-  Heading,
-  Text,
-  Button,
-  HStack,
-  VStack,
-  Image,
-  Avatar,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Badge,
+  Box,
+  Button,
+  Container,
+  Divider,
   Flex,
+  Heading,
+  HStack,
   Icon,
-  Progress,
-  SimpleGrid,
-  Input,
-  Select,
-  Switch,
-  IconButton,
-  useColorModeValue,
-} from '@chakra-ui/react'
-import { ChevronLeft, ChevronRight, Star, Users, DoorOpen, Zap, Gauge, Key, Camera, Music, Smartphone, Sun, BatteryCharging, Shield, CheckCircle, MessageCircle, Heart, Share2 } from 'lucide-react'
-import { useState } from 'react'
+  Image,
+  Stack,
+  Text,
+  useDisclosure,
+  VStack,
+} from '@chakra-ui/react';
+import { Car, CheckCircle2, ClipboardCheck, Clock, FileText, PackageCheck, Receipt, XCircle } from 'lucide-react';
+import { GlobalStore } from '../../../App';
+import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
+import { AsyncState, EmptyState } from '../../../components/states';
+import { newReference, PaymentRecoveryNotice, TRANSACTION_STATUS_COLORS, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { asList } from '../../../utils';
 
-// Navbar Component (reused from previous implementation)
-function Navbar() {
+const STATUS_VIEW = {
+  'awaiting-payment': { icon: Clock, color: 'yellow', title: 'Awaiting payment' },
+  'awaiting-inspection': { icon: ClipboardCheck, color: 'yellow', title: 'Reserved — awaiting inspection' },
+  inspecting: { icon: ClipboardCheck, color: 'blue', title: 'Inspection in progress' },
+  pending: { icon: CheckCircle2, color: 'green', title: 'Payment received' },
+  completed: { icon: PackageCheck, color: 'green', title: 'Order complete' },
+  cancelled: { icon: XCircle, color: 'red', title: 'Order cancelled' },
+  expired: { icon: XCircle, color: 'gray', title: 'Rental ended' },
+  renewed: { icon: CheckCircle2, color: 'green', title: 'Rental renewed' },
+};
+
+function Row({ label, value, bold }) {
   return (
-    <Box
-      as="nav"
-      position="fixed"
-      top={0}
-      w="full"
-      bg="white"
-      boxShadow="sm"
-      zIndex="sticky"
-    >
-      <Container maxW="7xl">
-        <Flex h={16} alignItems="center" justify="space-between">
-          <Image src="/motaa-logo.svg" h={8} alt="Motaa" />
-          <HStack spacing={4}>
-            <Button leftIcon={<Icon as="span">💰</Icon>} colorScheme="blue">
-              Wallet
-            </Button>
-            <IconButton
-              icon={<MessageCircle />}
-              variant="ghost"
-              aria-label="Messages"
-            />
-            <IconButton
-              icon={<Heart />}
-              variant="ghost"
-              aria-label="Favorites"
-            />
-            <IconButton
-              icon={<Share2 />}
-              variant="ghost"
-              aria-label="Share"
-            />
-          </HStack>
-        </Flex>
-      </Container>
-    </Box>
-  )
+    <Flex justify="space-between" gap={4} fontWeight={bold ? 700 : 500}>
+      <Text color={bold ? undefined : 'gray.600'}>{label}</Text>
+      <Text textAlign="right">{value}</Text>
+    </Flex>
+  );
 }
 
-// Image Carousel Component
-function ImageCarousel({ images }) {
-  const [currentImage, setCurrentImage] = useState(0)
-
-  return (
-    <Box position="relative">
-      <Image
-        src={images[currentImage] || "/placeholder.svg?height=400&width=800"}
-        alt="Vehicle"
-        w="full"
-        h="400px"
-        objectFit="cover"
-        borderRadius="lg"
-      />
-      <HStack
-        position="absolute"
-        bottom={4}
-        left="50%"
-        transform="translateX(-50%)"
-        spacing={2}
-      >
-        {images.map((_, index) => (
-          <Box
-            key={index}
-            w={2}
-            h={2}
-            borderRadius="full"
-            bg={index === currentImage ? "white" : "whiteAlpha.600"}
-            cursor="pointer"
-            onClick={() => setCurrentImage(index)}
-          />
-        ))}
-      </HStack>
-      <IconButton
-        icon={<ChevronLeft />}
-        position="absolute"
-        left={4}
-        top="50%"
-        transform="translateY(-50%)"
-        onClick={() => setCurrentImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-        variant="solid"
-        colorScheme="blackAlpha"
-        aria-label="Previous image"
-      />
-      <IconButton
-        icon={<ChevronRight />}
-        position="absolute"
-        right={4}
-        top="50%"
-        transform="translateY(-50%)"
-        onClick={() => setCurrentImage((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-        variant="solid"
-        colorScheme="blackAlpha"
-        aria-label="Next image"
-      />
-    </Box>
-  )
+function nextStep(order) {
+  if (order.order_status === 'awaiting-inspection') {
+    return order.inspection
+      ? 'Your inspection is booked. After it, pay the balance to complete your order.'
+      : 'Schedule your inspection. You only pay the balance if you are happy with the car.';
+  }
+  if (order.order_status === 'pending') {
+    return order.order_type === 'rental'
+      ? 'The dealer will contact you about pickup. Confirm below once you have the car to release their payment.'
+      : 'The dealer will contact you about delivery. Confirm below once you have the car to release their payment.';
+  }
+  if (order.order_status === 'completed') return 'Thanks for confirming. The dealer has been paid.';
+  return null;
 }
 
-// Feature Card Component
-function FeatureCard({ icon, label }) {
-  return (
-    <HStack
-      p={3}
-      bg="gray.50"
-      borderRadius="md"
-      spacing={3}
-    >
-      <Icon as={icon} />
-      <Text fontSize="sm">{label}</Text>
-    </HStack>
-  )
-}
+function OrderView({ order, reload, setOrder }) {
+  const { commaInt, naturalDate } = useContext(GlobalStore);
+  const [params] = useSearchParams();
+  const view = STATUS_VIEW[order.order_status] || STATUS_VIEW.pending;
+  const listing = order.listing || {};
+  const pay = usePaystack();
+  const walletDialog = useDisclosure();
+  const confirmDialog = useDisclosure();
+  const cancelDialog = useDisclosure();
+  const cancelRef = useRef();
+  const keepRef = useRef();
+  const [paying, setPaying] = useState(false);
+  const [pending, setPending] = useState(null); // { reference, message }
+  const balanceQuery = useApiQuery((api, signal) => api.get('/wallet/balance/', { signal }), [], {
+    enabled: order.can_pay_balance, select: (b) => b?.data,
+  });
 
-// Review Card Component
-function ReviewCard({ name, rating, date, comment, avatar }) {
-  return (
-    <Box mb={6}>
-      <HStack mb={2}>
-        <Avatar size="sm" name={name} src={avatar} />
-        <Box>
-          <Text fontWeight="medium">{name}</Text>
-          <HStack spacing={1}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon
-                key={i}
-                as={Star}
-                color={i < rating ? "yellow.400" : "gray.300"}
-                fill={i < rating ? "currentColor" : "none"}
-                w={3}
-                h={3}
-              />
-            ))}
-          </HStack>
-        </Box>
-        <Text fontSize="sm" color="gray.500" ml="auto">
-          {date}
-        </Text>
-      </HStack>
-      <Text color="gray.600" fontSize="sm">
-        {comment}
-      </Text>
-    </Box>
-  )
-}
+  const payByCard = useApiMutation((api, reference) => api.post(`/listings/orders/${order.uuid}/pay/`, { method: 'card', reference }), {
+    notifyOnError: false,
+    successMessage: 'Payment received and held in escrow.',
+    onSuccess: (body) => { setPending(null); if (body?.data) setOrder(body.data); },
+    onError: (error) => setPending((p) => p && { ...p, message: error.message }),
+  });
+  const payByWallet = useApiMutation((api) => api.post('/wallet/pay/', { order_id: order.uuid }), {
+    successMessage: (body) => body?.message || 'Paid from your wallet.',
+    errorTitle: "Couldn't pay from your wallet",
+    onSuccess: () => { walletDialog.onClose(); reload(); balanceQuery.reload(); },
+  });
+  const complete = useApiMutation((api) => api.post(`/listings/orders/${order.uuid}/complete/`), {
+    successMessage: 'Thanks! The dealer has been paid.',
+    errorTitle: "Couldn't confirm your order",
+    onSuccess: (body) => { confirmDialog.onClose(); if (body?.data) setOrder(body.data); },
+  });
 
-// Car Card Component
-function CarCard({ image, title, price, rating, reviews, host }) {
-  return (
-    <Box
-      borderWidth="1px"
-      borderRadius="lg"
-      overflow="hidden"
-      bg="white"
-      _hover={{ transform: 'translateY(-4px)', transition: 'transform 0.2s' }}
-    >
-      <Image
-        src={image || "/placeholder.svg?height=200&width=300"}
-        alt={title}
-        h="200px"
-        w="full"
-        objectFit="cover"
-      />
-      <Box p={4}>
-        <HStack justify="space-between" mb={2}>
-          <Heading size="sm">{title}</Heading>
-          <Badge colorScheme="blue">VERIFIED</Badge>
-        </HStack>
-        <HStack spacing={1} mb={2}>
-          <Icon as={Star} color="yellow.400" />
-          <Text>{rating}</Text>
-          <Text color="gray.500">({reviews} reviews)</Text>
-        </HStack>
-        <Text fontWeight="bold" fontSize="xl" color="blue.600">
-          ₦{price.toLocaleString()}/hour
-        </Text>
-        <Text fontSize="sm" color="gray.500">
-          by {host}
-        </Text>
-      </Box>
-    </Box>
-  )
-}
+  const cancelOrder = useApiMutation((api) => api.post(`/listings/orders/${order.uuid}/cancel/`), {
+    successMessage: (body) => body?.message || 'Order cancelled.',
+    errorTitle: "Couldn't cancel your order",
+    onSuccess: (body) => { cancelDialog.onClose(); if (body?.data) setOrder(body.data); },
+  });
 
-export default function RentalDetails() {
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
-
-  const features = [
-    { icon: Key, label: 'Keyless Entry' },
-    { icon: Camera, label: 'Parking Camera' },
-    { icon: Music, label: 'Car Play' },
-    { icon: Smartphone, label: 'Android Auto' },
-    { icon: Sun, label: 'Moon Roof' },
-    { icon: BatteryCharging, label: 'USB C Charging' },
-    { icon: Shield, label: 'Lane Assist' },
-    { icon: Zap, label: 'Wireless Charging' },
-  ]
-
-  const ratings = {
-    Cleanliness: 4.8,
-    Communication: 4.7,
-    Maintenance: 4.9,
-    Accuracy: 4.8,
-    Convenience: 4.9,
+  async function payBalance() {
+    setPaying(true);
+    const reference = newReference('mtbal');
+    const response = await pay({ amount: order.amount_outstanding, reference, metadata: { purpose: 'order-balance', order_id: order.uuid } });
+    setPaying(false);
+    if (!response) return;
+    const ref = response.reference || reference;
+    setPending({ reference: ref });
+    await payByCard.mutate(ref);
   }
 
-  const recommendedCars = [
-    {
-      image: '/placeholder.svg?height=200&width=300',
-      title: '2023 Tesla Model Y Long Range',
-      price: 35000,
-      rating: 4.8,
-      reviews: 124,
-      host: 'SKY CAR RENTALS',
-    },
-    {
-      image: '/placeholder.svg?height=200&width=300',
-      title: '2023 Rolls Royce Ghost',
-      price: 600000,
-      rating: 5.0,
-      reviews: 89,
-      host: 'LUXURY RENTALS',
-    },
-    {
-      image: '/placeholder.svg?height=200&width=300',
-      title: '2024 Mercedes-Benz GLS600',
-      price: 450000,
-      rating: 4.7,
-      reviews: 234,
-      host: 'PREMIUM RIDES',
-    },
-  ]
+  const payments = asList(order.payments);
+  const step = nextStep(order);
+  const justPlaced = params.get('placed') === '1';
 
   return (
-    <Box minH="100vh">
-      <Container maxW="container.xl" pt={20} pb={16}>
-        <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={8}>
-          {/* Left Column */}
-          <Box>
-            <ImageCarousel
-              images={Array(6).fill('/placeholder.svg?height=400&width=800')}
-            />
+    <VStack align="stretch" spacing={6}>
+      <Flex direction="column" align="center" textAlign="center" gap={3} pt={2}>
+        <Flex w={16} h={16} rounded="full" bg={`${view.color}.50`} color={`${view.color}.500`} align="center" justify="center">
+          <Icon as={view.icon} boxSize={8} aria-hidden="true" />
+        </Flex>
+        <Heading as="h1" size="lg">{justPlaced && order.order_status === 'pending' ? 'Order placed!' : view.title}</Heading>
+        <Text color="gray.600">Order #{order.id} · {order.status_label}</Text>
+        {step && <Text maxW="520px">{step}</Text>}
+      </Flex>
 
-            <Box mt={8}>
-              <HStack justify="space-between" mb={4}>
-                <Box>
-                  <Heading size="lg">2023 Rolls Royce Ghost</Heading>
-                  <HStack spacing={1}>
-                    <Icon as={Star} color="yellow.400" />
-                    <Text>5.0</Text>
-                    <Text color="gray.500">(89 trips)</Text>
-                  </HStack>
-                </Box>
-                <Heading size="lg" color="blue.600">₦600,000/hour</Heading>
-              </HStack>
+      {pending && (
+        <PaymentRecoveryNotice reference={pending.reference} message={pending.message} retrying={payByCard.loading}
+          onRetry={() => payByCard.mutate(pending.reference)} />
+      )}
 
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={8}>
-                <HStack>
-                  <Icon as={Users} />
-                  <Text>5 Seats</Text>
+      <Flex gap={4} borderWidth={1} borderRadius="lg" p={4} align="center">
+        <Box w={{ base: '88px', sm: '120px' }} h={{ base: '66px', sm: '90px' }} borderRadius="md" overflow="hidden" bg="gray.100" flexShrink={0}>
+          {listing.image
+            ? <Image src={listing.image} alt={listing.title || 'Car'} w="100%" h="100%" objectFit="cover" />
+            : <Flex h="100%" align="center" justify="center" color="gray.400"><Icon as={Car} boxSize={8} aria-hidden="true" /></Flex>}
+        </Box>
+        <Box minW={0}>
+          <Text className="bold" noOfLines={2}>{listing.title || 'Your car'}</Text>
+          <Text fontSize="sm" color="gray.600">{listing.dealer?.business_name}</Text>
+          {order.order_type === 'rental' && order.rent_from && (
+            <Text fontSize="sm" color="gray.600">
+              {naturalDate(new Date(`${order.rent_from}T00:00`))} → {naturalDate(new Date(`${order.rent_until}T00:00`))}
+              {order.with_driver ? ' · driver requested' : ''}
+            </Text>
+          )}
+          {order.delivery_address && <Text fontSize="sm" color="gray.600" noOfLines={2}>{order.delivery_address}</Text>}
+        </Box>
+      </Flex>
+
+      <Box borderWidth={1} borderRadius="lg" p={4}>
+        <VStack align="stretch" spacing={2}>
+          <Row label={order.order_type === 'rental' ? `Rental (${order.units} × ₦${commaInt(listing.price)})` : 'Car price'} value={`₦${commaInt(order.sub_total)}`} />
+          <Row label="VAT" value={`₦${commaInt(order.tax)}`} />
+          <Row label="Motaa service fee" value={`₦${commaInt(order.motaa_fee)}`} />
+          <Row label="Inspection fee" value={`₦${commaInt(order.inspection_fee)}`} />
+          <Divider />
+          <Row bold label="Total" value={`₦${commaInt(order.total_amount)}`} />
+          <Row label="Paid (held in escrow)" value={`₦${commaInt(order.amount_paid)}`} />
+          {Number(order.amount_outstanding) > 0 && <Row bold label="Balance due" value={`₦${commaInt(order.amount_outstanding)}`} />}
+        </VStack>
+      </Box>
+
+      {order.inspection && (
+        <HStack borderWidth={1} borderRadius="lg" p={4} spacing={3}>
+          <Icon as={ClipboardCheck} color="primary" aria-hidden="true" />
+          <Text>
+            Inspection {order.inspection.completed ? 'completed' : 'scheduled'} for{' '}
+            <b>{naturalDate(new Date(`${order.inspection.date}T00:00`))}</b> at <b>{String(order.inspection.time || '').slice(0, 5)}</b>
+          </Text>
+        </HStack>
+      )}
+
+      {payments.length > 0 && (
+        <Box>
+          <Heading as="h2" size="sm" mb={2}>Payments</Heading>
+          <VStack align="stretch" spacing={2}>
+            {payments.map((payment) => (
+              <Flex key={payment.reference} justify="space-between" gap={3} fontSize="sm" flexWrap="wrap">
+                <HStack spacing={2} minW={0}>
+                  <Icon as={Receipt} aria-hidden="true" />
+                  <Text>{payment.source === 'wallet' ? 'Wallet' : 'Paystack'}</Text>
+                  <Text color="gray.500" fontFamily="mono" noOfLines={1} wordBreak="break-all">{payment.reference}</Text>
                 </HStack>
-                <HStack>
-                  <Icon as={DoorOpen} />
-                  <Text>4 Doors</Text>
+                <HStack spacing={2}>
+                  <Text className="bold">₦{commaInt(payment.amount)}</Text>
+                  <Badge colorScheme={TRANSACTION_STATUS_COLORS[payment.status] || 'gray'} textTransform="none">{payment.status_label}</Badge>
                 </HStack>
-                <HStack>
-                  <Icon as={Zap} />
-                  <Text>Hybrid</Text>
-                </HStack>
-                <HStack>
-                  <Icon as={Gauge} />
-                  <Text>Unlimited Mileage</Text>
-                </HStack>
-              </SimpleGrid>
+              </Flex>
+            ))}
+          </VStack>
+        </Box>
+      )}
 
-              <Box mb={8}>
-                <Heading size="md" mb={4}>Description</Heading>
-                <Text color="gray.600">
-                  Experience luxury redefined with our 2023 Rolls Royce Ghost. 
-                  This masterpiece combines timeless elegance with cutting-edge technology, 
-                  offering an unparalleled driving experience.
-                </Text>
-              </Box>
+      <Stack direction={{ base: 'column', sm: 'row' }} spacing={3} flexWrap="wrap">
+        {order.order_status === 'awaiting-inspection' && !order.inspection && (
+          <Button as={RLink} to={`/checkout/inspection?order=${order.uuid}`} bg="primary" color="white" _hover={{ bg: 'secondary' }}>
+            Schedule inspection
+          </Button>
+        )}
+        {order.can_pay_balance && (
+          <>
+            <Button bg="primary" color="white" _hover={{ bg: 'secondary' }} onClick={payBalance} isLoading={paying || payByCard.loading}
+              isDisabled={Boolean(pending)} loadingText="Processing">
+              Pay ₦{commaInt(order.amount_outstanding)} online
+            </Button>
+            <Button variant="outline" color="primary" borderColor="primary" onClick={walletDialog.onOpen}>Pay from wallet</Button>
+          </>
+        )}
+        {order.can_complete && (
+          <Button colorScheme="green" onClick={confirmDialog.onOpen}>I’ve received my car</Button>
+        )}
+        <Button as={RLink} to={`/checkout/docs?docType=order-slip&orderId=${order.uuid}`} variant="ghost" leftIcon={<FileText size={18} />} color="primary">
+          Order agreement
+        </Button>
+        {order.inspection && (
+          <Button as={RLink} to={`/checkout/docs?docType=inspection-slip&orderId=${order.uuid}`} variant="ghost" leftIcon={<FileText size={18} />} color="primary">
+            Inspection agreement
+          </Button>
+        )}
+      </Stack>
+      <HStack spacing={4} flexWrap="wrap">
+        <Button as={RLink} to="/home" variant="link" color="gray.600">Back to home</Button>
+        {order.can_cancel && <Button variant="link" colorScheme="red" onClick={cancelDialog.onOpen}>Cancel order</Button>}
+      </HStack>
 
-              <Box mb={8}>
-                <Heading size="md" mb={4}>Host</Heading>
-                <HStack spacing={4}>
-                  <Avatar size="lg" name="SKY CAR RENTALS" />
-                  <Box flex={1}>
-                    <HStack>
-                      <Heading size="sm">SKY CAR RENTALS</Heading>
-                      <Badge colorScheme="blue">
-                        <HStack spacing={1}>
-                          <CheckCircle size={12} />
-                          <Text>VERIFIED</Text>
-                        </HStack>
-                      </Badge>
-                    </HStack>
-                    <HStack spacing={1}>
-                      <Icon as={Star} color="yellow.400" />
-                      <Text>5.0</Text>
-                      <Text color="gray.500">(234 reviews)</Text>
-                    </HStack>
-                    <Text fontSize="sm" color="gray.600">
-                      Top rated host on Motaa with exceptional rental provides on Motaa
-                    </Text>
-                  </Box>
-                </HStack>
-              </Box>
+      <AlertDialog isOpen={cancelDialog.isOpen} leastDestructiveRef={keepRef} onClose={cancelDialog.onClose} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent mx={4}>
+            <AlertDialogHeader>Cancel this order?</AlertDialogHeader>
+            <AlertDialogBody>
+              {Number(order.amount_paid) > 0
+                ? `The ₦${commaInt(order.amount_paid)} you paid will be returned to your Motaa wallet, and the car will be released.`
+                : 'The car will be released for other buyers.'} This can’t be undone.
+            </AlertDialogBody>
+            <AlertDialogFooter gap={3}>
+              <Button ref={keepRef} variant="ghost" onClick={cancelDialog.onClose} isDisabled={cancelOrder.loading}>Keep order</Button>
+              <Button colorScheme="red" onClick={() => cancelOrder.mutate()} isLoading={cancelOrder.loading}>Cancel order</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
-              <Box mb={8}>
-                <Heading size="md" mb={4}>Features & Accessories</Heading>
-                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                  {features.map((feature, index) => (
-                    <FeatureCard key={index} {...feature} />
-                  ))}
-                </SimpleGrid>
-              </Box>
+      <WalletPayDialog
+        isOpen={walletDialog.isOpen}
+        onClose={walletDialog.onClose}
+        onConfirm={() => payByWallet.mutate()}
+        isLoading={payByWallet.loading}
+        amount={order.amount_outstanding}
+        balance={balanceQuery.data?.balance}
+        title="Pay the balance from your wallet"
+      />
 
-              <Box mb={8}>
-                <Heading size="md" mb={4}>Ratings & reviews</Heading>
-                <HStack spacing={2} mb={6}>
-                  <Heading size="lg">5.0</Heading>
-                  <Icon as={Star} color="yellow.400" w={6} h={6} />
-                </HStack>
-
-                <VStack align="stretch" spacing={4} mb={8}>
-                  {Object.entries(ratings).map(([category, rating]) => (
-                    <Box key={category}>
-                      <HStack justify="space-between" mb={2}>
-                        <Text>{category}</Text>
-                        <Text>{rating}</Text>
-                      </HStack>
-                      <Progress value={rating * 20} colorScheme="blue" />
-                    </Box>
-                  ))}
-                </VStack>
-
-                <VStack align="stretch" spacing={6}>
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <ReviewCard
-                      key={index}
-                      name="Musa Adams"
-                      rating={5}
-                      date="10 hours ago"
-                      comment="Good host, normally replies fast. The Rolls Royce served well for me and my date, I will surely come back to rent the car again."
-                      avatar="/placeholder.svg?height=40&width=40"
-                    />
-                  ))}
-                </VStack>
-
-                <Button variant="ghost" colorScheme="blue">
-                  See more reviews
-                </Button>
-              </Box>
-
-              <Box>
-                <Heading size="md" mb={4}>Recommended cars for you</Heading>
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                  {recommendedCars.map((car, index) => (
-                    <CarCard key={index} {...car} />
-                  ))}
-                </SimpleGrid>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Right Column - Booking Form */}
-          <Box position="sticky" top={24}>
-            <Box
-              borderWidth="1px"
-              borderRadius="lg"
-              p={6}
-              bg="white"
-              boxShadow="sm"
-            >
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text mb={2}>From</Text>
-                  <Input type="datetime-local" />
-                </Box>
-                <Box>
-                  <Text mb={2}>Until</Text>
-                  <Input type="datetime-local" />
-                </Box>
-                <Box>
-                  <Text mb={2}>Pickup Location</Text>
-                  <Select placeholder="Select location">
-                    <option>Lagos Phase 1</option>
-                    <option>Abuja Central</option>
-                  </Select>
-                </Box>
-                <Box>
-                  <Text mb={2}>Return Location</Text>
-                  <Select placeholder="Select location">
-                    <option>Lagos Phase 1</option>
-                    <option>Abuja Central</option>
-                  </Select>
-                </Box>
-                <HStack justify="space-between">
-                  <Text>Driver</Text>
-                  <Switch colorScheme="blue" />
-                </HStack>
-                <Button colorScheme="blue" size="lg">
-                  Book Rental
-                </Button>
-              </VStack>
-            </Box>
-          </Box>
-        </Grid>
-      </Container>
-    </Box>
-  )
+      <AlertDialog isOpen={confirmDialog.isOpen} leastDestructiveRef={cancelRef} onClose={confirmDialog.onClose} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent mx={4}>
+            <AlertDialogHeader>Confirm you’ve received the car?</AlertDialogHeader>
+            <AlertDialogBody>
+              This releases ₦{commaInt(order.sub_total)} from escrow to {listing.dealer?.business_name || 'the dealer'}. Only confirm once
+              you have the car and you’re happy with it — this can’t be undone.
+            </AlertDialogBody>
+            <AlertDialogFooter gap={3}>
+              <Button ref={cancelRef} variant="ghost" onClick={confirmDialog.onClose} isDisabled={complete.loading}>Not yet</Button>
+              <Button colorScheme="green" onClick={() => complete.mutate()} isLoading={complete.loading}>Yes, release payment</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </VStack>
+  );
 }
 
+export function CheckoutStatus() {
+  const [params] = useSearchParams();
+  const orderId = params.get('order');
+  const query = useApiQuery((api, signal) => api.get(`/listings/orders/${orderId}/`, { signal }), [orderId], {
+    enabled: Boolean(orderId), select: (body) => body?.data,
+  });
 
+  return (
+    <Box minH="70vh" bg="white">
+      <Container maxW="container.md" py={{ base: 6, md: 10 }}>
+        {!orderId ? (
+          <EmptyState icon={Receipt} title="No order to show" description="Your orders appear in your cart once you check out." action={{ label: 'Go to cart', to: '/cart' }} />
+        ) : (
+          <AsyncState query={query} loadingLabel="Loading your order…" errorTitle={query.error?.isNotFound ? "We couldn't find this order" : undefined}>
+            {(order) => <OrderView order={order} reload={query.reload} setOrder={query.setData} />}
+          </AsyncState>
+        )}
+      </Container>
+    </Box>
+  );
+}
 
+export default CheckoutStatus;

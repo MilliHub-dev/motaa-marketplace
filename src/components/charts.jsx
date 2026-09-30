@@ -1,106 +1,48 @@
-import React from 'react';
-import { Box, Flex, Text, Stack, Icon, SimpleGrid } from '@chakra-ui/react';
+import { Box, Flex, Text, Stack, Icon } from '@chakra-ui/react';
 import { ArrowUpIcon, ArrowDownIcon } from '@chakra-ui/icons';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
+/** Chart.js throws on missing/partial data; only render when real datasets arrive. */
+export const hasChartData = (data) => Array.isArray(data?.datasets) && data.datasets.length > 0 && Array.isArray(data?.labels);
 
+/** True when every point of every dataset is 0/empty (nothing worth plotting). */
+export const isFlatChart = (data) => !hasChartData(data)
+  || data.datasets.every((set) => !Array.isArray(set?.data) || set.data.every((v) => !Number(v)));
 
-export const StatCard = ({ title, value, change, data, format = (v) => v }, ...props) => {
-  const chartData = {
-    labels: ['', '', '', '', '', '', ''],
-    datasets: [
-      {
-        data: data,
-        borderColor: change >= 0 ? '#38A169' : '#E53E3E',
-        borderWidth: 2,
-        tension: 0.4,
-        pointRadius: 0,
-      },
-    ],
-  };
+export const SafeChart = ({ as: ChartComponent, data, options, emptyText = 'No data to show yet', hideWhenFlat = false, ...props }) => {
+  if (!hasChartData(data) || (hideWhenFlat && isFlatChart(data))) {
+    return (
+      <Flex h="100%" minH="120px" align="center" justify="center" textAlign="center" px={4} borderWidth={1} borderStyle="dashed" borderColor="gray.200" borderRadius="lg" color="gray.500" fontSize="sm" {...props}>
+        {emptyText}
+      </Flex>
+    );
+  }
+  return <ChartComponent data={data} options={options} {...props} />;
+};
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { 
-      legend: { display: false },
-      tooltip: { enabled: false }
-    },
-    scales: {
-      x: { display: false },
-      y: { display: false },
-    },
-  };
+/**
+ * A single KPI tile. `change` is a month-over-month % from the API; the change row
+ * only renders when it's a real number.
+ */
+export const StatCard = ({ title, value, change, changeLabel = 'vs last month', format = (v) => v, ...props }) => {
+  const hasChange = change !== null && change !== undefined && change !== '' && Number.isFinite(Number(change));
+  const up = Number(change) >= 0;
+  const flat = hasChange && Number(change) === 0;
 
   return (
-    <Box bg="white" px={6} py={4} borderRadius="lg" boxShadow="lg" flex={1} {...props}>
-      <Stack spacing={2}>
-        <Text fontSize="sm" color="gray.500">
-          {title}
-        </Text>
-        <Flex align="baseline" justify="space-between">
-          <Text fontSize="2xl" fontWeight="bold">
-            {format(value)}
-          </Text>
-        </Flex>
-
-        <Flex justify="space-between" align="baseline">
-          <Flex align="center" color={change >= 0 ? 'green.500' : 'red.500'}>
-            <Icon
-              as={change >= 0 ? ArrowUpIcon : ArrowDownIcon}
-              w={3}
-              h={3}
-              mr={1}
-            />
-            <Text fontSize="sm" fontWeight="medium">
-              {Math.abs(change)}% {change >= 0 ? 'increase' : 'decrease'}
+    <Box bg="white" px={5} py={4} borderRadius="lg" borderWidth={1} borderColor="gray.100" boxShadow="sm" flex={1} {...props}>
+      <Stack spacing={1}>
+        <Text fontSize="sm" color="gray.600">{title}</Text>
+        <Text fontSize="2xl" fontWeight="bold" wordBreak="break-word">{format(value)}</Text>
+        {flat && <Text fontSize="sm" color="gray.500">No change {changeLabel}</Text>}
+        {hasChange && !flat && (
+          <Flex align="center" color={up ? 'green.600' : 'red.600'} fontSize="sm">
+            <Icon as={up ? ArrowUpIcon : ArrowDownIcon} w={3} h={3} mr={1} aria-hidden="true" />
+            <Text fontWeight="medium">
+              {Math.abs(Number(change))}% {up ? 'up' : 'down'} <Text as="span" color="gray.500" fontWeight="normal">{changeLabel}</Text>
             </Text>
           </Flex>
-{/*
-          <Box h="50px" w={"50px"}>
-            <Line data={chartData} options={chartOptions} />
-          </Box>*/}
-        </Flex>
+        )}
       </Stack>
     </Box>
   );
 };
-
-export const StatsCards = ({ title, value }) => {
-  const formatCurrency = (value) => {
-    return `₦${parseInt(value).toLocaleString()}`;
-  };
-
-  const formatNumber = (value) => {
-    return parseFloat(value).toLocaleString();
-  };
-
-  return (
-    <SimpleGrid gap={4} direction={'row'} flexWrap={'wrap'} my={5} minChildWidth={'250px'}>
-      <StatCard
-        title={title}
-        value={value}
-        // change={10}
-        // data={sparklineData.revenue}
-        format={formatCurrency}
-      />
-      <StatCard
-        title={title}
-        value={value}
-        // change={-2}
-        // data={sparklineData.impressions}
-        format={(v) => `${(parseInt(v) / 1000).toFixed(1)}K`}
-      />
-      <StatCard
-        title={title}
-        value={value}
-        // change={14}
-        // data={sparklineData.deals}
-        format={formatNumber}
-      />
-    </SimpleGrid>
-  );
-};
-

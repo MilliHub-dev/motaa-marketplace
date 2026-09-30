@@ -1,253 +1,226 @@
-import { 
-  Box, Button, Checkbox, FormControl, FormLabel,
-  Input, Stack, Switch, Textarea, VStack, Heading,
-  Image, Tabs, TabList, TabPanels, Tab, TabPanel,
-  IconButton, Select, Avatar, Flex, HStack, Text,
-  Divider, Tag,
-} from "@chakra-ui/react";
-import { useState, useEffect, useContext, useRef } from "react";
-import { FaUpload } from "react-icons/fa";
-import {GlobalStore} from '../../../../App'
-import {objectifyJSON, jsonifyObject} from '../../../../utils'
-import { Search, Bell, CloudUpload, ChevronDown, ArrowRight } from "lucide-react";
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Link as RLink } from 'react-router-dom';
+import {
+  Avatar,
+  Box,
+  Button,
+  Divider,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormHelperText,
+  FormLabel,
+  Heading,
+  HStack,
+  Input,
+  Stack,
+  Tag,
+  Text,
+  Textarea,
+  VStack,
+  Wrap,
+  WrapItem,
+} from '@chakra-ui/react';
+import { CloudUpload } from 'lucide-react';
+import { GlobalStore } from '../../../../App';
+import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
+import { AsyncState } from '../../../../components/states';
+import { asList } from '../../../../utils';
+import { MechanicContext } from '../Layout';
 
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const ABOUT_MAX = 1000;
 
-let mechServices = [
-  'Oil Change',
-  'Paint Job',
-  'Body Work',
-  'Engine Repair',
-]
+const slugify = (text) => (text || '').toLowerCase().replace(/['#@*()!"$%&.]/g, '').trim().replace(/\s+/g, '-');
 
-export const BusinessProfile = ({  }) => {
-  const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
+function toForm(mechanic) {
+  return {
+    business_name: mechanic?.business_name || '',
+    headline: mechanic?.headline || '',
+    about: mechanic?.about || '',
+    contact_email: mechanic?.contact_email || '',
+    contact_phone: mechanic?.contact_phone || '',
+  };
+}
+
+function validate(values) {
+  const errors = {};
+  if (!values.business_name.trim()) errors.business_name = 'Enter your business name.';
+  if (values.headline.length > 200) errors.headline = 'Keep your headline under 200 characters.';
+  if (values.about.length > ABOUT_MAX) errors.about = `Keep the description under ${ABOUT_MAX} characters.`;
+  if (values.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.contact_email.trim())) errors.contact_email = 'Enter a valid email address.';
+  if (values.contact_phone && !/^[+\d][\d\s()-]{6,19}$/.test(values.contact_phone.trim())) errors.contact_phone = 'Enter a valid phone number.';
+  return errors;
+}
+
+function ProfileForm({ mechanic, onSaved }) {
+  const { commaInt, notifyError } = useContext(GlobalStore);
   const imageRef = useRef();
-  const [mechanic, setMechanic] = useState({
-    logo: "", // Placeholder for logo
-    business_name: "",
-    headline: "",
-    about: "",
-    owner: {},
-    cac_number: "",
-    tin_number: "",
-    services: [],
-    contact_email: '',
-    contact_phone: '',
+  const [values, setValues] = useState(() => toForm(mechanic));
+  const [logo, setLogo] = useState(null); // { file, preview }
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => () => logo?.preview && URL.revokeObjectURL(logo.preview), [logo]);
+
+  const save = useApiMutation((api, payload) => api.post('/admin/mechanics/settings/', payload), {
+    successMessage: 'Business profile saved',
+    errorTitle: "Couldn't save your profile",
+    onSuccess: (body) => {
+      setLogo(null);
+      onSaved(body?.data);
+    },
+    onError: (error) => setErrors((current) => ({ ...current, ...error.fieldErrors })),
   });
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setMechanic({
-      ...mechanic,
-      [name]: type === "checkbox" ? checked : value,
-    });
-  };
-
-  const slugify = (text) => {
-    return text.toLocaleLowerCase().replace(/['#@*()!"$%&]*/g, '').replaceAll(' ', '-')
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setValues((current) => ({ ...current, [name]: value }));
+    if (errors[name]) setErrors((current) => ({ ...current, [name]: undefined }));
   }
 
-  const changeValue = (key, value) => {
-    const oldValue = mechanic
-    oldValue[`${key}`] = value;
-    setMechanic({ ...oldValue })
+  function handleImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return notifyError(new Error('Choose a PNG or JPG image.'), 'Unsupported file');
+    if (file.size > MAX_LOGO_BYTES) return notifyError(new Error('The logo must be 5MB or smaller.'), 'Image too large');
+    setLogo({ file, preview: URL.createObjectURL(file) });
   }
 
-  function removeService(service){
-    const oldValue = mechanic?.services;
-    oldValue.pop(service)
-    changeValue('services', [...oldValue])
-  }
-
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    const preview = URL.createObjectURL(file)
-    setMechanic({ ...mechanic, logo: {file, preview}});
-  }
-
-  async function getMechanicSettings() {
-    const res = await axios.get('/admin/mechanics/settings/');
-    const data = objectifyJSON(res.data);
-
-    if (res.status === 200){
-      setMechanic(data.data)
-    }
-  }
-
-
-  async function handleSubmit() {
+  function handleSubmit(e) {
+    e.preventDefault();
+    const found = validate(values);
+    setErrors(found);
+    if (Object.values(found).some(Boolean) || save.loading) return;
     const payload = new FormData();
-    const keys = Object.keys(mechanic);
-
-
-    for (let key of keys){
-      if (key === 'logo' && typeof mechanic['logo'] !== 'string'){
-        const file = mechanic['logo'].file;
-        payload.append('new-logo', file, file.name)
-      }else{
-        console.log("New setting")
-        payload.append(key, mechanic[key])
-      }
-    }
-
-    const res = await axios.post('/admin/mechanics/settings/', payload, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    const data = objectifyJSON(res.data);
-
-    if (res.status === 200){
-      console.log("My new settings:", data.data)
-      setMechanic(data.data)
-    }
+    Object.entries(values).forEach(([key, value]) => payload.append(key, value.trim()));
+    if (logo?.file) payload.append('logo', logo.file, logo.file.name);
+    save.mutate(payload);
   }
 
-
-
-  useEffect(() => {
-    getMechanicSettings();
-  }, [])
+  const activeServices = asList(mechanic?.services);
+  const logoSrc = logo?.preview || mechanic?.logo || undefined;
 
   return (
-    <VStack spacing={6} align="stretch" py={6} maxW="container.xl" w="100%">
-      {/* Logo Upload Card */}
-      <Box bg="white" border="1px solid" borderColor="#d0d5dd" borderRadius="xl" p={6} mb={6}>
-        <VStack>
-          {
-            mechanic?.logo?.file ? (
-              <Image src={mechanic?.logo?.preview} w="80px"  />
-            ): (
-              <Image src={mechanic?.logo} w="80px"  />
-            )
-          }
-
-          <Button onClick={e => imageRef.current.click()} variant="link" color="#0460cc" fontSize="sm" fontWeight="medium" leftIcon={<CloudUpload size={16} />}>
-            Upload image
+    <Stack as="form" spacing={6} onSubmit={handleSubmit} noValidate maxW="760px">
+      <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={6}>
+        <VStack spacing={3}>
+          <Avatar src={logoSrc} name={values.business_name || mechanic?.user?.name} size="xl" />
+          <Button onClick={() => imageRef.current?.click()} variant="link" color="primary" fontSize="sm" leftIcon={<CloudUpload size={16} />}>
+            {logoSrc ? 'Change logo' : 'Upload logo'}
           </Button>
-          <Input type="file" hidden ref={imageRef} accept="image/*" onInput={handleImageUpload} />
-          <VStack mt={4} spacing={0}>
-            <Heading as="h3" fontSize="md" fontWeight="semibold" color="#101828">
-              {mechanic?.business_name}
-            </Heading>
-            <Text fontSize="xs" color="#667085">
-              {mechanic?.location}
-            </Text>
-            <HStack flexWrap={{base: 'wrap', md: 'nowrap'}} justifyContent="center" mt={2} fontSize="sm" color="#667085">
-              <Text>{mechanic?.contact_email}</Text>
-              <Text>•</Text>
-              <Text>{mechanic?.contact_phone}</Text>
-            </HStack>
+          <Input type="file" hidden ref={imageRef} accept="image/png,image/jpeg,image/webp" onChange={handleImage} aria-label="Upload business logo" />
+          {errors.logo && <Text color="red.500" fontSize="sm">{errors.logo}</Text>}
+          <VStack spacing={0} textAlign="center">
+            <Heading as="h2" fontSize="md">{values.business_name || 'Your business name'}</Heading>
+            {mechanic?.location && <Text fontSize="xs" color="gray.500">{mechanic.location}</Text>}
+            {(values.contact_email || values.contact_phone) && (
+              <Text mt={1} fontSize="sm" color="gray.500" wordBreak="break-word">
+                {[values.contact_email, values.contact_phone].filter(Boolean).join(' • ')}
+              </Text>
+            )}
           </VStack>
         </VStack>
       </Box>
 
-      <FormControl>
-        <FormLabel>Business Name</FormLabel>
-        <Input name="business_name" value={mechanic?.business_name} onChange={handleChange} />
-
-        <Text size="xs" color="gray.500" mt={2}> @{slugify(mechanic?.business_name)} </Text>
+      <FormControl isRequired isInvalid={!!errors.business_name}>
+        <FormLabel>Business name</FormLabel>
+        <Input name="business_name" value={values.business_name} onChange={handleChange} maxLength={300} bg="white" />
+        {errors.business_name
+          ? <FormErrorMessage>{errors.business_name}</FormErrorMessage>
+          : values.business_name.trim() && <FormHelperText>@{slugify(values.business_name)}</FormHelperText>}
       </FormControl>
-      
-      <FormControl>
+
+      <FormControl isInvalid={!!errors.headline}>
         <FormLabel>Headline</FormLabel>
-        <Input name="headline" value={mechanic?.headline} onInput={handleChange} />
+        <Input name="headline" value={values.headline} onChange={handleChange} maxLength={200} placeholder="e.g. Certified Toyota & Lexus specialists" bg="white" />
+        <FormErrorMessage>{errors.headline}</FormErrorMessage>
       </FormControl>
 
-      <FormControl>
+      <FormControl isInvalid={!!errors.about}>
         <FormLabel>About</FormLabel>
-        <Textarea name="about" value={mechanic?.about} onInput={handleChange} maxLength={400} />
+        <Textarea name="about" value={values.about} onChange={handleChange} maxLength={ABOUT_MAX} rows={5} bg="white" />
+        {errors.about
+          ? <FormErrorMessage>{errors.about}</FormErrorMessage>
+          : <FormHelperText>{values.about.length}/{ABOUT_MAX} characters</FormHelperText>}
       </FormControl>
 
-      <FormControl>
-        <FormLabel>CAC Number</FormLabel>
-        <Input name="cac_number" disabled value={mechanic?.cac_number}/>
-      </FormControl>
-
-      <FormControl>
-        <FormLabel>TIN Number</FormLabel>
-        <Input name="tin_number" disabled value={mechanic?.tin_number}/>
-      </FormControl>
-
-      {/* Choose Services */}
-      <Box mb={6}>
-        <FormLabel fontWeight="medium" mb={2}> Services Offered </FormLabel>
-        <Box border="1px solid" borderColor="#d0d5dd" borderRadius="lg" overflow="hidden">
-          <Box p={3} borderBottom="1px solid" borderColor="#d0d5dd">
-            <FormLabel fontWeight="medium" mb={2}> Choose services </FormLabel>
-            <Flex flexWrap="wrap" gap={2}>
-            {
-              mechServices?.map((service) => {
-                const selected = mechanic?.services?.includes(service);
-                if (selected) return null;
-                return (
-                  <Tag
-                    variant={selected ? "solid" : "outline"}
-                    size="lg"
-                    cursor="pointer"
-                    borderRadius="full"
-                    fontSize="sm"
-                    bg={selected ? "#f2f4f7" : "white"}
-                    color={selected ? "#101828" : "#667085"}
-                    borderColor="#d0d5dd"
-                    _hover={{ bg: selected ? "#e4e7ec" : "gray.50" }}
-                    onClick={() => changeValue('services', [...mechanic?.services, service])}
-                  >
-                    {service?.service}
+      <Box>
+        <Flex justify="space-between" align="center" gap={3} mb={2} wrap="wrap">
+          <Text fontWeight="medium">Services offered</Text>
+          <Button as={RLink} to="/services" size="sm" variant="outline">Manage services</Button>
+        </Flex>
+        <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={3} bg="white">
+          {activeServices.length ? (
+            <Wrap spacing={2}>
+              {activeServices.map((service) => (
+                <WrapItem key={service?.uuid || service?.service}>
+                  <Tag size="lg" borderRadius="full" colorScheme="blue">
+                    {service?.service} · ₦{commaInt(service?.charge)}
                   </Tag>
-                )
-              }
-            )}
-            </Flex>
-          </Box>
-
-          <Box p={3}>
-            <Flex flexWrap="wrap" gap={2}>
-              {
-                mechanic?.services?.map((service) => 
-                  <Tag
-                    variant={"solid"}
-                    cursor="pointer"
-                    size="lg"
-                    borderRadius="full"
-                    fontSize="sm"
-                    bg={"#0460cc"}
-                    color={"white"}
-                    borderColor={"#0460cc"}
-                    _hover={{ bg: "#0354b4"}}
-                    onClick={() => removeService(service)}
-                  >
-                    {service?.service} @ {commaInt(service?.charge)}
-                  </Tag>
-                )
-              }
-              {mechanic?.services.length < 1 && <Text> Select at least one service you offer </Text>}
-            </Flex>
-          </Box>
+                </WrapItem>
+              ))}
+            </Wrap>
+          ) : (
+            <Text fontSize="sm" color="gray.600">
+              You have no active services. Add at least one so customers can book you.
+            </Text>
+          )}
         </Box>
       </Box>
 
-      <Divider my={4} />
+      <Divider />
 
-      {/* Customer Care Details */}
-      <Heading size="md" pb={0} mb={0}> Contact Details </Heading>
-      <Text as="small"> Customer care contact details  </Text>
+      <Box>
+        <Heading as="h2" size="md" mb={1}>Contact details</Heading>
+        <Text fontSize="sm" color="gray.600">Shown to customers who book you.</Text>
+      </Box>
 
-      <FormControl>
+      <FormControl isInvalid={!!errors.contact_email}>
         <FormLabel>Email</FormLabel>
-        <Input type="email" name="contact_email" value={mechanic?.contact_email} onInput={handleChange} />
+        <Input type="email" name="contact_email" value={values.contact_email} onChange={handleChange} autoComplete="email" bg="white" />
+        <FormErrorMessage>{errors.contact_email}</FormErrorMessage>
       </FormControl>
 
-      <FormControl>
-        <FormLabel> Phone Number</FormLabel>
-        <Input type="tel" name="contact_phone" value={mechanic?.contact_phone} onInput={handleChange} />
+      <FormControl isInvalid={!!errors.contact_phone}>
+        <FormLabel>Phone number</FormLabel>
+        <Input type="tel" name="contact_phone" value={values.contact_phone} onChange={handleChange} autoComplete="tel" placeholder="+234 803 000 0000" bg="white" />
+        <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
       </FormControl>
 
-      <Button colorScheme="blue" onClick={handleSubmit}>Save Changes</Button>
-    </VStack>
+      <HStack>
+        <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving">
+          Save changes
+        </Button>
+      </HStack>
+    </Stack>
   );
 }
 
+export const BusinessProfile = () => {
+  const { reload: reloadLayout } = useContext(MechanicContext);
+  const settings = useApiQuery((api, signal) => api.get('/admin/mechanics/settings/', { signal }), [], {
+    select: (body) => body?.data,
+  });
+
+  return (
+    <Box py={6} w="100%">
+      <Heading as="h1" size="lg" mb={1}>Business profile</Heading>
+      <Text color="gray.600" mb={6}>This is how your business appears to customers on Motaa.</Text>
+      <AsyncState query={settings} loadingLabel="Loading your profile…">
+        {(mechanic) => (
+          <ProfileForm
+            key={mechanic?.uuid}
+            mechanic={mechanic}
+            onSaved={(updated) => {
+              if (updated) settings.setData(updated);
+              reloadLayout?.();
+            }}
+          />
+        )}
+      </AsyncState>
+    </Box>
+  );
+};
 
 export default BusinessProfile;

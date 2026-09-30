@@ -1,4 +1,4 @@
-import { Box, Container, Heading, Text, VStack, Divider, UnorderedList, ListItem, Flex, Icon } from "@chakra-ui/react"
+import { Box, Container, Heading, Text, VStack, Divider, UnorderedList, ListItem, Flex, Icon, Link } from "@chakra-ui/react"
 import {
   BsShieldLock,
   BsInfoCircle,
@@ -18,8 +18,10 @@ import {
   BsPersonBadge,
   BsCookie,
 } from "react-icons/bs"
+import { usePageTitle } from "./LandingPage"
 
 const PrivacyPolicy = () => {
+  usePageTitle("Privacy Policy | Motaa")
   return (
     <Container maxW="900px" py={8} px={4}>
       <VStack spacing={6} align="stretch">
@@ -231,7 +233,7 @@ const PrivacyPolicy = () => {
               following the unsubscribe instructions in the emails.
             </ListItem>
           </UnorderedList>
-          <Text mb={4}>To exercise any of these rights, please contact us at support@motaa.net</Text>
+          <Text mb={4}>To exercise any of these rights, please contact us at <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link>.</Text>
         </Box>
 
         <Box>
@@ -291,31 +293,31 @@ const PrivacyPolicy = () => {
             <Flex align="center">
               <Icon as={BsEnvelope} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Email:</strong> support@motaa.net
+                <strong>Email:</strong> <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsTelephone} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Phone:</strong> +2348104484364
+                <strong>Phone:</strong> <Link href="tel:+2348104484364" color="primary" textDecoration="underline">+234 810 448 4364</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsGlobe} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Website:</strong> www.motaa.net
+                <strong>Website:</strong> <Link href="https://www.motaa.net" isExternal color="primary" textDecoration="underline">www.motaa.net</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsInstagram} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>IG/X:</strong> @motaaltd
+                <strong>Instagram / X:</strong> <Link href="https://www.instagram.com/motaaltd" isExternal color="primary" textDecoration="underline">@motaaltd</Link> / <Link href="https://x.com/motaaltd" isExternal color="primary" textDecoration="underline">@motaaltd</Link>
               </Text>
             </Flex>
             <Flex align="center">
               <Icon as={BsGeoAlt} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Address:</strong> I5 Kawo road, Kawo, Kaduna state, Nigeria.
+                <strong>Address:</strong> 15 Kawo Road, Kawo, Kaduna State, Nigeria.
               </Text>
             </Flex>
           </VStack>

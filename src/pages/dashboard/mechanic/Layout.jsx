@@ -1,172 +1,92 @@
-import {useState, useEffect, useContext, createContext, Fragment,} from 'react';
-import {Link, Routes, Route, Outlet, useLocation} from 'react-router-dom';
-import {GlobalStore} from '../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {MechanicDashboardSideBar, MechanicNavbar, UnauthenticatedNavbar} from '../../../components/nav';
-import {VerificationNotice} from '../../../components';
-import {
-  Box,
-  Container,
-  Flex,
-  VStack,
-  HStack,
-  Text,
-  Heading,
-  Button,
-  Avatar,
-  AvatarGroup,
-  Progress,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Badge,
-  Stack,
-  useMediaQuery,
-} from '@chakra-ui/react'
-import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
-import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
-import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
-import Dashboard from './MechanicDashboard';
-
+import { Suspense, useState, useContext, createContext } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
+import { GlobalStore } from '../../../App';
+import { MechanicDashboardSideBar, MechanicNavbar } from '../../../components/nav';
+import { VerificationNotice } from '../../../components';
+import { useApiQuery } from '../../../hooks/useApi';
+import { LoadingState, ErrorState } from '../../../components/states';
 
 export const MechanicContext = createContext({
   mechanic: null,
-})
+  reload: () => {},
+});
 
-function MechanicDashboardLayout({children, hideSidebar, ...props}) {
-  const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
+function MechanicDashboardLayout({ hideSidebar }) {
+  const { api, notify, notifyError, authUser } = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
-  const [loading, setLoadingState] = useState(true);
-  const [mechanic, setMechanic] = useState();
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
+  const [isMobile] = useMediaQuery('(max-width: 991px)');
+  const profile = useApiQuery((client, signal) => client.get('/admin/mechanics/', { signal }), [], {
+    select: (body) => body?.data,
+  });
+  const mechanic = profile.data;
 
-  async function init(){
-    // get the dealership
-    try{
-      const res = await axios.get(`/admin/mechanics/`);
-      const data = objectifyJSON(res.data);
-
-      if (res?.status === 200){
-        setMechanic(data.data);
-        console.log("Mechanic:", data.data)
-      }
-
-      setTimeout(() => setLoadingState(false), 2000)
-
-    }catch(error){
-      console.log("error getting dealership:", error)
-    }
-  }
-
-  async function onVerification(type, data){
-    try{
-      if(type === 'success'){
-        const payload = {
+  async function onVerification(type, data) {
+    if (type === 'success') {
+      try {
+        const body = await api.post('/accounts/verify-business/', {
           verification_ref: data?.referenceId,
-          scope: [
-            'verified_id',
-            'verified_tin',
-            'verified_business',
-            'user.verified_email',
-            'verified_phone_number',
-          ],
+          scope: ['verified_id', 'verified_tin', 'verified_business', 'user.verified_email', 'verified_phone_number'],
           object: 'mechanic',
           object_id: mechanic?.uuid,
-        }
-
-        const res = await axios.post(`/accounts/verify-business/`, jsonifyObject(payload));
-        const data = objectifyJSON(res.data);
-        if (res.status === 200){
-          notify({
-            title: data?.message || 'Verification success!',
-            color: 'green',
-            timeout: 2500,
-          });
-
-          return init();
-        }else{
-          notify({
-            title: data?.message || 'An error occurred, we could not verify your business.',
-            color: 'red',
-            timeout: 5000,
-          })
-        }
-      }else if(type === 'error'){
-        notify({
-          title: data?.message || 'An error occurred, we could not verify your business.',
-          color: 'red',
-          timeout: 5000,
-        })
-      }else if(type === 'begin'){
-      }else if(type === 'close'){
-        console.log("Verification Close")
-        // close of the modal
-      }else if(type === 'loading'){
+        });
+        notify({ title: 'Verification submitted', body: body?.message || 'Your business verification was received.' });
+        profile.reload();
+      } catch (error) {
+        notifyError(error, "We couldn't verify your business");
       }
-    }catch(error){
-      notify({
-        title: error?.message || 'An error occurred, we could not verify your business.',
-        color: 'red',
-        timeout: 5000,
-      })
+    } else if (type === 'error') {
+      notifyError(new Error(data?.message || 'The verification could not be completed. Please try again.'), 'Verification failed');
     }
   }
-  useEffect(() => {
-    init();
 
-  }, [])
-
-  if (loading){
-    return null
-  }
-
-  const context = {
-    mechanic,
+  let content;
+  if (hideSidebar) {
+    // shared pages (wallet, chat…) don't depend on the mechanic profile
+    content = <Suspense fallback={<LoadingState minH="50vh" />}><Outlet /></Suspense>;
+  } else if (profile.loading && mechanic === undefined) {
+    content = <LoadingState label="Loading your dashboard…" minH="60vh" />;
+  } else if (profile.error && mechanic === undefined) {
+    content = <ErrorState error={profile.error} onRetry={profile.reload} minH="60vh" />;
+  } else {
+    content = (
+      <>
+        {mechanic && !mechanic.verified_business && (
+          <VerificationNotice user={authUser} onVerification={onVerification} businessType="mechanic" />
+        )}
+        <Suspense fallback={<LoadingState minH="50vh" />}><Outlet /></Suspense>
+      </>
+    );
   }
 
   return (
-    <MechanicContext.Provider value={context}>
-    <Stack>
-      <MechanicNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
+    <MechanicContext.Provider value={{ mechanic, reload: profile.reload }}>
+      <Stack>
+        <MechanicNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
 
-      <Flex minH="100vh" position="relative">
-        <Fragment>
+        <Flex minH="100vh" position="relative">
           <MechanicDashboardSideBar
-           mechanic={mechanic}
-           sidebarOpen={sidebarOpen}
-           onClose={() => setSidebarState(false)}
-           setSidebarState={setSidebarState}
-           // display={hideSidebar && 'none'}
-           mode={hideSidebar ? 'drawer' : 'block'}
+            mechanic={mechanic}
+            sidebarOpen={sidebarOpen}
+            onClose={() => setSidebarState(false)}
+            setSidebarState={setSidebarState}
+            mode={hideSidebar ? 'drawer' : 'block'}
           />
 
           <Box
-           flex={{ md: 1 }}
-           w={isMobile ? '100%' : hideSidebar ? '100%' : "calc(100% - 280px)"}
-           ml={isMobile ? '0px' : hideSidebar ? '0px' : "280px"}
+            flex={{ md: 1 }}
+            minW={0}
+            w={isMobile || hideSidebar ? '100%' : 'calc(100% - 280px)'}
+            ml={isMobile || hideSidebar ? '0px' : '280px'}
           >
             <Container pb={10} maxW="container.xl">
-              {
-                !hideSidebar && !mechanic?.verified_business && 
-                <VerificationNotice user={authUser} onVerification={onVerification} businessType={'mechanic'} />
-              }
-              <Outlet />
+              {content}
             </Container>
           </Box>
-        </Fragment>
-      </Flex>
-    </Stack>
+        </Flex>
+      </Stack>
     </MechanicContext.Provider>
-  )
+  );
 }
 
 export default MechanicDashboardLayout;
-

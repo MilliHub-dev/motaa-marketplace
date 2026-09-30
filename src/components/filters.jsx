@@ -1,318 +1,228 @@
-import {useState, useContext, Fragment} from 'react';
+// Filter menus for listing pages. Each one is controlled by `value` (what is
+// currently applied, usually read from the URL) and reports changes with
+// onChange({ filter, value }) — value '' / null means "remove this filter".
+import { useEffect, useState } from 'react';
 import {
-    Checkbox,
     Box,
-    MenuItem,
     Menu,
     MenuList,
     MenuButton,
+    MenuOptionGroup,
+    MenuItemOption,
     Button,
+    FormControl,
+    FormLabel,
+    FormErrorMessage,
     Input,
-    Heading,
     Text,
+    Badge,
+    Popover,
+    PopoverTrigger,
+    PopoverContent,
+    Portal,
 } from '@chakra-ui/react';
-import {ChevronDownIcon} from '@chakra-ui/icons';
+import { ChevronDownIcon } from '@chakra-ui/icons';
 
+export const CAR_BRANDS = [
+    'BMW', 'Audi', 'Toyota', 'Mercedes-Benz', 'Lexus', 'Nissan', 'Mazda', 'Honda', 'Hyundai', 'Kia',
+    'Peugeot', 'Opel', 'Volkswagen', 'Innoson', 'Ford',
+];
 
-export const ServiceFilter = ({ onChange, onClose }) => {
-    const services = [
-        'Oil Change', 'Tire Alignment/Rotation', 'Body Work'
-    ]
-    const [isOpen, setOpenState] = useState(false);
-    const [value, setValue] = useState([]);
+// backend Vehicle.TRANSMISSION values
+export const TRANSMISSIONS = [
+    { value: 'auto', label: 'Automatic' },
+    { value: 'manual', label: 'Manual' },
+];
 
-    function addOrRemoveService(e){
-        const service = e.target.value;
-        let _value = value;
+export const SERVICES = ['Oil Change', 'Tire Alignment/Rotation', 'Body Work'];
 
-        if (_value.includes(service)){
-            _value.splice(_value.indexOf(service), 1);
-        }else{
-            _value.push(service)
-        }
-        setValue([..._value]);
-    }
+function toList(value) {
+    if (Array.isArray(value)) return value;
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+}
 
-    function onClose(){
-        setOpenState(false)
-    }
+const triggerProps = {
+    minW: 'max-content',
+    size: 'md',
+    borderRadius: '10px',
+    as: Button,
+    bgColor: 'gray.100',
+    rightIcon: <ChevronDownIcon />,
+    flexShrink: 0,
+};
 
-    function onOpen(){
-        setOpenState(true)
-    }
+/** Multi-select menu; applies on "Apply" so one request is made per change. */
+function CheckboxFilter({ filter, label, heading, options, value, onChange }) {
+    const applied = toList(value);
+    const [draft, setDraft] = useState(applied);
+    const appliedKey = applied.join(',');
 
-    function applyFilter(){
-        onClose();
-        onChange({
-            'filter': 'services',
-            'value': ''.concat(value)
-        });
-    }
+    // chips removed elsewhere (or back/forward navigation) reset the ticks
+    useEffect(() => { setDraft(toList(appliedKey)); }, [appliedKey]);
 
-    return(
-        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
-            <MenuButton
-             minW={'max-content'}
-             size={'md'} borderRadius={'10px'}
-             isActive={isOpen}
-             as={Button}
-             onClick={isOpen ? onClose : onOpen}
-             bgColor="gray.100"
-             rightIcon={<ChevronDownIcon />}
-            > Services </MenuButton>
-            <MenuList maxH="300px" overflowY="auto">
-                <Box>
-                    <Text p={3} size="md"> Select Make </Text>
-                    {
-                        services.map((service) => 
-                            <MenuItem
-                             key={service}
-                             selected={value.includes(service)}
-                             value={service}
-                             onInput={addOrRemoveService}
-                             as={Checkbox}
-                            > {service} </MenuItem>
-                    )}
-                </Box>
-                <Box px={2} display={'block'} mt={2}>
-                    <Button
-                     onClick={applyFilter}
-                     colorScheme="blue"
-                     bgColor="primary"
-                     w={'100%'}
-                    > Confirm </Button>
-                </Box>
-            </MenuList>
+    return (
+        <Menu closeOnSelect={false} onOpen={() => setDraft(toList(appliedKey))}>
+            {({ onClose }) => (
+                <>
+                    <MenuButton {...triggerProps} aria-label={applied.length ? `${label}: ${applied.length} selected` : label}>
+                        {label}
+                        {applied.length > 0 && <Badge ml={2} colorScheme="blue" borderRadius="full">{applied.length}</Badge>}
+                    </MenuButton>
+                    <Portal>
+                    <MenuList maxH="320px" overflowY="auto" zIndex={20}>
+                        <MenuOptionGroup
+                          title={heading}
+                          type="checkbox"
+                          value={draft}
+                          onChange={(next) => setDraft(Array.isArray(next) ? next : [next])}
+                        >
+                            {options.map((option) => (
+                                <MenuItemOption key={option.value} value={option.value}>{option.label}</MenuItemOption>
+                            ))}
+                        </MenuOptionGroup>
+                        <Box px={3} pt={2} pb={1} display="flex" gap={2}>
+                            <Button size="sm" variant="ghost" flex={1} isDisabled={!draft.length} onClick={() => setDraft([])}>
+                                Clear
+                            </Button>
+                            <Button
+                              size="sm"
+                              flex={1}
+                              colorScheme="blue"
+                              bgColor="primary"
+                              onClick={() => {
+                                  onClose();
+                                  onChange({ filter, value: draft.join(',') });
+                              }}
+                            >
+                                Apply
+                            </Button>
+                        </Box>
+                    </MenuList>
+                    </Portal>
+                </>
+            )}
         </Menu>
-    )
+    );
 }
 
 
-export const CarBrandFilter = ({ onChange, onClose }) => {
-    const brands = [
-        'BMW', 'Audi', 'Toyota', 'Mercedis', 'Nissan', 'Mazda', 'Honda',
-        'Peugeot', 'Opel', 'Volkswagen', 'Innoson', 'Ford',
-    ]
-    const [isOpen, setOpenState] = useState(false);
-    const [value, setValue] = useState([]);
-
-    function addOrRemoveBrand(e){
-        const brand = e.target.value;
-        let _value = value;
-        console.log("Brand:", brand);
-
-        if (_value.includes(brand)){
-            _value.splice(_value.indexOf(brand), 1);
-        }else{
-            _value.push(brand)
-        }
-        setValue([..._value]);
-    }
-
-    function onClose(){
-        setOpenState(false)
-    }
-
-    function onOpen(){
-        setOpenState(true)
-    }
-
-    function applyFilter(){
-        onClose();
-        onChange({
-            'filter': 'brands',
-            'value': ''.concat(value)
-        });
-    }
-
-    return(
-        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
-            <MenuButton
-             minW={'max-content'}
-             size={'md'} borderRadius={'10px'}
-             isActive={isOpen}
-             as={Button}
-             onClick={isOpen ? onClose : onOpen}
-             bgColor="gray.100"
-             rightIcon={<ChevronDownIcon />}
-            > Brand </MenuButton>
-            <MenuList maxH="300px" overflowY="auto">
-                <Box>
-                    <Text p={3} size="md"> Select Make </Text>
-                    {brands.map((brand) => <MenuItem key={brand} selected={value.includes(brand)} value={brand} onInput={addOrRemoveBrand} as={Checkbox}> {brand} </MenuItem>)}
-                </Box>
-                <Box px={2} display={'block'} mt={2}>
-                    <Button
-                     onClick={applyFilter}
-                     colorScheme="blue"
-                     bgColor="primary"
-                     w={'100%'}
-                    > Confirm </Button>
-                </Box>
-            </MenuList>
-        </Menu>
-    )
-}
+export const ServiceFilter = ({ onChange, value, services = SERVICES }) => (
+    <CheckboxFilter
+      filter="services"
+      label="Services"
+      heading="Select services"
+      options={services.map((service) => ({ value: service, label: service }))}
+      value={value}
+      onChange={onChange}
+    />
+);
 
 
-export const LocationFilter = ({ onChange, onClose }) => {
-    const [isOpen, setOpenState] = useState(false);
-
-    function onClose(){
-        setOpenState(false)
-    }
-    function onOpen(){
-        setOpenState(true)
-    }
-
-    function applyFilter(){
-        onClose();
-        onChange({
-
-        })
-    }
-
-    return(
-        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
-            <MenuButton
-             minW={'max-content'}
-             size={'md'} borderRadius={'10px'}
-             isActive={isOpen}
-             as={Button}
-             onClick={isOpen ? onClose : onOpen}
-             bgColor="gray.100"
-             rightIcon={<ChevronDownIcon />}
-            > Location </MenuButton>
-            <MenuList maxH="300px" overflowY="auto">
-                <Box>
-                    <Text p={3} size="md"> Select Location </Text>
-
-                    {
-                        [
-                            'Abuja', 'Kaduna',
-                        ]
-                        .map((location) => <MenuItem key={location} value={location} as={Checkbox}> {location} </MenuItem>
-                    )}
-                </Box>
-
-                <Box px={2} display={'block'} mt={2}>
-                    <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
-                </Box>
-            </MenuList>
-        </Menu>
-    )
-}
+/** `param` is the API's name for the brand filter: 'brands' on /listings/buy/, 'make' on rentals and search. */
+export const CarBrandFilter = ({ onChange, value, param = 'brands' }) => (
+    <CheckboxFilter
+      filter={param}
+      label="Brand"
+      heading="Select make"
+      options={CAR_BRANDS.map((brand) => ({ value: brand, label: brand }))}
+      value={value}
+      onChange={onChange}
+    />
+);
 
 
-export const PriceFilter = ({ onChange, onClose }) => {
-    const [isOpen, setOpenState] = useState(false);
-    const [minPrice, setMinPrice] = useState(0.00);
-    const [maxPrice, setMaxPrice] = useState(0.00);
-
-    function onClose(){
-        setOpenState(false)
-    }
-    function onOpen(){
-        setOpenState(true)
-    }
-
-    function applyFilter(){
-        onClose();
-        onChange({
-            'filter': 'price',
-            'value': `${minPrice}-${maxPrice}`
-        })
-    }
-
-    return(
-        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
-            <MenuButton
-             minW={'max-content'}
-             size={'md'} borderRadius={'10px'}
-             isActive={isOpen}
-             as={Button}
-             onClick={isOpen ? onClose : onOpen}
-             bgColor="gray.100"
-             rightIcon={<ChevronDownIcon />}
-            > Price </MenuButton>
-            <MenuList maxH="300px" overflowY="auto">
-                <Box>
-                    <Text p={3} size="md"> Set min and max amount </Text>
-                    <Box px={2} py={2} display={'block'}>
-                        <Text> Min Amount </Text>
-                        <Input value={minPrice} onInput={e => setMinPrice(e.target.value)} type="number" min="1" step="0.01" />
-                    </Box>
-                    <Box px={2} py={2} display={'block'}>
-                        <Text> Max Amount </Text>
-                        <Input value={maxPrice} onInput={e => setMaxPrice(e.target.value)} type="number" min="1" step="0.01" />
-                    </Box>
-                    <Box px={2} display={'block'} mt={2}>
-                        <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
-                    </Box>
-                </Box>
-            </MenuList>
-        </Menu>
-    )
-}
+export const TransmissionFilter = ({ onChange, value }) => (
+    <CheckboxFilter
+      filter="transmission"
+      label="Transmission"
+      heading="Select transmission"
+      options={TRANSMISSIONS}
+      value={value}
+      onChange={onChange}
+    />
+);
 
 
-export const TransmissionFilter = ({ onChange, onClose }) => {
-    const [isOpen, setOpenState] = useState(false);
-    const [value, setValue] = useState([]);
-
-    function addOrRemoveTrans(e){
-        const trans = e.target.value;
-        let _value = value;
-
-        if (_value.includes(trans)){
-            _value.splice(_value.indexOf(trans), 1);
-        }else{
-            _value.push(trans)
-        }
-        setValue([..._value]);
-    }
-
-    function onClose(){
-        setOpenState(false)
-    }
-    function onOpen(){
-        setOpenState(true)
-    }
-
-    function applyFilter(){
-        onClose();
-        onChange({
-            'filter': 'transmission',
-            'value': ''.concat(value)
-        })
-    }
-
-    return(
-        <Menu closeOnSelect={false} isOpen={isOpen} onClose={onClose}>
-            <MenuButton
-             minW={'max-content'}
-             size={'md'} borderRadius={'10px'}
-             isActive={isOpen}
-             as={Button}
-             onClick={isOpen ? onClose : onOpen}
-             bgColor="gray.100"
-             rightIcon={<ChevronDownIcon />}
-            > Transmission </MenuButton>
-            <MenuList maxH="300px" overflowY="auto">
-                <Box>
-                    <Text p={3} size="md"> Select Transmission </Text>
-                        {
-                            ['Auto', 'Manual', 'Assisted Manual']
-                            .map((trans) => <MenuItem onInput={addOrRemoveTrans} value={trans} selected={value.includes(trans)} key={trans} as={Checkbox}> {trans} </MenuItem>
-                        )}
-                    <Box px={2} display={'block'} mt={2}>
-                        <Button onClick={applyFilter} colorScheme="blue" bgColor="primary" w={'100%'}> Confirm </Button>
-                    </Box>
-                </Box>
-            </MenuList>
-        </Menu>
-    )
-}
+/** Single location choice. Emits { filter: 'location', value: 'Lagos' }. */
+export const LocationFilter = ({ onChange, value, locations = ['Abuja', 'Lagos', 'Kaduna', 'Port Harcourt', 'Kano', 'Ibadan'] }) => (
+    <Menu>
+        <MenuButton {...triggerProps}>{value ? `Location: ${value}` : 'Location'}</MenuButton>
+        <Portal>
+        <MenuList maxH="320px" overflowY="auto" zIndex={20}>
+            <MenuOptionGroup
+              title="Select location"
+              type="radio"
+              value={value || ''}
+              onChange={(next) => onChange({ filter: 'location', value: next })}
+            >
+                <MenuItemOption value="">Anywhere</MenuItemOption>
+                {locations.map((location) => <MenuItemOption key={location} value={location}>{location}</MenuItemOption>)}
+            </MenuOptionGroup>
+        </MenuList>
+        </Portal>
+    </Menu>
+);
 
 
+/**
+ * Min/max price in naira. Emits { filter: 'price', value: { min, max } } with
+ * numbers or null; both null removes the filter.
+ */
+export const PriceFilter = ({ onChange, value }) => {
+    const [minPrice, setMinPrice] = useState('');
+    const [maxPrice, setMaxPrice] = useState('');
+    const min = value?.min ?? '';
+    const max = value?.max ?? '';
 
+    useEffect(() => { setMinPrice(min === null ? '' : String(min)); setMaxPrice(max === null ? '' : String(max)); }, [min, max]);
+
+    const minNumber = minPrice === '' ? null : Number(minPrice);
+    const maxNumber = maxPrice === '' ? null : Number(maxPrice);
+    const invalidMin = minNumber !== null && (!Number.isFinite(minNumber) || minNumber < 0);
+    const invalidMax = maxNumber !== null && (!Number.isFinite(maxNumber) || maxNumber <= 0);
+    const invalidRange = !invalidMin && !invalidMax && minNumber !== null && maxNumber !== null && minNumber > maxNumber;
+    const active = min !== '' && min !== null ? true : (max !== '' && max !== null);
+
+    return (
+        <Popover placement="bottom-start" isLazy>
+            {({ onClose }) => (
+                <>
+                    <PopoverTrigger>
+                        <Button {...triggerProps} as={undefined}>
+                            Price {active && <Badge ml={2} colorScheme="blue" borderRadius="full">1</Badge>}
+                        </Button>
+                    </PopoverTrigger>
+                    <Portal>
+                    <PopoverContent zIndex={20} px={3} py={3} maxW="280px">
+                        <Text fontWeight="600" mb={2}>Price range (₦)</Text>
+                        <form
+                          noValidate
+                          onSubmit={(e) => {
+                              e.preventDefault();
+                              if (invalidMin || invalidMax || invalidRange) return;
+                              onClose();
+                              onChange({ filter: 'price', value: minNumber === null && maxNumber === null ? null : { min: minNumber, max: maxNumber } });
+                          }}
+                        >
+                            <FormControl isInvalid={invalidMin} mb={2}>
+                                <FormLabel fontSize="sm" mb={1}>Minimum</FormLabel>
+                                <Input value={minPrice} onChange={e => setMinPrice(e.target.value)} type="number" inputMode="numeric" min="0" step="1000" placeholder="No minimum" />
+                                <FormErrorMessage>Enter a valid amount</FormErrorMessage>
+                            </FormControl>
+                            <FormControl isInvalid={invalidMax || invalidRange} mb={3}>
+                                <FormLabel fontSize="sm" mb={1}>Maximum</FormLabel>
+                                <Input value={maxPrice} onChange={e => setMaxPrice(e.target.value)} type="number" inputMode="numeric" min="1" step="1000" placeholder="No maximum" />
+                                <FormErrorMessage>{invalidRange ? 'Maximum must be more than the minimum' : 'Enter a valid amount'}</FormErrorMessage>
+                            </FormControl>
+                            <Box display="flex" gap={2}>
+                                <Button size="sm" variant="ghost" flex={1} onClick={() => { setMinPrice(''); setMaxPrice(''); }}>Clear</Button>
+                                <Button size="sm" type="submit" flex={1} colorScheme="blue" bgColor="primary" isDisabled={invalidMin || invalidMax || invalidRange}>Apply</Button>
+                            </Box>
+                        </form>
+                    </PopoverContent>
+                    </Portal>
+                </>
+            )}
+        </Popover>
+    );
+};

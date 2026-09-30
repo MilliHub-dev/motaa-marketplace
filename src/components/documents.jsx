@@ -1,99 +1,114 @@
-// PreviewWithSignature.jsx
-import { useState, useRef, useContext, useEffect } from 'react';
-import {
-  Box, Button, Flex, HStack, Input, Radio, RadioGroup, Stack, Textarea, VStack
-} from '@chakra-ui/react';
+// Preview a checkout document (PDF) and sign it.
+// Backend contract (listings/api/views.py CheckoutDocumentView):
+//   GET  /listings/checkout/documents/?doc_type=order-slip|inspection-slip&order_id=<order or listing uuid>
+//        -> { data: { file_id, url, signed, order_id } }
+//   POST /listings/checkout/documents/ { file_id, signature: 'data:image/png;base64,…' } -> same shape, signed: true
+import { useRef, useState } from 'react';
+import { Box, Button, Flex, FormControl, FormLabel, HStack, Input, Radio, RadioGroup, Text, VStack } from '@chakra-ui/react';
 import SignaturePad from 'react-signature-canvas';
-import {GlobalStore} from '../App';
+import { useApiMutation, useApiQuery } from '../hooks/useApi';
+import { ErrorState, LoadingState } from './states';
 
-export const PreviewWithSignature = ({ docType, params, onSignatureComplete }) => {
-  const [sigMode, setSigMode] = useState('type');      // 'type' or 'draw'
+const DOCUMENTS_ENDPOINT = '/listings/checkout/documents/';
+
+export const PreviewWithSignature = ({ docType, orderId, onSignatureComplete }) => {
+  const [sigMode, setSigMode] = useState('type'); // 'type' | 'draw'
   const [typedSig, setTypedSig] = useState('');
+  const [sigError, setSigError] = useState('');
   const sigPadRef = useRef(null);
-  const downloader = useRef(null);
-  const [pdfUrl, setPdfUrl] = useState('');
-  const { axios } = useContext(GlobalStore);
 
-  // Fetch unsigned PDF on mount or when params change
-  useEffect(() => {
-    const query = new URLSearchParams(params).toString();
-    fetch(`http://localhost:8000/${docType}?${query}`)
-      .then(res => res.blob())
-      .then(blob => {
-        setPdfUrl(URL.createObjectURL(blob))
-      });
-  }, [docType, params]);
+  const query = useApiQuery(
+    (api, signal) => api.get(`${DOCUMENTS_ENDPOINT}?${new URLSearchParams({ doc_type: docType, order_id: orderId })}`, { signal }),
+    [docType, orderId],
+    { enabled: Boolean(orderId), select: (body) => body?.data }
+  );
+  const document = query.data;
 
-  const handleApplySignature = async () => {
-    let signatureData = null;
-    if (sigMode === 'type' && typedSig) {
-      // render typed text onto a small canvas
-      const c = document.createElement('canvas');
-      c.width = 300; c.height = 100;
+  const sign = useApiMutation((api, signature) => api.post(DOCUMENTS_ENDPOINT, { file_id: document.file_id, signature }), {
+    successMessage: 'Your document has been signed.',
+    errorTitle: "Couldn't sign your document",
+    // bust the cache so the preview shows the signed copy
+    onSuccess: (body) => body?.data && query.setData({ ...body.data, url: `${body.data.url}?signed=${Date.now()}` }),
+  });
+
+  function getSignature() {
+    if (sigMode === 'type') {
+      if (!typedSig.trim()) return null;
+      const c = window.document.createElement('canvas');
+      c.width = 440; c.height = 120;
       const ctx = c.getContext('2d');
-      ctx.font = '24px serif';
-      ctx.fillText(typedSig, 10, 50);
-      signatureData = c.toDataURL('image/png');
-    } else if (sigMode === 'draw' && sigPadRef.current) {
-      signatureData = sigPadRef.current.toDataURL();
+      ctx.font = 'italic 40px "Brush Script MT", "Segoe Script", cursive';
+      ctx.fillStyle = '#1C3D5A';
+      ctx.fillText(typedSig.trim(), 10, 75);
+      return c.toDataURL('image/png');
     }
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) return null;
+    return sigPadRef.current.toDataURL('image/png');
+  }
 
-    const payload = JSON.stringify({ ...params, signature: signatureData });
-    const res = await axios.post(`http://localhost:8000/${docType}/`, payload, {
-      responseType: 'blob',
-    });
-    const signedBlob = new Blob([res.data], { type: 'application/pdf' });
-    const url = URL.createObjectURL(signedBlob);
-    setPdfUrl(url);
-    setTimeout(() => downloader.current.click(), 500);
-    onSignatureComplete();
-  };
+  function applySignature() {
+    const signature = getSignature();
+    if (!signature) {
+      setSigError(sigMode === 'type' ? 'Type your full name to sign.' : 'Draw your signature in the box.');
+      return;
+    }
+    setSigError('');
+    sign.mutate(signature);
+  }
+
+  if (!orderId) {
+    return <ErrorState error={{ message: 'This document link is missing its order. Open it again from your order.' }} title="Document unavailable" />;
+  }
+  if (query.loading && !document) return <LoadingState label="Preparing your document…" minH="320px" />;
+  if (query.error && !document) return <ErrorState error={query.error} onRetry={query.reload} title="Document unavailable" />;
 
   return (
-    <Flex direction="column" align="center">
-      <Box w="100%" maxW="500px" h="100vh" maxH="700px" rounded="20px" border="1px solid" mb={4}>
-        {pdfUrl && (
-          <iframe
-            src={pdfUrl}
-            width="100%" height="100%"
-            style={{ border: 'none', borderRadius: '20px' }}
-          />
-        )}
+    <Flex direction="column" align="center" px={4}>
+      <Box w="100%" maxW="560px" h={{ base: '60vh', md: '70vh' }} maxH="720px" rounded="20px" border="1px solid" borderColor="gray.200" mb={4} overflow="hidden">
+        <iframe title="Document preview" src={document.url} width="100%" height="100%" style={{ border: 'none' }} />
       </Box>
+      <Button as="a" href={document.url} target="_blank" rel="noopener noreferrer" variant="link" color="primary" mb={4}>
+        Open the PDF in a new tab
+      </Button>
 
-      <VStack spacing={4}>
-        <RadioGroup onChange={setSigMode} value={sigMode}>
-          <HStack spacing={6}>
-            <Radio value="type">Type Signature</Radio>
-            <Radio value="draw">Draw Signature</Radio>
-          </HStack>
-        </RadioGroup>
+      {document.signed ? (
+        <VStack spacing={3} w="100%" maxW="560px">
+          <Text color="green.600" className="bold">Signed</Text>
+          <Button as="a" href={document.url} target="_blank" rel="noopener noreferrer" download bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" w="full">
+            Download signed document
+          </Button>
+          {onSignatureComplete && <Button variant="ghost" w="full" onClick={() => onSignatureComplete(document)}>Done</Button>}
+        </VStack>
+      ) : (
+        <VStack spacing={4} w="100%" maxW="560px" align="stretch">
+          <RadioGroup onChange={(mode) => { setSigMode(mode); setSigError(''); }} value={sigMode}>
+            <HStack spacing={6} justify="center">
+              <Radio value="type">Type signature</Radio>
+              <Radio value="draw">Draw signature</Radio>
+            </HStack>
+          </RadioGroup>
 
-        {sigMode === 'type' ? (
-          <Input
-            placeholder="Type your signature"
-            value={typedSig}
-            onChange={e => setTypedSig(e.target.value)}
-          />
-        ) : (
-          <Box
-            border="1px dashed"
-            p={2}
-          >
-            <SignaturePad
-              ref={sigPadRef}
-              canvasProps={{ width: 300, height: 150, style: { border: '1px solid #ccc' } }}
-            />
-            <Button colorScheme="yellow" bg="tertiary" mt={2} onClick={() => sigPadRef.current.clear()}>
-              Clear Signature
-            </Button>
-          </Box>
-        )}
-        <a href={pdfUrl} target="_new" download style={{display: 'none'}} ref={downloader}> Download </a>
-        <Button colorScheme="blue" width="full" size="lg" onClick={handleApplySignature}>
-          Apply & Download
-        </Button>
-      </VStack>
+          {sigMode === 'type' ? (
+            <FormControl isInvalid={Boolean(sigError)}>
+              <FormLabel htmlFor="typed-signature">Your full name</FormLabel>
+              <Input id="typed-signature" placeholder="e.g. Ada Obi" value={typedSig} onChange={(e) => setTypedSig(e.target.value)} />
+            </FormControl>
+          ) : (
+            <Box border="1px dashed" borderColor="gray.300" p={2} rounded="md">
+              <Text fontSize="sm" color="gray.600" mb={2}>Draw your signature below</Text>
+              <SignaturePad
+                ref={sigPadRef}
+                canvasProps={{ width: 320, height: 150, 'aria-label': 'Signature pad', style: { border: '1px solid #ccc', maxWidth: '100%', touchAction: 'none' } }}
+              />
+              <Button size="sm" variant="outline" mt={2} onClick={() => sigPadRef.current?.clear()}>Clear</Button>
+            </Box>
+          )}
+          {sigError && <Text color="red.600" fontSize="sm" role="alert">{sigError}</Text>}
+          <Button bg="primary" color="white" _hover={{ bg: 'secondary' }} width="full" size="lg" onClick={applySignature} isLoading={sign.loading} loadingText="Signing">
+            Sign document
+          </Button>
+        </VStack>
+      )}
     </Flex>
   );
-}
+};

@@ -5,7 +5,12 @@ import {
 
 // Keep landing-page navigation and informational pages available while
 // platform actions share one accessible maintenance dialog.
-export default function LandingMaintenance({ enabled, children }) {
+// allowedPaths entries are exact paths, or prefixes ending in '*' (e.g. '/reset-password/*').
+function isAllowed(path, allowedPaths) {
+  return allowedPaths.some((p) => (p.endsWith('*') ? path.startsWith(p.slice(0, -1)) : p === path));
+}
+
+export default function LandingMaintenance({ enabled, allowedPaths = ['/'], children }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   function interceptAction(event) {
@@ -15,8 +20,8 @@ export default function LandingMaintenance({ enabled, children }) {
 
     if (!action.hasAttribute('data-maintenance')) {
       const url = new URL(action.href, window.location.origin);
-      if (url.origin !== window.location.origin || url.hash ||
-          ['/', '/privacy-policy', '/terms-of-service'].includes(url.pathname)) return;
+      const path = url.pathname.replace(/\/$/, '') || '/';
+      if (url.origin !== window.location.origin || url.hash || isAllowed(path, allowedPaths)) return;
     }
 
     event.preventDefault();
@@ -26,6 +31,9 @@ export default function LandingMaintenance({ enabled, children }) {
 
   function interceptSubmit(event) {
     if (!enabled) return;
+    // login/signup forms must keep working while the rest of the site is paused
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    if (isAllowed(path, allowedPaths) && path !== '/') return;
     event.preventDefault();
     event.stopPropagation();
     onOpen();

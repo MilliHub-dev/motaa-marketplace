@@ -1,587 +1,532 @@
+// Sign up: 1) account (type, email + password or Google) → 2) your details → 3) verify email
+// (skippable). Business accounts then continue to /signup/business to create their profile.
 import {
-    Box,
-    Button,
-    Card,
-    Checkbox,
-    Divider,
-    Flex,
-    FormControl,
-    FormLabel,
-    Heading,
-    HStack,
-    Icon,
-    Image,
-    Input,
-    Link,
-    ButtonGroup,
-    PinInput,
-    PinInputField,
-    Select,
-    SelectField,
-    Stack,
-    Text,
-} from "@chakra-ui/react";
-import { useContext, useRef, useState, createContext, useEffect } from "react";
-import { GlobalStore } from "../../App";
-import {motion} from 'framer-motion';
-import { CenteredLayout, OTPField } from "../../components";
-import { redirect, useNavigate, useSearchParams, useParams, Link as RLink } from "react-router-dom";
-import { RiCircleFill, RiCircleLine, RiMailCloseFill, RiMailFill, RiMessage2Line, RiMessage3Line, RiMessageLine } from "react-icons/ri";
-import { FcSms, FcVoicemail } from "react-icons/fc";
-import { FaGoogle, FaFacebook, FaArrowRight } from "react-icons/fa";
-import { RxChatBubble, RxEnvelopeOpen } from "react-icons/rx";
-import { jsonifyObject, objectifyJSON } from "../../utils";
-import {ArrowRight} from 'lucide-react';
-import { auth } from "../../firebase";
-import firebase from 'firebase/compat/app';
-import BusinessProfile from './BusinessProfile';
+  Alert,
+  AlertIcon,
+  Box,
+  Button,
+  ButtonGroup,
+  Checkbox,
+  Divider,
+  FormControl,
+  FormErrorMessage,
+  FormHelperText,
+  FormLabel,
+  HStack,
+  Input,
+  InputGroup,
+  InputLeftAddon,
+  Link,
+  SimpleGrid,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { Link as RLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { MailCheck } from 'lucide-react';
+import { GlobalStore } from '../../App';
+import { toApiError } from '../../api/client';
+import { OTPField } from '../../components';
+import { GoogleSignInCancelled, GOOGLE_SIGN_IN_AVAILABLE, signInWithGoogle } from '../../firebase';
+import {
+  AuthShell,
+  GoogleIcon,
+  PasswordInput,
+  authHeader,
+  isAuthPayload,
+  normalizeNgPhone,
+  saveOnboarding,
+  validateEmail,
+  validateName,
+  validateNgPhone,
+  validatePassword,
+} from './shared';
 
-export const SignupContext = createContext({});
+const BUSINESS_TYPES = [
+  { value: 'dealer', label: 'Car dealer' },
+  { value: 'mechanic', label: 'Mechanic' },
+];
 
-export const SignupView = ({...props }) => {
-    const {redirect, axios, notify, onError} = useContext(GlobalStore)
-    const [params] = useSearchParams();
-    const type = params.get('type') || 'customer'
-    const [step, setStepValue] = useState(0);
-    const [payload, setPayload] = useState({});
-    const [user, setUser] = useState(null);
-    const [skipConfirmation, setSkipStep] = useState({
-        profile: false,
-        email: false,
-        phone_number: true,
-    });
-    const [verification, setVerification] = useState('email');
-    const [userProvider, setUserProvider] = useState('email'); // email | google | facebook
-    const [user_type, setUserType] = useState(type || 'customer');
+export function SignupView() {
+  const [params] = useSearchParams();
+  // ?type=business → dealer/mechanic signup; anything else (customer, personal, none) → personal
+  const accountType = params.get('type') === 'business' ? 'business' : 'customer';
+  const preset = BUSINESS_TYPES.some((t) => t.value === params.get('as')) ? params.get('as') : '';
+  // a new key resets the whole flow when switching between personal and business
+  return <SignupFlow key={accountType} accountType={accountType} presetBusinessType={preset} />;
+}
 
-    const context = {
-        nextStep,
-        gotoStep,
-        addToPayload: onSubmit,
-        payload,
-        userProvider,
-        setUserProvider,
-        user_type,
-        setUserType,
-        createAccount,
-        checkEmail,
+function SignupFlow({ accountType, presetBusinessType }) {
+  const { api, notify, notifyError, onAuthenticated } = useContext(GlobalStore);
+  const navigate = useNavigate();
+  const isBusiness = accountType === 'business';
+
+  const [step, setStep] = useState('account'); // account | details | verify
+  const [businessType, setBusinessType] = useState(presetBusinessType);
+  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '', phone_number: '', agree: false });
+  const [google, setGoogle] = useState(null); // { idToken, email } after Google sign-in
+  const [errors, setErrors] = useState({});
+  const [pending, setPending] = useState(null); // 'email' | 'google' | 'create' | null
+  const [createdUser, setCreatedUser] = useState(null);
+
+  const userType = isBusiness ? businessType : 'customer';
+
+  function setField(name, value) {
+    setForm((f) => ({ ...f, [name]: value }));
+    setErrors((e) => ({ ...e, [name]: '' }));
+  }
+
+  function checkBusinessType() {
+    if (isBusiness && !businessType) {
+      setErrors((e) => ({ ...e, user_type: "Choose whether you're a car dealer or a mechanic." }));
+      return false;
     }
+    return true;
+  }
 
-    const signUpWithGoogle = async () => {
-        try{
-            const provider = new firebase.auth.GoogleAuthProvider();
-            const result = await auth.signInWithPopup(provider);
-            
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+  /** true when the email is free; otherwise shows why on the email field. */
+  async function emailIsAvailable(email) {
+    try {
+      await api.get('/accounts/register/', { params: { email } });
+      return true;
+    } catch (err) {
+      const error = toApiError(err);
+      if (error.isNetworkError || error.status >= 500) return false; // toast already shown
+      setErrors((e) => ({ ...e, email: error.fieldErrors.email || error.message }));
+      return false;
+    }
+  }
 
-            // The signed-in user info.
-            const _user = result.user;
-            let [first_name, last_name] = _user.displayName.split(" ");
-            const data = {
-                email: _user.email,
-                first_name,
-                last_name,
-                provider: 'google',
-            };
+  async function submitAccount(e) {
+    e.preventDefault();
+    if (pending) return;
+    const nextErrors = {
+      user_type: isBusiness && !businessType ? "Choose whether you're a car dealer or a mechanic." : '',
+      email: validateEmail(form.email),
+      password: validatePassword(form.password, { email: form.email }),
+    };
+    setErrors(nextErrors);
+    if (Object.values(nextErrors).some(Boolean)) return;
 
-            const newUser = await checkEmail(_user.email);
+    setPending('email');
+    const ok = await emailIsAvailable(form.email.trim());
+    setPending(null);
+    if (ok) {
+      setGoogle(null);
+      setStep('details');
+    }
+  }
 
-            if (newUser){
-                await setPayload({...data});
-                await setUser(user);
-                setSkipStep({...skipConfirmation, email: true});
-                nextStep();
-            }
-        }catch(error){
-            console.error("Signup with google error", error);
-        }
+  async function continueWithGoogle() {
+    if (pending || !checkBusinessType()) return;
+    setPending('google');
+    try {
+      const result = await signInWithGoogle();
+      if (await emailIsAvailable(result.email)) {
+        setGoogle({ idToken: result.idToken, email: result.email });
+        setForm((f) => ({
+          ...f,
+          email: result.email,
+          password: '',
+          first_name: f.first_name || result.firstName,
+          last_name: f.last_name || result.lastName,
+        }));
+        setStep('details');
+      }
+    } catch (err) {
+      if (!(err instanceof GoogleSignInCancelled)) notifyError(err, "Couldn't sign up with Google");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function createAccount(e) {
+    e.preventDefault();
+    if (pending) return;
+    const nextErrors = {
+      first_name: validateName(form.first_name, 'first name'),
+      last_name: validateName(form.last_name, 'last name'),
+      phone_number: isBusiness ? '' : validateNgPhone(form.phone_number),
+      agree: form.agree ? '' : 'You need to accept the Terms of Service and Privacy Policy to continue.',
+    };
+    if (!google) {
+      nextErrors.password = validatePassword(form.password, {
+        email: form.email, firstName: form.first_name, lastName: form.last_name,
+      });
+    }
+    setErrors(nextErrors);
+    if (nextErrors.password) { setStep('account'); return; }
+    if (Object.values(nextErrors).some(Boolean)) return;
+
+    const payload = {
+      action: 'create-account',
+      user_type: userType,
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      ...(isBusiness ? {} : { phone_number: normalizeNgPhone(form.phone_number) }),
+      ...(google
+        ? { provider: 'google', id_token: google.idToken }
+        : { provider: 'motaa', email: form.email.trim(), password: form.password }),
     };
 
-    const steps = [
-        {
-            title: `Create ${type === 'business'? 'a business' : 'your'} account`,
-            description: 'Start your 30-day free trial', 
-            key: 'signup',
-            component: <EmailStep type={type} signUpWithGoogle={signUpWithGoogle} />
-        },
-        {
-            title: 'Create your account',
-            description: 'Start your 30-day free trial', 
-            key: 'profile',
-            component: <SignupStep type={type} />
-        },
-        // {
-        //     title: 'Confirm your email',
-        //     description: 'Verify your email to get notifications and updates from Motaa.',
-        //     key: 'email',
-        //     component: <ConfirmationStep type={type} verification={'email'}  />
-        // },
-    ]
-
-    function nextStep(){
-        setStepValue((step+1))
-    }
-
-    function gotoStep(num){
-        setStepValue(num)
-    }
-    
-    function onSubmit(data){
-        // if (verification === 'email' && skipConfirmation?.email){
-        //     return createAccount(data)
-        // }
-        setPayload({
-            ...payload,
-            ...data
-        });
-    }
-
-    function handleEmailSubmission(data){
-
-    }
-
-    async function checkEmail(email){
-        try{
-            const res = await axios.get(`/accounts/register/?email=${email}`);
-            const data = objectifyJSON(res.data);
-            if (res.status === 200){
-                return true;
-            }else{
-                notify({
-                    title: 'Error!',
-                    body: data.message,
-                    color: 'red',
-                })
-                return false;
-            }
-        }catch(err){
-            notify({
-                title: 'An error occurred!',
-                body: err.message
-            })
+    setPending('create');
+    try {
+      const body = await api.post('/accounts/register/', payload);
+      const user = body?.data;
+      if (!isAuthPayload(user)) throw new Error("We couldn't finish creating your account. Please try again.");
+      setCreatedUser(user);
+      if (user.verified_email) finish(user); // Google has already verified the address
+      else setStep('verify');
+    } catch (err) {
+      const error = toApiError(err);
+      const fields = error.fieldErrors;
+      if (Object.keys(fields).length) {
+        setErrors(fields);
+        if (fields.id_token) {
+          setGoogle(null);
+          setStep('account');
+          notifyError(error, 'Google sign-in expired');
+        } else if (fields.email || fields.password || fields.user_type) {
+          setStep('account');
         }
+      } else if (!error.isNetworkError && !(error.status >= 500)) {
+        notifyError(error, "Couldn't create your account");
+      }
+    } finally {
+      setPending(null);
     }
+  }
 
-    async function createAccount(formData){
-        onSubmit(formData);
+  function finish(user) {
+    if (isBusiness) {
+      saveOnboarding(user);
+      notify({ title: 'Account created', body: 'Now tell customers about your business.' });
+      navigate('/signup/business', { replace: true });
+    } else {
+      onAuthenticated(user);
+      notify({ title: `Welcome to Motaa, ${user.first_name}!`, body: 'Your account is ready.' });
+      navigate('/home', { replace: true });
     }
+  }
 
-    const StepComponent = ({ props }) => {
-        const currentStep = steps[step];
+  const totalSteps = isBusiness ? 4 : 3; // business accounts finish with their business profile
+  const stepLabel = `Step ${{ account: 1, details: 2, verify: 3 }[step]} of ${totalSteps}`;
 
-        useEffect(() => {
-            if (skipConfirmation[`${currentStep.key}`]){
-                nextStep();
-            }
-        }, [])
-        return currentStep.component
-    }
+  if (step === 'verify' && createdUser) {
+    return (
+      <AuthShell title="Confirm your email" description={`${stepLabel} · Almost done`}>
+        <VerifyEmailStep user={createdUser} onDone={finish} />
+      </AuthShell>
+    );
+  }
 
-    return(
-        <SignupContext.Provider value={context}>
-        <CenteredLayout>
-            <Box as={motion.div} style={{ width: '90%', maxWidth: '600px', margin: 'auto', placeSelf: 'center', paddingTop: '3vh', paddingBottom: '5%'}} px={3}>
-                <Image src="/assets/images/motaa-logo-3.png" alt="Logo" mb={4} mx={'auto'} width="100px" />
-                <Heading textAlign='center' my={4} className="subtitle"> {steps[step].title} </Heading>
-                <Text textAlign='center' my={4} className="text"> {steps[step].description} </Text>
-                
-                <Box>
-                    <StepComponent />
-                </Box>
-            </Box>
-        </CenteredLayout>
-        </SignupContext.Provider>
-    )
-}
+  if (step === 'details') {
+    return (
+      <AuthShell
+        title="Tell us about you"
+        description={`${stepLabel} · ${google ? `Signing up with Google as ${google.email}` : form.email}`}
+      >
+        <form onSubmit={createAccount} noValidate>
+          <Stack spacing={4}>
+            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+              <FormControl isInvalid={Boolean(errors.first_name)} isRequired>
+                <FormLabel>First name</FormLabel>
+                <Input autoComplete="given-name" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} placeholder="Ada" />
+                <FormErrorMessage>{errors.first_name}</FormErrorMessage>
+              </FormControl>
+              <FormControl isInvalid={Boolean(errors.last_name)} isRequired>
+                <FormLabel>Last name</FormLabel>
+                <Input autoComplete="family-name" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} placeholder="Okafor" />
+                <FormErrorMessage>{errors.last_name}</FormErrorMessage>
+              </FormControl>
+            </SimpleGrid>
 
+            {!isBusiness && (
+              <FormControl isInvalid={Boolean(errors.phone_number)} isRequired>
+                <FormLabel>Phone number</FormLabel>
+                <InputGroup>
+                  <InputLeftAddon>+234</InputLeftAddon>
+                  <Input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    value={form.phone_number}
+                    onChange={(e) => setField('phone_number', e.target.value)}
+                    placeholder="803 123 4567"
+                  />
+                </InputGroup>
+                {errors.phone_number
+                  ? <FormErrorMessage>{errors.phone_number}</FormErrorMessage>
+                  : <FormHelperText>Dealers and mechanics use this to reach you about bookings and orders.</FormHelperText>}
+              </FormControl>
+            )}
 
-const EmailStep = ({ signUpWithGoogle }) => {
-    const [email, setEmail] = useState('');
-    const [params] = useSearchParams();
-    const type = params.get('type') || 'customer'
-    const [password, setPassword] = useState('');
-    const {axios, notify, onError} = useContext(GlobalStore);
-    const {checkEmail, user_type, addToPayload, setUserType, payload, nextStep} = useContext(SignupContext);
-
-    async function handleSubmit(e){
-        e.preventDefault();
-        try{
-            const canProceed = await checkEmail(email);
-            if (canProceed){
-                if (type === 'business' && ['dealer', 'mechanic'].includes(user_type)){
-        
-                }else if (type === 'personal'){
-                    setUserType('customer');
-                }else{
-                    throw new Error("Please select a business type!" + ' that matches ' + type);
-                }
-                addToPayload({
-                    email,
-                    password,
-                    provider: 'motaa'
-                });
-                nextStep();
-            }
-        }catch(err){
-            notify({
-                title: 'Error!',
-                color: 'red',
-                body: err.message
-            })
-        }
-    }
-
-    return(
-        <Box>
-            <form onSubmit={handleSubmit} method="post" name="sign-up-form">
-                {type === 'business' && 
-                <Box textAlign="center" my={2}>
-                    <FormLabel textAlign="center"> Select your business type </FormLabel>
-                    <ButtonGroup isAttached mx="auto">
-                        <Button
-                         fontSize="sm"
-                         rounded="lg"
-                         variant={user_type === 'dealer' ? 'block' : 'outline'}
-                         bgColor={user_type === 'dealer' ? 'primary' : 'transparent'}
-                         color={user_type === 'dealer' ? 'white' : 'black'}
-                         onClick={() => setUserType('dealer')}
-                        > Car Dealer </Button>
-                        <Button
-                         fontSize="sm"
-                         rounded="lg"
-                         variant={user_type === 'mechanic' ? 'block' : 'outline'}
-                         bgColor={user_type === 'mechanic' ? 'primary' : 'transparent'}
-                         color={user_type === 'mechanic' ? 'white' : 'black'}
-                         onClick={() => setUserType('mechanic')}
-                        > Mechanic </Button>
-                    </ButtonGroup>
-                    </Box>
-                }
-
-                <Stack flex={1}>
-                    <FormControl name={'email'} my={2} isRequired>
-                        <FormLabel> Email </FormLabel>
-                        <Input
-                            type="email"
-                            required={true}
-                            value={email}
-                            name="email"
-                            onInput={e => setEmail(e.target.value)}
-                            placeholder="Enter your email"
-                        />
-                    </FormControl>
-
-                    <FormControl name={'email'} my={2} isRequired>
-                        <FormLabel> Password </FormLabel>
-                        <Input
-                            type="password"
-                            required={true}
-                            value={password}
-                            name="password"
-                            onInput={e => setPassword(e.target.value)}
-                            placeholder="Enter a password"
-                        />
-                    </FormControl>
-
-                    <FormControl my={4}>
-                        <Button py={6} type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Get Started  </Button>
-                    </FormControl>
-                </Stack>
-            
-                <HStack my={5}>
-                    <Divider />
-                    <Heading size={'sm'} color={'grey'}> OR </Heading>
-                    <Divider />
-                </HStack>
-
-                <Stack flex={1} columnGap={4} rowGap={4} my={3}>
-                    <Button disabled={type === 'business' && !['dealer', 'mechanic'].includes(user_type)} w={'100%'} variant="outline" borderColor="lightgrey" rounded="lg" onClick={signUpWithGoogle} leftIcon={<FaGoogle />} colorScheme="white" color={'secondary'} bg={'white'}> Sign up with Google </Button>
-                </Stack>
-
-                <Divider my={3} />
-                <RLink to={`/signup/?type=${type !== 'business' ? 'business' : 'customer'}`}>
-                    <Button py={5} rightIcon={<FaArrowRight />} colorScheme="blue" variant="outline" borderWidth={3} borderColor="primary" w={"100%"} rounded="lg"> Create {type === 'business' ? 'Personal' : 'Business'} Account </Button>
-                </RLink>
-            </form>
-        </Box>
-    )
-}
-
-
-const SignupStep = ({ type }) => {
-    const {axios, notify, onAuthenticated} = useContext(GlobalStore);
-    const {payload, addToPayload, nextStep, user_type, gotoStep} = useContext(SignupContext);
-    const [first_name, setFirstName] = useState(payload?.first_name);
-    const [last_name, setLastName] = useState(payload?.last_name);
-    const [phone_number, setPhoneNumber] = useState('');
-    const [cac_number, setCACNumber] = useState('');
-    const [id_type, setIdType] = useState('nin');
-    const redirect = useNavigate();
-
-    async function handleSubmit(e){ 
-        e.preventDefault();
-
-        const newPayload = {
-            ...payload,
-            cac_number,
-            first_name,
-            last_name,
-            phone_number,
-            action: 'create-account',
-            id_type,
-            user_type
-        }
-
-        try{
-            addToPayload({ ...newPayload });
-
-            const res = await axios.post('/accounts/register/', JSON.stringify(newPayload));
-            const data = objectifyJSON(res.data)
-
-            if (res.status === 201){
-                localStorage.setItem('motaa-auth-user', jsonifyObject(data.data));
-                notify({
-                    title: 'Success',
-                    body: "Successfully created your account"
-                });
-
-                if (type === 'business'){
-                    return redirect('/signup/business/')
-                }
-                onAuthenticated({ ...auth })
-                redirect('/home');
-
-                // REMOVED BECAUSE OTP BREAKS
-
-                // if (payload.provider === 'google'){ // skip email confirmation
-                //     if(type === 'business'){
-                //         return redirect('/signup/business/');
-                //     }else{
-                //         return redirect('/');
-                //     }
-                // }else{
-                //     return nextStep();
-                // }
-            }else{
-                console.log("Signup Error", data)
-                notify({
-                    title: 'Sign up Error!',
-                    color: 'red',
-                    body: data.message,
-                })
-            }
-        }catch(error){
-            notify({
-                title: 'Error!',
-                color: 'red',
-                body: error.message,
-            })
-        }
-    }
-
-    return(
-        <form onSubmit={handleSubmit} method="post">
-            <Flex justifyContent={'space-between'} columnGap={3} flexWrap={{base: 'wrap', md: 'nowrap'}}>
-                <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                    <FormLabel> First name </FormLabel>
-                    <Input
-                        onInput={e => setFirstName(e.target.value)}
-                        value={first_name}
-                        placeholder="John"
-                    />
-                </FormControl>
-
-                <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                    <FormLabel> Last name </FormLabel>
-                    <Input
-                        onInput={e => setLastName(e.target.value)}
-                        value={last_name}
-                        placeholder="Doe"
-                    />
-                </FormControl>
-            </Flex>
-
-            <Flex justifyContent={'space-between'} columnGap={3} flexWrap={{base: 'wrap', md: 'nowrap'}}>
-                <FormControl width={{ base: '100%', md: '50%' }} my={2}>
-                    <FormLabel> Phone number </FormLabel>
-                    <Input
-                        onInput={e => setPhoneNumber(e.target.value)}
-                        value={phone_number} type="tel"
-                        placeholder="+234 812 4128 234"
-                    />
-                </FormControl>
-            </Flex>
-
-            <FormControl mt={3}>
-                <Button type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Continue </Button>
+            <FormControl isInvalid={Boolean(errors.agree)}>
+              <Checkbox isChecked={form.agree} onChange={(e) => setField('agree', e.target.checked)} alignItems="flex-start">
+                <Text fontSize="sm" lineHeight="short">
+                  I agree to Motaa's{' '}
+                  <Link as={RLink} to="/terms-of-service" target="_blank" rel="noopener" color="primary" textDecoration="underline">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link as={RLink} to="/privacy-policy" target="_blank" rel="noopener" color="primary" textDecoration="underline">Privacy Policy</Link>.
+                </Text>
+              </Checkbox>
+              <FormErrorMessage>{errors.agree}</FormErrorMessage>
             </FormControl>
+
+            {(errors.email || errors.non_field_errors) && (
+              <Alert status="error" borderRadius="md"><AlertIcon />{errors.email || errors.non_field_errors}</Alert>
+            )}
+
+            <HStack spacing={3} pt={2}>
+              <Button variant="outline" size="lg" onClick={() => setStep('account')} isDisabled={Boolean(pending)}>
+                Back
+              </Button>
+              <Button
+                type="submit"
+                flex={1}
+                size="lg"
+                colorScheme="blue"
+                bg="primary"
+                isLoading={pending === 'create'}
+                loadingText="Creating account"
+              >
+                Create account
+              </Button>
+            </HStack>
+          </Stack>
         </form>
-    )
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell
+      title={isBusiness ? 'Create a business account' : 'Create your account'}
+      description={isBusiness
+        ? 'List your cars or offer your repair services to drivers across Nigeria.'
+        : 'Buy, rent and service cars across Nigeria.'}
+    >
+      <form onSubmit={submitAccount} noValidate>
+        <Stack spacing={4}>
+          {isBusiness && (
+            <FormControl isInvalid={Boolean(errors.user_type)} isRequired>
+              <FormLabel id="business-type-label">What kind of business are you?</FormLabel>
+              <ButtonGroup role="group" aria-labelledby="business-type-label" w="100%" isAttached>
+                {BUSINESS_TYPES.map((type) => {
+                  const selected = businessType === type.value;
+                  return (
+                    <Button
+                      key={type.value}
+                      flex={1}
+                      aria-pressed={selected}
+                      variant={selected ? 'solid' : 'outline'}
+                      colorScheme="blue"
+                      bg={selected ? 'primary' : undefined}
+                      onClick={() => { setBusinessType(type.value); setErrors((e) => ({ ...e, user_type: '' })); }}
+                    >
+                      {type.label}
+                    </Button>
+                  );
+                })}
+              </ButtonGroup>
+              <FormErrorMessage>{errors.user_type}</FormErrorMessage>
+            </FormControl>
+          )}
+
+          <FormControl isInvalid={Boolean(errors.email)} isRequired>
+            <FormLabel>Email</FormLabel>
+            <Input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(e) => { setField('email', e.target.value); setGoogle(null); }}
+              placeholder="you@example.com"
+            />
+            <FormErrorMessage>{errors.email}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isInvalid={Boolean(errors.password)} isRequired>
+            <FormLabel>Password</FormLabel>
+            <PasswordInput
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setField('password', e.target.value)}
+              placeholder="Create a password"
+            />
+            {errors.password
+              ? <FormErrorMessage>{errors.password}</FormErrorMessage>
+              : <FormHelperText>At least 8 characters, not only numbers.</FormHelperText>}
+          </FormControl>
+
+          <Button
+            type="submit"
+            size="lg"
+            colorScheme="blue"
+            bg="primary"
+            isLoading={pending === 'email'}
+            loadingText="Checking"
+            isDisabled={Boolean(pending)}
+          >
+            Continue
+          </Button>
+        </Stack>
+      </form>
+
+      {GOOGLE_SIGN_IN_AVAILABLE && (
+        <>
+          <HStack my={6}>
+            <Divider />
+            <Text fontSize="sm" color="gray.500" px={2}>OR</Text>
+            <Divider />
+          </HStack>
+          <Button
+            w="100%"
+            size="lg"
+            variant="outline"
+            leftIcon={<GoogleIcon />}
+            onClick={continueWithGoogle}
+            isLoading={pending === 'google'}
+            loadingText="Waiting for Google"
+            isDisabled={Boolean(pending)}
+          >
+            Sign up with Google
+          </Button>
+        </>
+      )}
+
+      <Text textAlign="center" mt={8} color="gray.600">
+        Already have an account?{' '}
+        <Link as={RLink} to="/login" color="primary" fontWeight="semibold">Log in</Link>
+      </Text>
+      <Button
+        as={RLink}
+        to={isBusiness ? '/signup' : '/signup?type=business'}
+        variant="outline"
+        colorScheme="blue"
+        w="100%"
+        mt={4}
+      >
+        {isBusiness ? 'Create a personal account instead' : 'Create a business account instead'}
+      </Button>
+    </AuthShell>
+  );
 }
 
+function VerifyEmailStep({ user, onDone }) {
+  const { api, notify } = useContext(GlobalStore);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [sendState, setSendState] = useState('sending'); // sending | sent | failed
+  const [cooldown, setCooldown] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  const requested = useRef(false);
 
-const ConfirmationStep = ({ verification, type }) => {
-    const {axios, notify, onAuthenticated} = useContext(GlobalStore);
-    const {nextStep, payload} = useContext(SignupContext);
-    const [otp, setOTP] = useState('');
-    const [timeout, setCodeTimer] = useState(0);
-    const timer = useRef();
-    const redirect = useNavigate();
-
-    async function requestCode(){
-        timer.current.innerHTML = `Request new code in 60s`;
-        let time = 60;
-        const auth = objectifyJSON(localStorage.getItem('motaa-auth-user'))
-        const token = auth.token
-
-        const counter = setInterval(() => {
-            if (time > 0){
-                time -= 1
-                timer.current.innerHTML = `Request new code in ${time}s`;
-                setCodeTimer(time);
-            }else{
-                timer.current.innerHTML = `Click to resend`;
-                return clearInterval(counter)
-            }
-        }, 1000);
-        
-        const res = await axios.post('/accounts/verify-email/', JSON.stringify({
-            action: 'request-code',
-            email: payload.email,
-        }), {
-            headers: {
-                // 'User-Agent': `${document.location.hostname}`,
-                'Authorization': `Token ${token}`
-            }
-        })
+  async function requestCode() {
+    setSendState('sending');
+    setError('');
+    try {
+      const body = await api.post('/accounts/verify-email/', { action: 'request-code' }, authHeader(user.token));
+      if (body?.data?.verified) return onDone({ ...user, verified_email: true });
+      setSendState('sent');
+      setCooldown(body?.data?.resend_in || 60);
+    } catch (err) {
+      const apiError = toApiError(err);
+      if (apiError.status === 429) {
+        setSendState('sent');
+        setCooldown(apiError.data?.resend_in || 60);
+      } else {
+        setSendState('failed');
+        setError(apiError.message);
+      }
     }
-    
-    async function verifyCode(){
-        const auth = objectifyJSON(localStorage.getItem('motaa-auth-user'));
-        const token = auth.token
-        timer.current.focus()
-        
-        if (verification === 'email'){
-            const res = await axios.post('/accounts/verify-email/', JSON.stringify({
-                action: 'confirm-code',
-                email: payload.email,
-                code: otp
-            }), {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
-            })
-            
-            if (res.status === 200){
-                setOTP('');
-                notify({
-                    title: "Success",
-                    body: "Your email has been verified"
-                });
+  }
 
-                if (type === 'business'){
-                    return redirect('/signup/business/')
-                }
-                onAuthenticated({ ...auth })
-                redirect('/home');
-            }
-        }
+  useEffect(() => {
+    if (requested.current) return; // StrictMode runs effects twice in dev
+    requested.current = true;
+    requestCode();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  async function verify(e) {
+    e?.preventDefault();
+    if (verifying) return;
+    if (code.length !== 6) {
+      setError('Enter the 6-digit code from the email.');
+      return;
     }
-
-    return(
-        <Box flex={1} textAlign={'center'}>
-            <Card my={5} py={5} px={5} width={'max-content'} mx={'auto'}>
-                <Icon className="icon" color={'primary'} my={3} mx={'auto'}> {verification === 'email' ? <RxEnvelopeOpen /> : <RiMessage3Line /> }</Icon>
-                <Heading className="subtitle" size={'md'} mb={3}> Please check your {verification === 'email' ? 'inbox' : 'messages'}. </Heading>
-                <Text className="small-text" size={'xs'}> We've sent a code to {verification === 'email' ? `${payload?.email}` : `${payload?.phone_number}`} </Text>
-
-                <OTPField value={otp} onChange={val => setOTP(val)} />
-
-                <Text className="small-text" size={'xs'}>
-                    Didn't get a code?
-                    <Button
-                     textDecor={'underline'}
-                     bg={'transparent'}
-                     _hover={{ bg: 'transparent'}}
-                     disabled={timeout > 0}
-                     px={1}
-                     onClick={requestCode}
-                    > <span ref={timer}>Click to resend</span> </Button>
-                </Text>
-
-                {/*<dojah-button
-                  widgetId="undefined"
-                  text="Web"
-                  textColor="#FFFFFF"
-                  backgroundColor="#3977de">
-                </dojah-button>*/}
-
-                <Button my={5} onClick={verifyCode} disabled={!otp} type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Verify code </Button>
-            </Card>
-        </Box>
-    )
-}
-
-
-const PhoneConfirmationStep = ({ nextStep, payload }) => {
-    const [otp, setOTP] = useState('');
-    const [timeout, setCodeTimer] = useState(0);
-    const timer = useRef();
-    const [verification, setVerification] = useState('email') // email | sms
-
-    async function requestCode(){
-        let time = 60;
-
-        const counter = setInterval(() => {
-            if (time > 0){
-                time -= 1
-                timer.current.innerHTML = `Request new code in ${time}s`;
-                setCodeTimer(time);
-            }else{
-                timer.current.innerHTML = `Click to resend`;
-                return clearInterval(counter)
-            }
-        }, 1000);
-        timer.current.innerHTML = `Request new code in ${time}s`;
-
+    setVerifying(true);
+    try {
+      await api.post('/accounts/verify-email/', { action: 'confirm-code', code }, authHeader(user.token));
+      notify({ title: 'Email confirmed', body: 'Thanks for confirming your email.' });
+      onDone({ ...user, verified_email: true });
+    } catch (err) {
+      const apiError = toApiError(err);
+      setError(apiError.fieldErrors.code || apiError.message);
+      setCode('');
+    } finally {
+      setVerifying(false);
     }
+  }
 
-    function verifyCode(){
-        console.log("OTP:", otp);
-        console.log("Payload:", payload);
-        setOTP('');
-        timer.current.focus()
-        if (verification === 'email'){
-            setVerification('sms')
-        }
-    }
+  return (
+    <form onSubmit={verify} noValidate>
+      <Stack spacing={4} align="center" textAlign="center">
+        <Box color="primary" aria-hidden="true"><MailCheck size={40} /></Box>
+        <Text>
+          {sendState === 'sending' && <>Sending a 6-digit code to <b>{user.email}</b>…</>}
+          {sendState === 'sent' && <>We sent a 6-digit code to <b>{user.email}</b>. It expires in 10 minutes.</>}
+          {sendState === 'failed' && <>We couldn't send a code to <b>{user.email}</b> just now.</>}
+        </Text>
 
-    return(
-        <Box flex={1} textAlign={'center'}>
-            <Card my={5} py={5} px={5} width={'max-content'} mx={'auto'}>
-                <Icon className="icon" color={'primary'} my={3} mx={'auto'}> {verification === 'email' ? <RxEnvelopeOpen /> : <RiMessage3Line /> }</Icon>
-                <Heading className="subtitle" size={'md'} mb={3}> Please check your {verification === 'email' ? 'inbox' : 'messages'}. </Heading>
-                <Text className="small-text" size={'xs'}> We've sent a code to {verification === 'email' ? `${payload.email}` : `${payload.phone_number}`} </Text>
+        <FormControl isInvalid={Boolean(error)}>
+          <FormLabel textAlign="center" mx="auto" mb={0}>Verification code</FormLabel>
+          <OTPField value={code} onChange={(value) => { setCode(value); setError(''); }} />
+          <FormErrorMessage justifyContent="center">{error}</FormErrorMessage>
+        </FormControl>
 
-                <OTPField value={otp} onChange={val => setOTP(val)} />
+        <Button
+          type="submit"
+          w="100%"
+          size="lg"
+          colorScheme="blue"
+          bg="primary"
+          isLoading={verifying}
+          loadingText="Checking"
+          isDisabled={code.length !== 6}
+        >
+          Verify email
+        </Button>
 
-                <Text className="small-text" size={'xs'}>
-                    Didn't get a code?
-                    <Button
-                     textDecor={'underline'}
-                     bg={'transparent'}
-                     _hover={{ bg: 'transparent'}}
-                     disabled={timeout > 0}
-                     px={1}
-                     onClick={requestCode}
-                    > <span ref={timer}>Click to resend</span> </Button>
-                </Text>
+        <Text fontSize="sm" color="gray.600">
+          Didn't get it? Check your spam folder or{' '}
+          <Button
+            variant="link"
+            size="sm"
+            color="primary"
+            onClick={requestCode}
+            isDisabled={cooldown > 0 || sendState === 'sending'}
+          >
+            {cooldown > 0 ? `resend in ${cooldown}s` : 'send a new code'}
+          </Button>
+        </Text>
 
-                <Button my={5} onClick={verifyCode} disabled={!otp} type="submit" w={'100%'} colorScheme="blue" bg={'primary'}> Verify code </Button>
-            </Card>
-        </Box>
-    )
+        <Button variant="ghost" onClick={() => onDone(user)} isDisabled={verifying}>
+          Skip for now
+        </Button>
+        <Text fontSize="xs" color="gray.500">
+          You can use Motaa right away. We'll use your email for receipts and account alerts.
+        </Text>
+      </Stack>
+    </form>
+  );
 }
 
 export default SignupView;

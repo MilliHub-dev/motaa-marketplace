@@ -1,70 +1,80 @@
-import { createContext, Fragment, useEffect, useState } from 'react';
-import {Outlet, redirect, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createContext, Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { Axios, } from 'axios';
-import { isDebug } from './utils';
-import { ChakraProvider, ToastProvider, useToast, extendTheme, Fade } from '@chakra-ui/react';
+import { glassEnabled } from './utils/platform';
+import { API_URL, GOOGLE_MAPS_API_KEY, MAINTENANCE_MODE } from './config';
+import { createApiClient, toApiError } from './api/client';
+import { glassTheme } from './theme/glass';
+import { ChakraProvider, ToastProvider, useToast, extendTheme } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
-import {AppLoadingScreen} from './components/loaders';
-import {APIProvider} from '@vis.gl/react-google-maps';
+import { LoadingState } from './components/states';
 import {useJsApiLoader} from "@react-google-maps/api";
 
 
-// pages
-import HomePage from './pages/marketplace/HomePage';
+// pages — the landing page, site layout and login load up front; everything
+// else is split into its own chunk and fetched when first visited.
+const HomePage = lazy(() => import('./pages/marketplace/HomePage'));
 import LandingPage from './pages/LandingPage';
-import ComingSoon from './pages/ComingSoon';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/TermsOfServicePage';
+const ComingSoon = lazy(() => import('./pages/ComingSoon'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
+const AboutPage = lazy(() => import('./pages/public/AboutPage'));
+const FeaturesPage = lazy(() => import('./pages/public/FeaturesPage'));
+const BusinessPage = lazy(() => import('./pages/public/BusinessPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const CheckoutStatus = lazy(() => import('./pages/marketplace/checkout/CheckoutStatus'));
+const WalletSettingsPage = lazy(() => import('./pages/marketplace/wallet/Settings'));
+const EditServiceOffering = lazy(() => import('./pages/dashboard/mechanic/services/EditServiceOffering'));
 
 
-import RentListing from './pages/marketplace/rent/RentListing';
-import RentDetail from './pages/marketplace/rent/RentDetail';
-import BuyListing from './pages/marketplace/buy/BuyListing';
-import BuyDetail from './pages/marketplace/buy/BuyDetail';
-import MechanicSearchPage from './pages/marketplace/search/MechanicSearch';
-import CarSearchPage from './pages/marketplace/search/CarSearch';
-import MechanicListPage from './pages/marketplace/mechanics/MechanicsListing';
-import ConfirmMechanicBookingPage from './pages/marketplace/mechanics/ConfirmBooking';
-import MechanicDetailPage from './pages/marketplace/mechanics/MechanicDetail';
-import LoginView from './pages/auth/Login';
-import SignupView from './pages/auth/Signup';
-import BusinessSignupView from './pages/auth/BusinessProfile';
-import ChatLayout from './pages/marketplace/chat/Layout';
-import ChatRoom from './pages/marketplace/chat/ChatRoom';
-import CartPage from './pages/marketplace/CartPage';
-import CheckoutPage from './pages/marketplace/checkout/CheckoutPage';
-import CheckoutWithInspection from './pages/marketplace/checkout/CheckoutInspection';
-import DocumentSigningPage from './pages/marketplace/checkout/DocumentSigningPage';
-import NotificationsPage from './pages/marketplace/Notifications';
+const RentListing = lazy(() => import('./pages/marketplace/rent/RentListing'));
+const RentDetail = lazy(() => import('./pages/marketplace/rent/RentDetail'));
+const BuyListing = lazy(() => import('./pages/marketplace/buy/BuyListing'));
+const BuyDetail = lazy(() => import('./pages/marketplace/buy/BuyDetail'));
+const MechanicSearchPage = lazy(() => import('./pages/marketplace/search/MechanicSearch'));
+const CarSearchPage = lazy(() => import('./pages/marketplace/search/CarSearch'));
+const MechanicListPage = lazy(() => import('./pages/marketplace/mechanics/MechanicsListing'));
+const ConfirmMechanicBookingPage = lazy(() => import('./pages/marketplace/mechanics/ConfirmBooking'));
+const MechanicDetailPage = lazy(() => import('./pages/marketplace/mechanics/MechanicDetail'));
+const LoginView = lazy(() => import('./pages/auth/Login'));
+const SignupView = lazy(() => import('./pages/auth/Signup'));
+const BusinessSignupView = lazy(() => import('./pages/auth/BusinessProfile'));
+const ResetPasswordView = lazy(() => import('./pages/auth/ResetPassword'));
+const ChatLayout = lazy(() => import('./pages/marketplace/chat/Layout'));
+const ChatRoom = lazy(() => import('./pages/marketplace/chat/ChatRoom'));
+const CartPage = lazy(() => import('./pages/marketplace/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/marketplace/checkout/CheckoutPage'));
+const CheckoutWithInspection = lazy(() => import('./pages/marketplace/checkout/CheckoutInspection'));
+const DocumentSigningPage = lazy(() => import('./pages/marketplace/checkout/DocumentSigningPage'));
+const NotificationsPage = lazy(() => import('./pages/marketplace/Notifications'));
 
 // Mechanic Dashboard
-import MechanicDashboardLayout from './pages/dashboard/mechanic/Layout';
-import MechanicDashboard from './pages/dashboard/mechanic/MechanicDashboard';
-import BookingsAdmin from './pages/dashboard/mechanic/Bookings';
-import ServiceOfferings from './pages/dashboard/mechanic/services/ServiceOfferings';
-import MechanicAnalytics from './pages/dashboard/mechanic/Analytics';
-import CreateServiceOffering from './pages/dashboard/mechanic/services/CreateServiceOffering';
-import BusinessProfile from './pages/dashboard/mechanic/settings/BusinessProfile';
+const MechanicDashboardLayout = lazy(() => import('./pages/dashboard/mechanic/Layout'));
+const MechanicDashboard = lazy(() => import('./pages/dashboard/mechanic/MechanicDashboard'));
+const BookingsAdmin = lazy(() => import('./pages/dashboard/mechanic/Bookings'));
+const ServiceOfferings = lazy(() => import('./pages/dashboard/mechanic/services/ServiceOfferings'));
+const MechanicAnalytics = lazy(() => import('./pages/dashboard/mechanic/Analytics'));
+const CreateServiceOffering = lazy(() => import('./pages/dashboard/mechanic/services/CreateServiceOffering'));
+const BusinessProfile = lazy(() => import('./pages/dashboard/mechanic/settings/BusinessProfile'));
 
 // Dealership Dashboard
-import DealerProfile from './pages/marketplace/DealerProfile';
-import DealerDashboardLayout from './pages/dashboard/dealer/Layout';
-import DealerDashboard from './pages/dashboard/dealer/Dashboard';
-import ListingsAdmin from './pages/dashboard/dealer/inventory/Listings';
-import CreateListingAdmin from './pages/dashboard/dealer/inventory/CreateListing';
-import EditListingAdmin from './pages/dashboard/dealer/inventory/EditListing';
-import OrderListAdmin from './pages/dashboard/dealer/orders/OrderList';
-import AnalyticsDashboard from './pages/dashboard/dealer/analytics/AnalyticsOverview';
-import DealershipSettings from './pages/dashboard/dealer/settings/Settings';
+const DealerProfile = lazy(() => import('./pages/marketplace/DealerProfile'));
+const DealerDashboardLayout = lazy(() => import('./pages/dashboard/dealer/Layout'));
+const DealerDashboard = lazy(() => import('./pages/dashboard/dealer/Dashboard'));
+const ListingsAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/Listings'));
+const CreateListingAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/CreateListing'));
+const EditListingAdmin = lazy(() => import('./pages/dashboard/dealer/inventory/EditListing'));
+const OrderListAdmin = lazy(() => import('./pages/dashboard/dealer/orders/OrderList'));
+const AnalyticsDashboard = lazy(() => import('./pages/dashboard/dealer/analytics/AnalyticsOverview'));
+const DealershipSettings = lazy(() => import('./pages/dashboard/dealer/settings/Settings'));
 
 // Wallet
-import WalletLayout from './pages/marketplace/wallet/Layout';
-import WalletHomePage from './pages/marketplace/wallet/Dashboard';
-import WalletDepositPage from './pages/marketplace/wallet/Deposit';
-import WalletTransactionsPage from './pages/marketplace/wallet/Transactions';
-import WalletWithdrawalPage from './pages/marketplace/wallet/Withdraw';
+const WalletLayout = lazy(() => import('./pages/marketplace/wallet/Layout'));
+const WalletHomePage = lazy(() => import('./pages/marketplace/wallet/Dashboard'));
+const WalletDepositPage = lazy(() => import('./pages/marketplace/wallet/Deposit'));
+const WalletTransactionsPage = lazy(() => import('./pages/marketplace/wallet/Transactions'));
+const WalletWithdrawalPage = lazy(() => import('./pages/marketplace/wallet/Withdraw'));
 
 
 const BrandColors = extendTheme({
@@ -75,36 +85,51 @@ const BrandColors = extendTheme({
     'accent': '#F2F3F5',
     'white': '#FFFFFF',
   }
-})
+}, glassEnabled ? glassTheme : {})
 
 export const GlobalStore = createContext({
   notify: undefined,
+  notifyError: undefined,
+  api: undefined,
   loading: undefined,
   authUser: undefined,
-  apiUrl: '',
+  apiUrl: API_URL,
   getCookie: undefined,
   setCookie: undefined,
-  axios: Axios,
   logout: undefined,
   redirect: undefined,
   commaInt: undefined,
   naturalDate: undefined,
 });
 
-const IS_DEBUG = isDebug();
 
-// Must be module-level constants — a fresh array/string each render makes
+// Must be a module-level constant — a fresh array each render makes
 // useJsApiLoader tear down and re-inject the script on every render.
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBcwRVb-mzVQuHVJyaOkgbGXtmFT-c_II0';
 const GOOGLE_MAPS_LIBRARIES = ['places'];
+const AUTH_STORAGE_KEY = 'motaa-auth-user';
+
+function readStoredUser(){
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    const user = raw ? JSON.parse(raw) : null;
+    return user?.token ? user : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+let lastServerNotice = 0;
 
   
 function App() {
   const notification = useToast();
-  const [authUser, setAuthUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setAuthState] = useState(false)
+  const [authUser, setAuthUser] = useState(readStoredUser)
+  const isAuthenticated = Boolean(authUser)
+  const loading = false
   const [otherContext, setOtherContext] = useState({})
+  // the API client reads the token through a ref so it can stay a stable object
+  const tokenRef = useRef(authUser?.token)
+  tokenRef.current = authUser?.token
 
   // Loads the Maps script WITHOUT gating the app on it. If Google is
   // unreachable (offline, blocked network, ad-blocker) mapsLoaded stays false
@@ -114,14 +139,23 @@ function App() {
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
-  const axiosClient =  new Axios({
-     baseURL: 'https://server.motaa.net/api/v1',
-    // baseURL: 'http://localhost:8000/api/v1',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': authUser ? `Token ${authUser?.token}` : null
-    },
-  });
+  // The API client: returns parsed bodies and throws ApiError with a readable
+  // message (see src/api/client.js). Use this for all new code.
+  const api = useMemo(() => createApiClient({
+    baseURL: API_URL,
+    getToken: () => tokenRef.current,
+    onUnauthorized: () => endSession('Your session has expired. Please log in again.'),
+    onConnectionProblem: (error) => notifyServerTrouble(error.message),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
+
+  // One toast per burst of failures, not one per request.
+  function notifyServerTrouble(message){
+    const now = Date.now();
+    if (now - lastServerNotice < 8000) return;
+    lastServerNotice = now;
+    notification({ title: 'Connection problem', description: message, status: 'error', duration: 5000, isClosable: true });
+  }
 
   function reloadApp(){
     // reloads user data including auth tokens
@@ -130,22 +164,30 @@ function App() {
   }
   
   function getCookie(name){
-    let cookie = Cookies.getJSON(name)
-    return cookie
+    const value = Cookies.get(name)
+    try { return value ? JSON.parse(value) : value } catch (e) { return value }
   }
 
   async function logout(){
     return onLogout();
   }
 
-  function notify({ title, body, icon, color = 'green', duration = 2500 }){
+  function notify({ title, body, icon, color = 'green', duration = 3500 }){
     notification({
       title,
       description: body,
       icon,
       colorScheme: color,
-      duration
+      status: color === 'red' ? 'error' : color === 'green' ? 'success' : 'info',
+      duration,
+      isClosable: true,
     })
+  }
+
+  /** Toast for a failed request; accepts an ApiError or anything thrown. */
+  function notifyError(error, title = "That didn't work"){
+    const apiError = toApiError(error)
+    notify({ title, body: apiError.message, color: 'red', duration: 5000 })
   }
 
   function redirect(url, timeout){
@@ -156,10 +198,25 @@ function App() {
     }
   }
 
+  /** Store the logged-in user returned by /accounts/login/ or /accounts/register/. */
   function onAuthenticated(data){
-    localStorage.setItem('motaa-auth-user', JSON.stringify({...data}));
-    setAuthState(true)
+    if (!data?.token) {
+      console.error('onAuthenticated called without a token', data)
+      return
+    }
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({...data}));
+    setAuthUser({...data})
   }
+
+  /** Log out locally (and say why, when the server ended the session). */
+  const endSession = useCallback((message) => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setAuthUser(null);
+    if (message) {
+      notification({ title: 'Signed out', description: message, status: 'warning', duration: 5000, isClosable: true, id: 'session-ended' })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function naturalDate (dateObj) {
     const months = [
@@ -178,7 +235,8 @@ function App() {
         hours -= 12
       }
     }
-    return (`${hours}:${dateObj.getMinutes()} ${time}`)
+    if (hours === 0) hours = 12
+    return (`${hours}:${String(dateObj.getMinutes()).padStart(2, '0')} ${time}`)
   }
 
   function setCookie({name, val, expires}){
@@ -186,30 +244,7 @@ function App() {
     return cookie
   }
 
-  function getAuthUser(){
-    const user = localStorage.getItem('motaa-auth-user')
-    if (user === null){
-    }else{
-      const userData = JSON.parse(user)
-      setAuthUser(userData);
-      setAuthState(true)
-    }
-  }
-  
-  function init(){
-    if (!loading){
-      setLoading(true);
-    }
 
-    // try to authenticate the user else redirect to login screen
-    // this is a synchronous localStorage read, so there is nothing to wait for
-    getAuthUser();
-    setLoading(false);
-
-    // TODO: try to refresh the auth token if expired - for jwt
-  }
-
-  
   function onError(message){
     notify({
         'title': 'Error!',
@@ -219,25 +254,27 @@ function App() {
   }
   
   function onLogout(){
-    setAuthState(false);
-    setAuthUser(null);
-    localStorage.removeItem('motaa-auth-user', null);
+    endSession();
   }
 
+  // 1234567.5 -> "1,234,567.5"; missing/invalid values show as "0" instead of "NaN"
   function commaInt(number) {
-    if (typeof number !== Number){
-      number = Number(number)
-    }
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const value = Number(number);
+    if (number === null || number === undefined || number === '' || !Number.isFinite(value)) return '0';
+    const [whole, fraction] = (Math.round(value * 100) / 100).toString().split('.');
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return fraction ? `${grouped}.${fraction}` : grouped;
   }
 
   const context = {
     notify,
+    notifyError,
+    api,
+    maintenanceMode: MAINTENANCE_MODE,
     authUser,
     loading,
     onLogout,
     onError,
-    axios: axiosClient,
     setCookie,
     getCookie,
     onAuthenticated,
@@ -253,21 +290,21 @@ function App() {
     mapsError,
   }
 
+  // keep tabs in sync: logging in/out in one tab applies to the others
   useEffect(() => {
-    init();
-  }, [isAuthenticated,])
-
-
-  if (loading){
-    return null
-    // return <ErrorBoundary> <AppLoadingScreen /> </ErrorBoundary>
-  }  
+    function onStorage(event){
+      if (event.key === AUTH_STORAGE_KEY) setAuthUser(readStoredUser())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
   
   return (
      <ChakraProvider theme={BrandColors}>
      <ErrorBoundary>
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
+           <Suspense fallback={<LoadingState minH="70vh" label="Loading…" />}>
            <Routes ErrorBoundary={ErrorBoundary}>
             {authUser ? (
                 <Fragment>
@@ -278,13 +315,11 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} path='/inventory' element={<><Outlet /></>}>
                         <Route ErrorBoundary={ErrorBoundary} path='edit/:listingId' element={<EditListingAdmin />} />
                         <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateListingAdmin />} />
-                        <Route ErrorBoundary={ErrorBoundary} path='discounts' element={<DealerDashboard />} />
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
-                      <Route ErrorBoundary={ErrorBoundary} path='/orders' element={<DealerDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<DealershipSettings />} />
-                      <Route ErrorBoundary={ErrorBoundary} path='/support' element={<DealerDashboard />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
                     </Route>
@@ -295,12 +330,13 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/bookings' element={<BookingsAdmin />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/services' element={<> <Outlet /> </>}>
-                          <Route ErrorBoundary={ErrorBoundary} path='edit/:serviceId' element={<ServiceOfferings />} />
+                          <Route ErrorBoundary={ErrorBoundary} path='edit/:serviceId' element={<EditServiceOffering />} />
                           <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateServiceOffering />} />
                           <Route ErrorBoundary={ErrorBoundary} path='' element={<ServiceOfferings />} />
                         </Route>
 
                         <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
                       </Route>
@@ -321,17 +357,24 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<DocumentSigningPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/inspection' element={<CheckoutWithInspection />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/checkout/status' element={<CheckoutStatus />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/' element={<CheckoutPage />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/search/cars/' element={<CarSearchPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/search/mechanics/' element={<MechanicSearchPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/about' element={<AboutPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/features' element={<FeaturesPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/business' element={<BusinessPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
                     
                         <Route ErrorBoundary={ErrorBoundary} path='/home' element={<HomePage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to='/home' />} />
                       </Route>
                     )
-                  }* 
+                  }
 
                   {/* Wallet Routes */}
                   <Route ErrorBoundary={ErrorBoundary} element={
@@ -345,7 +388,7 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} path='savings' element={<ComingSoon />} />
                       <Route ErrorBoundary={ErrorBoundary} path='deposit' element={<WalletDepositPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='withdraw' element={<WalletWithdrawalPage />} />
-                      <Route ErrorBoundary={ErrorBoundary} path='settings' element={<WalletHomePage />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='settings' element={<WalletSettingsPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='' element={<Navigate to='home' />} />
                       <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='home' />} />
                     </Route>
@@ -359,13 +402,21 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/login' element={<LoginView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup' element={<SignupView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<BusinessSignupView />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/reset-password/:uid/:token' element={<ResetPasswordView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
-                  <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LandingPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/about' element={<AboutPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/features' element={<FeaturesPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/business' element={<BusinessPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/' element={<LandingPage />} />
+                  {/* deep links need an account: send them to login and come back afterwards */}
+                  <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LoginRedirect />} />
                 </Route>      
               )              
             }
           </Routes>
+           </Suspense>
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>
@@ -373,5 +424,13 @@ function App() {
     </ChakraProvider>           
   );  
 } 
+
+/** Unknown/protected path while logged out → /login?next=<path> (landing for junk paths). */
+function LoginRedirect(){
+  const path = window.location.pathname + window.location.search
+  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services)(\/|$)/
+  if (!appPaths.test(window.location.pathname)) return <Navigate to='/' replace />
+  return <Navigate to={`/login?next=${encodeURIComponent(path)}`} replace />
+}
 
 export default App;

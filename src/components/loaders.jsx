@@ -58,7 +58,7 @@ export const ListingSkeleton = ({ props }) => {
 
         {/* Filter Buttons Skeleton */}
         <HStack my={5} overflowX="auto" spacing={4}>
-          {[...Array(7)].map((idx) => (
+          {[...Array(7)].map((_, idx) => (
             <Skeleton key={idx} height="36px" width="120px" borderRadius="md" />
           ))}
         </HStack>
@@ -71,7 +71,7 @@ export const ListingSkeleton = ({ props }) => {
           columnGap={2}
           py="2rem"
         >
-          {[...Array(12)].map((idx) => (
+          {[...Array(12)].map((_, idx) => (
             <Box
               key={idx}
               w={{ base: '100%', md: 'calc(100% / 2 - 20px)', lg: 'calc(100% / 3 - 20px)' }}

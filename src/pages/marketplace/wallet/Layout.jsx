@@ -1,165 +1,82 @@
-import {useState, useEffect, useContext} from 'react';
-import {Link, NavLink, Outlet} from 'react-router-dom';
-import {GlobalStore} from '../../../App';
-import {objectifyJSON, jsonifyObject} from '../../../utils';
-import {
-  Box,
-  Container,
-  Flex,
-  VStack,
-  HStack,
-  Text,
-  Heading,
-  Button,
-  Avatar,
-  AvatarGroup,
-  Progress,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  IconButton,
-  Menu,
-  MenuButton,
-  useMediaQuery,
-  SimpleGrid,
-  MenuList,
-  MenuItem,
-  Badge,
-  Drawer, DrawerBody, DrawerContent, DrawerCloseButton, DrawerHeader, DrawerOverlay,
-} from '@chakra-ui/react'
-import { LayoutDashboard, Wallet, Clock, PiggyBank, BarChart2, HelpCircle, Settings, Share2, MoreVertical, TrendingUp } from 'lucide-react'
-import { RiCoinsFill, RiCoinsLine, RiMenuFill } from "react-icons/ri";
-import { LuChartLine } from "react-icons/lu";
-import { AiOutlineTransaction } from "react-icons/ai";
-import { PiHandDepositBold, PiHandWithdrawBold } from "react-icons/pi";
-// import {MenuIcon} from '@chakra-ui/icons';
+import { useContext, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Avatar, Box, Button, Container, Flex, HStack, Text, VStack } from '@chakra-ui/react';
+import { ArrowDownToLine, ArrowUpFromLine, Landmark, LayoutDashboard, List, PiggyBank } from 'lucide-react';
+import { GlobalStore } from '../../../App';
 
-const sidebarItems = [
-  { icon: LayoutDashboard, label: 'Overview', link: 'home'},
-  { icon: RiCoinsLine, label: 'Deposit', link: 'deposit'},
-  { icon: LuChartLine, label: 'Withdraw', link: 'withdraw'},
-  { icon: AiOutlineTransaction, label: 'Transactions', link: 'transactions'},
-  { icon: RiCoinsLine, label: 'Savings', link: 'savings'},
-]
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: 'Overview', link: 'home' },
+  { icon: ArrowDownToLine, label: 'Deposit', link: 'deposit' },
+  { icon: ArrowUpFromLine, label: 'Withdraw', link: 'withdraw' },
+  { icon: List, label: 'Transactions', link: 'transactions' },
+  { icon: Landmark, label: 'Payout accounts', link: 'settings' },
+  { icon: PiggyBank, label: 'Savings', link: 'savings', badge: 'Soon' },
+];
 
+const NavItem = ({ item, compact }) => (
+  <Button
+    as={NavLink}
+    to={item.link}
+    leftIcon={<item.icon size={18} aria-hidden="true" />}
+    variant="ghost"
+    justifyContent="start"
+    flexShrink={0}
+    size={compact ? 'sm' : 'md'}
+    color="gray.700"
+    _activeLink={{ bg: 'primary', color: 'white' }}
+  >
+    {item.label}
+    {item.badge && <Text as="span" ml={2} fontSize="xs" color="inherit" opacity={0.7}>{item.badge}</Text>}
+  </Button>
+);
 
-function WalletLayout({ ...props }) {
-  const {axios, notify, authUser, commaInt} = useContext(GlobalStore);
-  const [wallet, setWallet] = useState({});
-  const [navState, setNavState] = useState(false);
-  const [showDepositModal, setDepositModalVisibility] = useState(false);
-  const [isMobile] = useMediaQuery('(max-width: 800px)');
-
-  async function getWallet(){
-    const res = await axios.get('/wallet/');
-    const data = objectifyJSON(res.data);
-    console.log("Wallet:", data)
-    setWallet(data?.data)
-  }
-
-  function init(){
-    // getWallet();
-    // setTimeout(() => setLoadingState(false), 2000);
-  }
-
-  function hideNav(){
-    setNavState(false);
-  }
-  
-  function showNav(){
-    setNavState(true);
-  }
-
+function WalletLayout() {
+  const { authUser } = useContext(GlobalStore);
+  const { pathname } = useLocation();
+  const tabsRef = useRef(null);
+  // keep the active tab visible in the scrollable phone tab row
   useEffect(() => {
-    init();
-  }, [])
-
+    const row = tabsRef.current;
+    const active = row?.querySelector('a.active');
+    if (!row || !active) return;
+    const a = active.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    row.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
+  }, [pathname]);
+  const name = `${authUser?.first_name || ''} ${authUser?.last_name || ''}`.trim() || 'My wallet';
 
   return (
-    <Flex flexDirection={{base: 'column', lg: 'row'}} position="relative">
-      {/* Sidebar */}
-    {
-      isMobile ? (
-        <Drawer isOpen={navState} onClose={hideNav} placement="left">
-          <DrawerOverlay />
-
-          <DrawerContent>
-            <DrawerHeader> <DrawerCloseButton /> </DrawerHeader>
-            <DrawerBody>
-              <Navigation wallet={wallet} authUser={authUser} />
-            </DrawerBody>
-          </DrawerContent>
-        </Drawer>
-      ):(
-        <Box
-          w="280px"
-          position="fixed"
-          left="0"
-          h="100vh"
-          bgColor="#fff"
-          zIndex="2"
-          borderRightWidth={1}
-          p={6}
-        >
-          <Navigation wallet={wallet} authUser={authUser} />
-        </Box>
-      )
-    }
-
-      {/* Main Content */}
-      <Box flex={1} ml={!isMobile && "280px"}>
-        <Container maxW="container.xl" pb={10}>
-          {isMobile && 
-            <Box pt={2}>
-              <Button onClick={showNav}> <RiMenuFill /> </Button>
+    <Container maxW="container.xl" px={{ base: 4, md: 6 }} py={{ base: 4, md: 8 }}>
+      <Flex direction={{ base: 'column', lg: 'row' }} gap={{ base: 4, lg: 8 }} align="start">
+        {/* Desktop sidebar: sits below the navbar and scrolls with the page */}
+        <Box as="nav" aria-label="Wallet" display={{ base: 'none', lg: 'block' }} w="240px" flexShrink={0}
+          position="sticky" top="90px" borderWidth={1} borderRadius="lg" p={4} bg="white">
+          <HStack spacing={3} mb={5}>
+            <Avatar size="sm" name={name} />
+            <Box minW={0}>
+              <Text className="bold" noOfLines={1}>{name}</Text>
+              <Text fontSize="sm" color="gray.500" noOfLines={1}>{authUser?.email}</Text>
             </Box>
-          }
-          <Outlet />
-        </Container>
-      </Box>
-    </Flex>
+          </HStack>
+          <VStack align="stretch" spacing={1}>
+            {NAV_ITEMS.map((item) => <NavItem key={item.link} item={item} />)}
+          </VStack>
+        </Box>
 
-  )
+        {/* Phones/tablets: a scrollable tab row instead of a hidden drawer */}
+        <Box as="nav" ref={tabsRef} aria-label="Wallet" display={{ base: 'block', lg: 'none' }} w="100%" overflowX="auto" className="hidden-scroll"
+          borderBottomWidth={1} pb={2}>
+          <HStack spacing={1} minW="max-content">
+            {NAV_ITEMS.map((item) => <NavItem key={item.link} item={item} compact />)}
+          </HStack>
+        </Box>
+
+        <Box flex={1} minW={0} w="100%">
+          <Outlet />
+        </Box>
+      </Flex>
+    </Container>
+  );
 }
 
 export default WalletLayout;
-
-
-const Navigation = ({ authUser, wallet}) => (
-  <VStack align="stretch" spacing={6}>
-    <HStack spacing={3}>
-      <Avatar size="sm" name={`${authUser?.first_name} ${authUser?.last_name}`} />
-      <Box flex={1}>
-        <Text fontWeight="medium">{`${authUser?.first_name} ${authUser?.last_name}`}</Text>
-        <Text fontSize="sm" color="gray.500">Pay ID: 4557321238</Text>
-      </Box>
-      <IconButton
-        icon={<Share2 size={18} />}
-        variant="ghost"
-        size="sm"
-        aria-label="Share"
-      />
-    </HStack>
-
-    <VStack align="stretch" spacing={2}>
-      {sidebarItems.map((item, index) => (
-        <Button
-          key={index}
-          as={NavLink}
-          leftIcon={<item.icon size={20} />}
-          to={`${item.link}`}
-          variant={'ghost'}
-          _activeLink={{ bgColor: 'primary', color : 'white'}}
-          justifyContent="start"
-        >
-          {item.label}
-        </Button>
-      ))}
-    </VStack>
-  </VStack>
-)
-
-

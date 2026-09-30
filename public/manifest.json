@@ -1,6 +1,6 @@
 {
   "short_name": "Motaa",
-  "name": "Motaa - Africa's Largest Car Marketplace",
+  "name": "Motaa — Buy, sell, rent cars and find mechanics",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +18,9 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#0065B5",
+  "background_color": "#ffffff",
+  "description": "One platform for all your car needs in Nigeria."
 }

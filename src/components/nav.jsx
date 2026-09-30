@@ -1,94 +1,65 @@
-import {useState, useContext, useEffect, Fragment} from 'react';
+import { useState, useContext } from 'react';
 import {
-    Box, Stack, Flex,
-    Image, Text,
-    useMediaQuery, Icon,
-    DrawerContent,
-    Divider,
-    DrawerHeader,
-    DrawerCloseButton,
-    DrawerBody,
-    Drawer,
-    SimpleGrid,
-    Link,
-    Menu,
-    MenuItem,
-    MenuButton,
-    MenuList,
-    Heading,
-    Button,
-    ButtonGroup,
-    VStack,
-    Avatar,
-    IconButton,
-    HStack,
-    Tooltip,
-    Circle,
-    Progress,
-    DrawerFooter,
-    Container,
-    Input,
-    Tag,
-    Accordion,
-    AccordionItem,
-    AccordionButton,
-    AccordionPanel,
-    AccordionIcon,
+  Box, Stack, Flex, Image, Text, Divider, Link,
+  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerCloseButton, DrawerBody, DrawerFooter,
+  SimpleGrid, Menu, MenuItem, MenuButton, MenuList, Heading, Button, ButtonGroup, VStack,
+  Avatar, IconButton, HStack, Circle, Progress, Container, Tag,
 } from '@chakra-ui/react';
-import { RiCoinsFill, RiCoinsLine } from "react-icons/ri";
-import {motion} from 'framer-motion';
-import {GlobalStore} from '../App';
-import {FcMenu} from 'react-icons/fc';
-import {CheckCircleIcon} from '@chakra-ui/icons'
-import { FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, FaUser } from "react-icons/fa";
-import { CustomerSearchBar, DashboardSearchBar } from '.';
-import { RiAccountCircleLine, RiBellLine, RiFacebookFill, RiHeadphoneLine, RiInstagramFill, RiLinkedinFill, RiLogoutBoxRLine, RiMenuLine, RiTwitterFill, RiAccountCircleFill } from 'react-icons/ri';
-import { TbBell, TbSearch } from 'react-icons/tb';
+import { CheckCircleIcon } from '@chakra-ui/icons';
+import { FaChevronLeft, FaUser } from 'react-icons/fa';
+import { RiHeadphoneLine, RiLogoutBoxRLine, RiMenuLine, RiAccountCircleFill, RiTwitterXFill, RiInstagramLine } from 'react-icons/ri';
+import { TbSearch } from 'react-icons/tb';
 import { HiOutlineShoppingCart } from 'react-icons/hi';
-import { RxEnvelopeClosed } from 'react-icons/rx';
 import { AiOutlineMessage } from 'react-icons/ai';
-import { GiMechanicGarage } from 'react-icons/gi';
+import { GiMechanicGarage, GiHomeGarage } from 'react-icons/gi';
+import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
-import { BsTools } from 'react-icons/bs';
-import { LuWallet, LuChartLine } from 'react-icons/lu';
-import { NavLink, Link as RLink, useNavigate } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react';
-import { 
-  LayoutDashboard, Wallet, Clock,
-  PiggyBank, BarChart2, HelpCircle,
-  Settings, Share2, MoreVertical, TrendingUp
-} from 'lucide-react';
-import { GiHomeGarage } from "react-icons/gi";
-import { GrUserWorker } from "react-icons/gr";
-import {
-  Wallet3, Home3, Chart, Shop,
-  Chart1, Chart2, Chart21, ChartCircle, ChartFail, ChartSquare, ChartSuccess,
-  Coin, User, //Toolbox,
-} from "iconsax-react";
-import { AiOutlineTransaction } from "react-icons/ai";
+import { LuChartLine } from 'react-icons/lu';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Home3, Shop, Coin, User } from 'iconsax-react';
+import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
+import { GlobalStore } from '../App';
+import { CustomerSearchBar } from '.';
+
+// Public contact/social details (same as the Privacy Policy / Terms contact sections).
+export const MOTAA_CONTACT = {
+  email: 'support@motaa.net',
+  phone: '+2348104484364',
+  phoneDisplay: '+234 810 448 4364',
+  address: '15 Kawo Road, Kawo, Kaduna State, Nigeria',
+  instagram: 'https://www.instagram.com/motaaltd',
+  x: 'https://x.com/motaaltd',
+};
+
+// Marketing pages, shared by the logged-out navbar, drawer and footer.
+const PUBLIC_NAV = [
+  { label: 'Home', to: '/' },
+  { label: 'About', to: '/about' },
+  { label: 'Features', to: '/features' },
+  { label: 'For Businesses', to: '/business' },
+];
+
+const CUSTOMER_NAV = [
+  { label: 'Home', to: '/home' },
+  { label: 'Buy', to: '/buy' },
+  { label: 'Rent', to: '/rent' },
+  { label: 'Find Mechanic', to: '/mechanics' },
+];
 
 
 export const BackButton = ({ to, onClick, ...props }) => {
-  const redirect = useNavigate();
+  const navigate = useNavigate();
 
   function goBack(){
-    if(to){
-      return redirect(to);
-    }
-    if (onClick){
-      return onClick();
-    }
-
-    const {navigation} = window;
-    if (navigation && navigation.canGoBack){
-      return navigation.back();
-    }else{
-      return redirect('/');
-    }
+    if (to) return navigate(to);
+    if (onClick) return onClick();
+    // fall back to the home page when there is no in-app history (e.g. a shared link)
+    if (window.history.state?.idx > 0) return navigate(-1);
+    return navigate('/');
   }
 
-  return(
+  return (
     <Button
      borderColor="primary"
      variant="outline"
@@ -102,55 +73,13 @@ export const BackButton = ({ to, onClick, ...props }) => {
 }
 
 
-export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
-  const [currentPage, setCurrentPage] = useState(1); // page 1 by default, unaffected by parent state.
-  const [pages, setPages] = useState([]); // page 1 by default, unaffected by parent state.
-  // const {next, previous, count, offset} = pagination;
-
-  function destructurePages(){
-    let _offset = pagination?.offset;
-    // just in case there's no offset, prevents zero division error
-    if (_offset === 0){
-      _offset = 1;
-    }
-    // make the pages from the offset count, appx.
-    let _pages, length = Math.round(pagination?.count/_offset);
-
-    // create a Number Array with the number of pages gotten from div.
-    _pages = Array.from({length}, (_, i) => (i + 1)); // [1, 2, 3, ..., n]
-    console.log(`You've got ${_pages} pages!`);
-    // setPages(..._pages)
-  }
-
-  function handlePageClick(pageNum){
-    // do some cool shit ()
-  }
-
-  useEffect(() => {
-    destructurePages();
-  }, [])
-
-
-  return(
-    <ButtonGroup justifyContent="center" w="100%" isAttached align="center" mt={8}>
-      <Button onClick={onPrevious} disabled={!pagination?.previous} variant="outline" size="sm" leftIcon={<ArrowLeft size={20} />}>
+export const Paginator = ({ onNext, onPrevious, pagination }) => {
+  return (
+    <ButtonGroup justifyContent="center" w="100%" isAttached mt={8}>
+      <Button onClick={onPrevious} isDisabled={!pagination?.previous} variant="outline" size="sm" leftIcon={<ArrowLeft size={20} />}>
         Previous
       </Button>
-
-      {pages?.map((page, i) => (
-        <Button
-          key={i}
-          size="sm"
-          disabled={page === '...'}
-          onClick={onClick}
-          variant={page === 1 ? 'solid' : 'outline'}
-          colorScheme={page === 1 ? 'blue' : 'gray'}
-        >
-          {(page + 1)}
-        </Button>
-      ))}
-          
-      <Button onClick={onNext} disabled={!pagination?.next} variant="outline" size="sm" rightIcon={<ArrowRight size={20} />}>
+      <Button onClick={onNext} isDisabled={!pagination?.next} variant="outline" size="sm" rightIcon={<ArrowRight size={20} />}>
         Next
       </Button>
     </ButtonGroup>
@@ -158,999 +87,514 @@ export const Paginator = ({ onNext, onPrevious, onClick, pagination }) => {
 }
 
 
-export const UnauthenticatedNavbar = ({ props }) => {
-    const [navIsOpen, setNavState] = useState(false);
-    const [searchIsOpen, setSearchState] = useState(false);
-    const {authUser, onLogout} = useContext(GlobalStore);
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const isLoggedIn = Boolean(authUser);
+// Shared sticky header shell for every navbar.
+const NavbarShell = ({ children, dark, ...props }) => (
+  <Box
+   as="header"
+   position="sticky"
+   top="0px"
+   bg={dark ? 'primary' : 'white'}
+   color={dark ? 'white' : 'black'}
+   w="100%"
+   className="navbar"
+   zIndex="20"
+   {...props}
+  >
+    <Flex className="navbar-inner" alignItems="center" px={4} py={{ base: 3, md: 4 }} gap={3} justifyContent="space-between" w="100%">
+      {children}
+    </Flex>
+  </Box>
+)
 
-    window.onscroll = (ev) => {
-      if(window.scrollY > 1000){
-        document.getElementById('navbar').classList.add('scrolled');
-      }else{
-        document.getElementById('navbar').classList.remove('scrolled');
-      }
-    }
+const Brand = ({ to = '/', light }) => (
+  <Box as={RLink} to={to} flexShrink={0} w={{ base: '64px', md: '80px' }} aria-label="Motaa home">
+    <Image
+     loading="eager"
+     src={light ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
+     alt=""
+     w="100%"
+    />
+  </Box>
+)
 
-    function toggleSearch(){
-      setSearchState(!searchIsOpen);
-    }
+const TopLink = ({ to, children, end }) => (
+  <Text
+   as={NavLink}
+   to={to}
+   end={end}
+   fontWeight="600"
+   px={1}
+   py={1}
+   borderBottomWidth="2px"
+   borderColor="transparent"
+   _activeLink={{ borderColor: 'tertiary' }}
+   _hover={{ opacity: 0.85 }}
+  >{children}</Text>
+)
 
-    function hideNav(){
-        setNavState(false)
-    }
 
-    function showNav(){
-        setNavState(true)
-    }
+export const UnauthenticatedNavbar = () => {
+  const [navIsOpen, setNavState] = useState(false);
 
-    return(
-      <Box
-       position={'sticky'}
-       top={'0px'}
-       bg={'primary'}
-       as={motion.div}
-       color={"white"}
-       flex={1} w={'100%'}
-       animate={{ opacity: 1, }}
-       initial={{ opacity: 0.6, }}
-       transition={'.5s linear'}
-       className='navbar'
-       id='navbar'
-       zIndex="20"
-       mb={0}
-      >
-        <Flex className='navbar-inner'
-          alignItems={'center'}
-          px={4}
-          py={4}
-          justifyContent={'space-between'}
-          flex={1} w={'100%'}
-        >
-          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}>
-              <Image
-               loading='eager'
-               src={'/assets/images/motaa-logo-2.png'}
-               width={'100%'}
-               className='navbar-brand'
-              />
-            </RLink>
-          </Box>
+  return (
+    <NavbarShell dark>
+      <Brand light />
 
-          <Flex flex={{base: 1, lg: 3/4}} flexWrap={'wrap'} justifyContent={{base: 'flex-end', md: 'space-around'}} className='navbar-nav' gap={{base: '10px', sm: 5}} alignItems={'center'}>
-            {!isMobile && 
-              <Fragment>
-                <Text as={NavLink} fontWeight={'600'} to={"/#welcome"}> Home </Text>
-                <Text as={NavLink} fontWeight={'600'} to={"/#what-we-offer"}> About </Text>
-                <Text as={NavLink} fontWeight={'600'} to={"/#find-mechanics"}> Features </Text>
-                <Text as={NavLink} fontWeight={'600'} to={"/#partner-with-us"}> For Businesses </Text>
-              </Fragment>
-            }
+      <HStack as="nav" aria-label="Main" display={{ base: 'none', md: 'flex' }} spacing={{ md: 5, lg: 10 }}>
+        {PUBLIC_NAV.map((item) => <TopLink key={item.to} to={item.to} end={item.to === '/'}>{item.label}</TopLink>)}
+      </HStack>
 
-            <Fragment>
-              <RLink to={"/signup/"}>
-                <Button size='md' color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link"> Sign up </Button>
-              </RLink>
-              
-              <RLink to={"/login"}>
-                <Button borderWidth={2} _hover={{bgColor: "white", color: "primary", }}  w={'100px'} color={'white'} size='md' borderColor={'white'} variant={'outline'}> Login </Button>
-              </RLink>
-            </Fragment>
+      <HStack spacing={{ base: 2, sm: 4 }}>
+        <Button as={RLink} to="/signup" display={{ base: 'none', sm: 'inline-flex' }} color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link">Sign up</Button>
+        <Button as={RLink} to="/login" borderWidth={2} _hover={{ bgColor: 'white', color: 'primary' }} w={{ base: '88px', sm: '100px' }} color="white" borderColor="white" variant="outline">Login</Button>
+        <IconButton
+         display={{ base: 'inline-flex', md: 'none' }}
+         onClick={() => setNavState(true)}
+         aria-label="Open menu"
+         variant="ghost"
+         color="white"
+         _hover={{ bg: 'whiteAlpha.200' }}
+         icon={<RiMenuLine size={24} />}
+        />
+      </HStack>
 
-            {isMobile &&
-              <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                <Icon sx={{ fill: 'white', '& *': {fill: 'white'}}} className='icon'><FcMenu /></Icon>
-              </Button>
-            }
-          </Flex>
-
-          <Sidebar onClose={hideNav} show={navIsOpen} />
-        </Flex>
-      </Box>
-    )
+      <Sidebar onClose={() => setNavState(false)} show={navIsOpen} />
+    </NavbarShell>
+  )
 }
 
 
-export const CustomerNavbar = ({ props }) => {
-    const [navIsOpen, setNavState] = useState(false);
-    const [searchIsOpen, setSearchState] = useState(false);
-    const {authUser, onLogout, logout} = useContext(GlobalStore);
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const [isLaptop] = useMediaQuery('(max-width: 1028px)');
-    const isLoggedIn = Boolean(authUser);
-
-    window.onscroll = (ev) => {
-      if(window.scrollY > 1000){
-        document.getElementById('navbar').classList.add('scrolled');
-      }else{
-        document.getElementById('navbar').classList.remove('scrolled');
-      }
-    }
-
-    function toggleSearch(){
-      setSearchState(!searchIsOpen);
-    }
-
-    function hideNav(){
-        setNavState(false)
-    }
-
-    function showNav(){
-        setNavState(true)
-    }
-
-    return(
-      <Box
-       position={'sticky'}
-       top={'0px'}
-       bg={'white'}
-       as={motion.div}
-       color={"black"}
-       flex={1} w={'100%'}
-       animate={{ opacity: 1, }}
-       initial={{ opacity: 0.6, }}
-       transition={'.5s linear'}
-       className='navbar'
-       id='navbar'
-       zIndex="20"
-       mb={0}
-      >
-        <Flex className='navbar-inner'
-          alignItems={'center'}
-          px={4} py={4} gap="10px"
-          justifyContent={'space-between'}
-          flex={1} w={'100%'}
-          >
-          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={'80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}>
-              <Image
-               loading='eager'
-               src={'/assets/images/motaa-logo-3.png'}
-               width={'100%'}
-               className='navbar-brand'
-              />
-            </RLink>
-          </Box>
-
-          <Fragment>
-            {!isLaptop && 
-              <Flex flex={{base: 8/9, lg: 7/8}} flexWrap={'wrap'} alignItems={'center'}>
-                <Flex display={{base: 'none', lg: 'flex'}}  flex={1} flexWrap={'wrap'} className='navbar-nav' gap={6} alignItems={'center'}>
-                  <Text as={RLink} fontWeight={'500'} to={"/home"}> Home </Text>
-                  <Text as={RLink} fontWeight={'500'} to={"/buy"}> Buy </Text>
-                  <Text as={RLink} fontWeight={'500'} to={"/rent"}> Rent </Text>
-                  <Text as={RLink} fontWeight={'500'} to={"/mechanics"}> Find Mechanic </Text>
-                </Flex>
-              </Flex>
-            }
-
-          {/* {!isMobile && <CustomerSearchBar flex={1} />} */}  
-
-            <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'nowrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-              
-              {isMobile && 
-                <Button onClick={toggleSearch} variant="unstyled"><Icon viewBox='45' className='icon'><TbSearch /></Icon></Button>
-              }
-
-              {!isMobile && 
-                <Button
-                 as={RLink}
-                 to="/wallet"
-                 borderRadius={'30px'}
-                 leftIcon={
-                  <Icon
-                   fontSize={'25px'}
-                   as={Image}
-                   src='/assets/icons/WalletIcon.svg'
-                  />
-                 }
-                 variant="outline"
-                 bgColor="#d9ebf5"
-                 fontWeight="600"
-                 colorScheme="blue"
-                 color="primary"
-                >{"Wallet"}</Button>
-              }
-
-              <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
-              <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
-              <RLink to={'/cart'}><Icon viewBox='45' className='icon'><HiOutlineShoppingCart /></Icon></RLink>
-              {!isLaptop && 
-                <Menu to={`/dashboard`}>
-                {({ isOpen, onClose }) =>
-                <Fragment>
-                  <MenuButton onClose={onClose} isOpen={isOpen}>
-                    <Icon viewBox='45' className='icon'><MdOutlineAccountCircle /></Icon>
-                  </MenuButton>
-                  <MenuList px={2}>
-                    <Box my={3} placeItems="center">
-                      <Avatar name={`${authUser?.first_name} ${authUser?.last_name}`} />
-                      <Text>{authUser?.first_name} {authUser?.last_name}</Text>
-                    </Box>
-
-                    <Button my={1} as={MenuItem} display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
-                    <Button my={1} as={MenuItem} display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
-                  </MenuList>
-                </Fragment>
-                }
-                </Menu>
-              }
-              
-              {isLaptop &&
-                <Button onClick={navIsOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-                  <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-                </Button>
-              }
-            </Flex>
-            
-          </Fragment>
-          
-          <Sidebar onClose={hideNav} show={navIsOpen} />
-        </Flex>
-
-        {isMobile && searchIsOpen &&
-          <Fragment>
-            <Box px={2} py={2}  w={'100%'} bg="#fff">
-              <CustomerSearchBar />
-            </Box>
-          </Fragment>
-        }
-
-      </Box>
-    )
-}
+const NavIconLink = ({ to, label, icon }) => (
+  <IconButton as={RLink} to={to} aria-label={label} title={label} variant="ghost" icon={icon} fontSize="22px" />
+)
 
 
-export const DealerNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
+export const CustomerNavbar = () => {
   const [navIsOpen, setNavState] = useState(false);
   const [searchIsOpen, setSearchState] = useState(false);
-  const {authUser, onLogout, logout} = useContext(GlobalStore);
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const isLoggedIn = Boolean(authUser);
+  const { authUser, logout } = useContext(GlobalStore);
+  const fullName = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');
 
-  window.onscroll = (ev) => {
-    if(window.scrollY > 1000){
-      document.getElementById('navbar').classList.add('scrolled');
-    }else{
-      document.getElementById('navbar').classList.remove('scrolled');
-    }
-  }
+  return (
+    <Box position="sticky" top="0px" zIndex="20">
+      <NavbarShell position="relative">
+        <Brand to="/home" />
 
-  function toggleSearch(){
-    setSearchState(!searchIsOpen);
-  }
+        <HStack as="nav" aria-label="Main" display={{ base: 'none', lg: 'flex' }} flex={1} spacing={6} pl={4}>
+          {CUSTOMER_NAV.map((item) => <TopLink key={item.to} to={item.to}>{item.label}</TopLink>)}
+        </HStack>
 
-  function hideNav(){
-      setSidebarState(false)
-  }
+        <HStack spacing={{ base: 0, sm: 1, md: 3 }}>
+          <IconButton
+           display={{ base: 'inline-flex', md: 'none' }}
+           onClick={() => setSearchState(!searchIsOpen)}
+           aria-label={searchIsOpen ? 'Close search' : 'Search'}
+           aria-expanded={searchIsOpen}
+           variant="ghost"
+           fontSize="22px"
+           icon={<TbSearch />}
+          />
 
-  function showNav(){
-      setSidebarState(true)
-  }
+          <Button
+           as={RLink}
+           to="/wallet"
+           display={{ base: 'none', md: 'inline-flex' }}
+           borderRadius="30px"
+           leftIcon={<Image boxSize="22px" src="/assets/icons/WalletIcon.svg" alt="" />}
+           variant="outline"
+           bgColor="#d9ebf5"
+           fontWeight="600"
+           colorScheme="blue"
+           color="primary"
+          >Wallet</Button>
 
-  return(
-    <Box
-     position={'sticky'}
-     top={'0px'}
-     bg={!authUser ? 'primary' : 'white'}
-     as={motion.div}
-     color={!authUser ? "white": "black"}
-     flex={1} w={'100%'}
-     animate={{ opacity: 1, }}
-     initial={{ opacity: 0.6, }}
-     transition={'.5s linear'}
-     className='navbar'
-     id='navbar'
-     zIndex="20"
-     mb={0}
-    >
-      <Flex className='navbar-inner'
-        alignItems={'center'}
-        px={4}
-        py={4}
-        justifyContent={'space-between'}
-        flex={1} w={'100%'}
-        >
-        <Flex justifyContent="space-betweeen" alignItems="center">
-          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}><Image loading='eager'
-                src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
-                width={'100%'} className='navbar-brand' /></RLink>
+          <NavIconLink to="/chat" label="Messages" icon={<AiOutlineMessage />} />
+          <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
+          <NavIconLink to="/cart" label="Cart" icon={<HiOutlineShoppingCart />} />
+
+          <Box display={{ base: 'none', lg: 'block' }}>
+            <Menu placement="bottom-end">
+              <MenuButton as={IconButton} aria-label="Account menu" variant="ghost" fontSize="24px" icon={<MdOutlineAccountCircle />} />
+              <MenuList px={2} zIndex={30}>
+                <VStack my={3} spacing={1}>
+                  <Avatar name={fullName || undefined} />
+                  {fullName && <Text fontWeight="600">{fullName}</Text>}
+                  {authUser?.email && <Text fontSize="sm" color="gray.600">{authUser.email}</Text>}
+                </VStack>
+                <MenuItem as={RLink} to="/support" icon={<RiHeadphoneLine size={18} />}>Contact Support</MenuItem>
+                <MenuItem onClick={logout} icon={<RiLogoutBoxRLine size={18} />}>Sign Out</MenuItem>
+              </MenuList>
+            </Menu>
           </Box>
-        </Flex>
 
+          <IconButton
+           display={{ base: 'inline-flex', lg: 'none' }}
+           onClick={() => setNavState(true)}
+           aria-label="Open menu"
+           variant="ghost"
+           fontSize="24px"
+           icon={<RiMenuLine />}
+          />
+        </HStack>
 
-        <Flex
-         flex={isMobile ? 1 : 'unset'}
-         flexWrap={'nowrap'}
-         justifyContent={{base: 'space-around', lg: 'flex-end'}}
-         gap={isMobile ? 3 : 5}
-         alignItems={'center'}
-        >
-          {/*{isMobile ? 
-            <Button px={0} onClick={toggleSearch} variant="unstyled">
-              <Icon className='icon'><TbSearch /></Icon>
-            </Button>
-            :
-            <DashboardSearchBar flex={1} />
-          }*/}
-          {isMobile ? (
-              <Button
-               as={RLink}
-               to="/wallet"
-               variant="ghost"
-               borderColor="primary"
-               px={2}
-              >
-                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-              </Button> 
-            ):(
-              <Button
-               as={RLink}
-               to="/wallet"
-               borderRadius={'30px'}
-               leftIcon={
-                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-               }
-               variant="outline"
-               bgColor="#d9ebf5"
-               fontWeight="600"
-               colorScheme="blue"
-               color="primary"
-              >Wallet</Button>
-            )
-          }
-          <Button px={2} as={RLink} variant="ghost" to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></Button>
-          <Button px={2} as={RLink} variant="ghost" to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></Button>
-          
-          <Menu zIndex={2} display="block">
-            <MenuButton
-              as={IconButton}
-              icon={<FaUser size={18} />}
-              variant="ghost"
-              size="sm"
-              aria-label="Profile"
-            />
+        <Sidebar onClose={() => setNavState(false)} show={navIsOpen} />
+      </NavbarShell>
 
-            <MenuList py={3} px={3} zIndex={'2 !important'}>
-              <Box placeItems="center" placeContent="center" p={3}>
-                <Avatar 
-                 size="lg"
-                 name={`${authUser?.first_name} ${authUser?.last_name}`}
-                 />
-                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.last_name}`} </Heading>
-                <Text> {authUser?.email} </Text>
-              </Box>
-              <Divider my={2} />
-              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
-              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
-            </MenuList>
-          </Menu>
-
-          {(isMobile || props.hideSidebar) &&
-            <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={0}>
-              <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-            </Button>
-          }
-        </Flex>          
-      </Flex>
-
-      {isMobile && searchIsOpen &&
-        <Fragment>
-          <Box px={2} py={2}  w={'100%'} bg="#fff">
-            <DashboardSearchBar />
-          </Box>
-        </Fragment>
+      {searchIsOpen &&
+        <Box px={3} py={2} w="100%" bg="#fff" display={{ md: 'none' }} borderTopWidth={1}>
+          <CustomerSearchBar />
+        </Box>
       }
     </Box>
   )
 }
 
 
-export const DealerDashboardSideBar = ({ dealership, sidebarOpen, setSidebarState, onClose, ...props }) => {
-  const NavLinks = ({ dealership, sidebarOpen, setSidebarState }) => {
-    const {logout, authUser} = useContext(GlobalStore);
-    const pathname = document.location.pathname;
+// Navbar shared by the dealer and mechanic dashboards.
+const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
+  const { authUser, logout } = useContext(GlobalStore);
+  const fullName = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');
 
-    useEffect(() => {
+  return (
+    <NavbarShell>
+      <Brand to="/dashboard" />
 
-    }, [window.location])
+      <HStack spacing={{ base: 1, md: 3 }}>
+        <Button
+         as={RLink}
+         to="/wallet"
+         display={{ base: 'none', md: 'inline-flex' }}
+         borderRadius="30px"
+         leftIcon={<Image boxSize="22px" src="/assets/icons/WalletIcon.svg" alt="" />}
+         variant="outline"
+         bgColor="#d9ebf5"
+         fontWeight="600"
+         colorScheme="blue"
+         color="primary"
+        >Wallet</Button>
+        <IconButton
+         as={RLink}
+         to="/wallet"
+         display={{ base: 'inline-flex', md: 'none' }}
+         aria-label="Wallet"
+         variant="ghost"
+         icon={<Image boxSize="24px" src="/assets/icons/WalletIcon.svg" alt="" />}
+        />
+        <NavIconLink to="/chat" label="Messages" icon={<AiOutlineMessage />} />
+        <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
 
-     const links = [
-      { icon: Home3, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
-      { icon: Coin, label: 'Orders', path: '/orders', active: pathname.includes('orders')},
-      { icon: Shop, label: 'Inventory', path: '/inventory', active: pathname.includes('analytics')},
-      { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
-      { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
-      { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},
-    ]
+        <Menu placement="bottom-end">
+          <MenuButton as={IconButton} icon={<FaUser size={18} />} variant="ghost" aria-label="Account menu" />
+          <MenuList py={3} px={3} zIndex={30}>
+            <VStack p={3} spacing={1}>
+              <Avatar size="lg" name={fullName || undefined} />
+              {fullName && <Heading as="p" size="sm">{fullName}</Heading>}
+              {authUser?.email && <Text fontSize="sm" color="gray.600">{authUser.email}</Text>}
+            </VStack>
+            <Divider my={2} />
+            <MenuItem as={RLink} to="/settings" icon={<User size="18" />}>Profile</MenuItem>
+            <MenuItem as={RLink} to="/support" icon={<RiHeadphoneLine size={18} />}>Contact Support</MenuItem>
+            <MenuItem onClick={logout} icon={<RiLogoutBoxRLine size={18} />}>Logout</MenuItem>
+          </MenuList>
+        </Menu>
 
-    return(
-      <VStack align="stretch" spacing={6}>
-        <HStack spacing={3}>
-          <Avatar size="md" src={dealership?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${dealership?.business_name}`} />
-
-          <Box flex={1}>
-            <Text fontWeight="medium">{`${dealership?.business_name}`}</Text>
-            <Text fontSize="sm" color="gray.500">@{dealership?.slug}</Text>
-          </Box>
-        </HStack>
-
-        <VStack align="stretch" spacing={2}>
-          {links.map((item, index) =>
-            <Fragment key={index}>
-            {
-              item?.children ? (
-                <Accordion allowToggle>
-                  <AccordionItem border="none">
-                    <AccordionButton
-                      key={index}
-                      as={NavLink}
-                      borderRadius="5px"
-                      w={'100%'}
-                      justifyContent="space-between"
-                      alignItems="center"
-                      bgColor={item.active ? 'gray' : 'transparent'}
-                      _expanded={{ bgColor: 'gray', color: 'white'}}
-                    >
-                    {({ expanded }) => 
-                      <>
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text fontWeight="600"> {item.label} </Text>
-                      </Flex>
-                      {expanded ? <FaChevronUp /> : <FaChevronDown />}
-                      </>
-                    }
-                    </AccordionButton>
-
-                    <AccordionPanel px={0}>
-                      {
-                        item.children.map((child, idx) => 
-                          <Tooltip key={idx} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                          <Button
-                            as={NavLink}
-                            to={child.path}
-                            w={'100%'}
-                            mt={1.5}
-                            bgColor="transparent"
-                            _activeLink={{ bgColor: 'primary', color: 'white', }}
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Flex flex={1} gap={3} alignItems="center">
-                              <item.icon size={20} />
-                              <Text> {child.label} </Text>
-                            </Flex>                          
-                          </Button>
-                          </Tooltip>
-                        )
-                      }
-                    </AccordionPanel>
-                  </AccordionItem>
-                </Accordion>
-                ) : (
-                  // <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                    <Button
-                      key={index}
-                      as={NavLink}
-                      to={item.path}
-                      w={'100%'}
-                      bgColor="transparent"
-                      _activeLink={{ bgColor: 'primary', color: 'white' }}
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text> {item.label} </Text>
-                      </Flex>
-                      {item?.children && !!sidebarOpen && <FaChevronDown />}
-                    </Button>
-                  // </Tooltip>
-                )
-            }
-            </Fragment>
-          )}
-
-          {/* Main Content */}
-          <Button
-           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
-           onClick={() => setSidebarState(!sidebarOpen)}
-           justifyContent="start"
-           colorScheme="gray.500"
-           variant="solid"
-           bottom="0px"
-           zIndex="10"
-          > {sidebarOpen && 'Close'} </Button>
-        </VStack>
-      </VStack>
-    )
-  }
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const {authUser} = useContext(GlobalStore);
-
-  if (isMobile || props.mode === 'drawer'){
-    return(
-      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)} {...props}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerCloseButton />
-          </DrawerHeader>
-          
-          <DrawerBody>
-            <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return(
-    <Box
-      w={"280px"}
-      overflow={'hidden'}
-      position={"fixed"}
-      left="0"
-      h={"100vh"}
-      bgColor="#fff"
-      zIndex="20"
-      borderRightWidth={1}
-      p={sidebarOpen ? 6 : 2}
-      {...props}
-    >
-      <NavLinks sidebarOpen={sidebarOpen} dealership={dealership} setSidebarState={setSidebarState} />
-    </Box>
+        <IconButton
+         display={hideSidebar ? 'inline-flex' : { base: 'inline-flex', lg: 'none' }}
+         onClick={() => setSidebarState(!sidebarOpen)}
+         aria-label="Open menu"
+         aria-expanded={!!sidebarOpen}
+         variant="ghost"
+         fontSize="24px"
+         icon={<RiMenuLine />}
+        />
+      </HStack>
+    </NavbarShell>
   )
 }
 
+export const DealerNavbar = (props) => <BusinessNavbar {...props} />;
+export const MechanicNavbar = (props) => <BusinessNavbar {...props} />;
 
 
-export const MechanicNavbar = ({ sidebarOpen, setSidebarState, ...props }) => {
-  const [navIsOpen, setNavState] = useState(false);
-  const [searchIsOpen, setSearchState] = useState(false);
-  const {authUser, onLogout, logout} = useContext(GlobalStore);
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const isLoggedIn = Boolean(authUser);
+const DEALER_LINKS = [
+  { icon: Home3, label: 'Dashboard', path: '/dashboard' },
+  { icon: Coin, label: 'Orders', path: '/orders' },
+  { icon: Shop, label: 'Inventory', path: '/inventory' },
+  { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
+  { icon: HelpCircle, label: 'Support', path: '/support' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
+];
 
-  window.onscroll = (ev) => {
-    if(window.scrollY > 1000){
-      document.getElementById('navbar').classList.add('scrolled');
-    }else{
-      document.getElementById('navbar').classList.remove('scrolled');
-    }
-  }
+const MECHANIC_LINKS = [
+  { icon: GiHomeGarage, label: 'Dashboard', path: '/dashboard' },
+  { icon: GrUserWorker, label: 'Bookings', path: '/bookings' },
+  { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services' },
+  { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
+  { icon: HelpCircle, label: 'Support', path: '/support' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
+];
 
-  function toggleSearch(){
-    setSearchState(!searchIsOpen);
-  }
+// Business header + links; NavLink marks the current section (incl. nested pages like /inventory/add).
+const SidebarNavLinks = ({ business, links }) => (
+  <VStack align="stretch" spacing={6}>
+    <HStack spacing={3}>
+      <Avatar size="md" src={business?.logo || undefined} name={business?.business_name || undefined} />
+      <Box flex={1} minW={0}>
+        <Text fontWeight="600" noOfLines={1}>{business?.business_name || 'Your business'}</Text>
+        {business?.slug && <Text fontSize="sm" color="gray.500" noOfLines={1}>@{business.slug}</Text>}
+      </Box>
+    </HStack>
 
-  function hideNav(){
-      setSidebarState(false)
-  }
-
-  function showNav(){
-      setSidebarState(true)
-  }
-
-  return(
-    <Box
-     position={'sticky'}
-     top={'0px'}
-     bg={!authUser ? 'primary' : 'white'}
-     as={motion.div}
-     color={!authUser ? "white": "black"}
-     flex={1} w={'100%'}
-     animate={{ opacity: 1, }}
-     initial={{ opacity: 0.6, }}
-     transition={'.5s linear'}
-     className='navbar'
-     id='navbar'
-     zIndex="20"
-     mb={0}
-    >
-      <Flex className='navbar-inner'
-        alignItems={'center'}
-        px={4}
-        py={4}
-        justifyContent={'space-between'}
-        flex={1} w={'100%'}
+    <VStack as="nav" aria-label="Dashboard" align="stretch" spacing={2}>
+      {links.map((item) => (
+        <Button
+         key={item.path}
+         as={NavLink}
+         to={item.path}
+         w="100%"
+         variant="ghost"
+         justifyContent="flex-start"
+         fontWeight="500"
+         leftIcon={<item.icon size={20} />}
+         iconSpacing={3}
+         _activeLink={{ bgColor: 'primary', color: 'white' }}
         >
-        <Flex justifyContent="space-betweeen" alignItems="center">
+          {item.label}
+        </Button>
+      ))}
+    </VStack>
+  </VStack>
+)
 
-          <Box as={Flex} alignItems={'center'} justifyContent={'center'} width={isMobile? '60px' : '80px'} height={isMobile ? '40px' : '50px'} className='navbar-brand'>
-            <RLink to={'/'}><Image loading='eager'
-                src={!authUser ? '/assets/images/motaa-logo-2.png' : '/assets/images/motaa-logo-3.png'}
-                width={'100%'} className='navbar-brand' /></RLink>
-          </Box>
-        </Flex>
+const BusinessSideBar = ({ business, links, sidebarOpen, setSidebarState, mode, ...props }) => {
+  // desktop: fixed 280px column; phones/tablets (and pages without a sidebar): drawer opened from the navbar
+  const close = () => setSidebarState(false);
 
+  const drawer = (
+    <Drawer placement="right" isOpen={!!sidebarOpen} onClose={close}>
+      <DrawerOverlay />
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerCloseButton />
+        </DrawerHeader>
+        {/* close the drawer once a link is tapped */}
+        <DrawerBody onClick={(e) => e.target.closest('a') && close()}>
+          <SidebarNavLinks business={business} links={links} />
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
 
-        <Flex flex={isMobile ? 1 : 'unset'} flexWrap={'wrap'} justifyContent={{base: 'space-evenly', lg: 'flex-start'}} className='' gap={isMobile ? 3 : 5} alignItems={'center'}>
-          
-          {isMobile ? (
-              <Button
-               as={RLink}
-               to="/wallet"
-               variant="outline"
-               borderColor="primary"
-              >
-                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-              </Button> 
-            ):(
-              <Button
-               as={RLink}
-               to="/wallet"
-               borderRadius={'30px'}
-               leftIcon={
-                <Icon fontSize={'25px'} as={Image} src='/assets/icons/WalletIcon.svg' />
-               }
-               variant="outline"
-               bgColor="#d9ebf5"
-               fontWeight="600"
-               colorScheme="blue"
-               color="primary"
-              >Wallet</Button>
-            )
-          }
-          <RLink to={'/chat'}><Icon viewBox='45' className='icon'><AiOutlineMessage /></Icon></RLink>
-          <RLink to={'/notifications'}><Icon viewBox='45' className='icon'><FiBell /></Icon></RLink>
-          <Menu zIndex={2} display="block">
-            <MenuButton
-              as={IconButton}
-              icon={<FaUser size={18} />}
-              variant="ghost"
-              size="sm"
-              aria-label="Profile"
-            />
+  if (mode === 'drawer') return drawer;
 
-            <MenuList py={3} px={3} zIndex={'2 !important'}>
-              <Box placeItems="center" placeContent="center" p={3}>
-                <Avatar 
-                 size="lg"
-                 name={`${authUser?.first_name} ${authUser?.last_name}`}
-                 />
-                <Heading my={1} size="sm"> {`${authUser?.first_name} ${authUser?.last_name}`} </Heading>
-                <Text> {authUser?.email} </Text>
-              </Box>
-              <Divider my={2} />
-              <MenuItem as={Link} gap={2} to={'/profile'}> <User size="20" /> Profile </MenuItem>
-              <MenuItem as={Link} gap={2} onClick={logout}> <RiLogoutBoxRLine /> Logout </MenuItem>
-            </MenuList>
-          </Menu>
-          {(isMobile || props.hideSidebar) &&
-            <Button onClick={sidebarOpen ? hideNav : showNav} colorScheme='transparent' px={2}>
-              <Icon sx={{ fill: 'black', '& *': {fill: 'black'}}} className='icon'><FcMenu /></Icon>
-            </Button>
-          }
-        </Flex>          
-      </Flex>
-    </Box>
+  return (
+    <>
+      <Box display={{ base: 'block', lg: 'none' }}>{drawer}</Box>
+      <Box
+        as="aside"
+        display={{ base: 'none', lg: 'block' }}
+        w="280px"
+        overflowX="hidden"
+        overflowY="auto"
+        position="fixed"
+        left="0"
+        h="100vh"
+        bgColor="#fff"
+        zIndex="20"
+        borderRightWidth={1}
+        p={6}
+        {...props}
+      >
+        <SidebarNavLinks business={business} links={links} />
+      </Box>
+    </>
   )
 }
 
+export const DealerDashboardSideBar = ({ dealership, onClose, ...props }) => (
+  <BusinessSideBar business={dealership} links={DEALER_LINKS} {...props} />
+);
 
-export const MechanicDashboardSideBar = ({ mechanic, sidebarOpen, setSidebarState, onClose, ...props }) => {
-  const NavLinks = ({ mechanic, sidebarOpen, setSidebarState }) => {
-    const {logout, authUser} = useContext(GlobalStore);
-    const pathname = document.location.pathname;
-
-    useEffect(() => {
-
-    }, [window.location])
-
-     const links = [
-      { icon: GiHomeGarage, label: 'Dashboard', path: '/dashboard', active: pathname.includes('dashboard')},
-      { icon: GrUserWorker, label: 'Bookings', path: '/bookings', active: pathname.includes('bookings')},
-      { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services', active: pathname.includes('services')},
-      { icon: LuChartLine, label: 'Analytics', path: '/analytics', active: pathname.includes('analytics')},
-      { icon: HelpCircle, label: 'Support', path: '/support', active: pathname.includes('support')},
-      { icon: Settings, label: 'Settings', path: '/settings', active: pathname.includes('settings')},
-    ]
-
-    return(
-      <VStack align="stretch" spacing={6}>
-        <HStack spacing={3}>
-          <Avatar size="md" src={mechanic?.logo} mx={sidebarOpen ? '0px' : 'auto'} name={`${mechanic?.business_name}`} />
-
-          <Box flex={1}>
-            <Text fontWeight="medium">{`${mechanic?.business_name}`}</Text>
-            <Text fontSize="sm" color="gray.500">@{mechanic?.slug}</Text>
-          </Box>
-        </HStack>
-
-        <VStack align="stretch" spacing={2}>
-          {links.map((item, index) =>
-            <Fragment key={index}>
-            {
-              item?.children ? (
-                <Accordion allowToggle>
-                  <AccordionItem border="none">
-                    <AccordionButton
-                      key={index}
-                      as={NavLink}
-                      borderRadius="5px"
-                      w={'100%'}
-                      justifyContent="space-between"
-                      alignItems="center"
-                      bgColor={item.active ? 'gray' : 'transparent'}
-                      _expanded={{ bgColor: 'gray', color: 'white'}}
-                    >
-                    {({ expanded }) => 
-                      <>
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text fontWeight="600"> {item.label} </Text>
-                      </Flex>
-                      {expanded ? <FaChevronUp /> : <FaChevronDown />}
-                      </>
-                    }
-                    </AccordionButton>
-
-                    <AccordionPanel px={0}>
-                      {
-                        item.children.map((child, idx) => 
-                          <Tooltip key={idx} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                          <Button
-                            as={NavLink}
-                            to={child.path}
-                            w={'100%'}
-                            mt={1.5}
-                            bgColor="transparent"
-                            _activeLink={{ bgColor: 'primary', color: 'white', }}
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Flex flex={1} gap={3} alignItems="center">
-                              <item.icon size={20} />
-                              <Text> {child.label} </Text>
-                            </Flex>                          
-                          </Button>
-                          </Tooltip>
-                        )
-                      }
-                    </AccordionPanel>
-                  </AccordionItem>
-                </Accordion>
-                ) : (
-                  // <Tooltip key={index} isDisabled={sidebarOpen} hasArrow label={item.label} placement="right-start">
-                    <Button
-                      key={index}
-                      as={NavLink}
-                      to={item.path}
-                      w={'100%'}
-                      bgColor="transparent"
-                      _activeLink={{ bgColor: 'primary', color: 'white' }}
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Flex flex={1} gap={3} alignItems="center">
-                        <item.icon size={20} />
-                        <Text> {item.label} </Text>
-                      </Flex>
-                      {item?.children && !!sidebarOpen && <FaChevronDown />}
-                    </Button>
-                  // </Tooltip>
-                )
-            }
-            </Fragment>
-          )}
-
-          {/* Main Content */}
-          <Button
-           leftIcon={sidebarOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
-           onClick={() => setSidebarState(!sidebarOpen)}
-           justifyContent="start"
-           colorScheme="gray.500"
-           variant="solid"
-           bottom="0px"
-           zIndex="10"
-          > {sidebarOpen && 'Close'} </Button>
-        </VStack>
-      </VStack>
-    )
-  }
-  const [isMobile] = useMediaQuery('(max-width: 768px)');
-  const {authUser} = useContext(GlobalStore);
-
-  if (isMobile || props.mode === 'drawer'){
-    return(
-      <Drawer placement={'right'} isOpen={sidebarOpen} onClose={() => setSidebarState(false)} {...props}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerCloseButton />
-          </DrawerHeader>
-          
-          <DrawerBody>
-            <NavLinks sidebarOpen={sidebarOpen} mechanic={mechanic} setSidebarState={setSidebarState} />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return(
-    <Box
-      w={"280px"}
-      overflow={'hidden'}
-      position={"fixed"}
-      left="0"
-      h={"100vh"}
-      bgColor="#fff"
-      zIndex="20"
-      borderRightWidth={1}
-      p={sidebarOpen ? 6 : 2}
-      {...props}
-    >
-      <NavLinks sidebarOpen={sidebarOpen} mechanic={mechanic} setSidebarState={setSidebarState} />
-    </Box>
-  )
-}
+export const MechanicDashboardSideBar = ({ mechanic, onClose, ...props }) => (
+  <BusinessSideBar business={mechanic} links={MECHANIC_LINKS} {...props} />
+);
 
 
-export const Sidebar = ({ show, onClose, }) => {
-    const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const {authUser, logout} = useContext(GlobalStore);
-    const isLoggedIn = !!authUser;
-    return (
-      <Drawer className="sidebar" position="fixed" zIndex="20" isOpen={show} onClose={onClose} placement='right'>
-        <DrawerContent>
-            <DrawerHeader>
-                <DrawerCloseButton />
-            </DrawerHeader>
+const DrawerLink = ({ to, onClose, children, end }) => (
+  <Text
+   as={NavLink}
+   to={to}
+   end={end}
+   onClick={onClose}
+   py={2}
+   px={4}
+   borderRadius="md"
+   fontWeight="500"
+   _activeLink={{ bg: 'blue.50', color: 'primary' }}
+  >{children}</Text>
+)
 
-            <DrawerBody>
-              {
-                isLoggedIn ? (
-                  // isMobile &&
-                  <Stack>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/home"}>Home</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/buy"}>Buy</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/rent"}>Rent</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/mechanics"}>Find Mechanics</Text>
-                    <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/wallet"}>Wallet</Text>
-                  </Stack>
-                ) : (
-                <Stack>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#welcome"} >Home</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#what-we-offer"} >About</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#find-mechanics"} >Features</Text>
-                  <Text onClick={onClose} py={1} px={4} my={2} as={NavLink} to={"/#partner-with-us"} >For Businesses</Text>
+export const Sidebar = ({ show, onClose }) => {
+  const { authUser, logout } = useContext(GlobalStore);
+  const isLoggedIn = !!authUser;
+
+  return (
+    <Drawer isOpen={show} onClose={onClose} placement="right">
+      <DrawerOverlay />
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerCloseButton />
+        </DrawerHeader>
+
+        <DrawerBody color="black">
+          <Stack as="nav" aria-label="Menu" spacing={1}>
+            {isLoggedIn ? (
+              <>
+                {CUSTOMER_NAV.map((item) => <DrawerLink key={item.to} to={item.to} onClose={onClose}>{item.label}</DrawerLink>)}
+                <DrawerLink to="/wallet" onClose={onClose}>Wallet</DrawerLink>
+              </>
+            ) : (
+              <>
+                {PUBLIC_NAV.map((item) => <DrawerLink key={item.to} to={item.to} end={item.to === '/'} onClose={onClose}>{item.label}</DrawerLink>)}
+                <Stack pt={4} px={4} spacing={3}>
+                  <Button as={RLink} to="/signup" onClick={onClose} bg="primary" color="white" _hover={{ bg: 'secondary' }}>Sign up</Button>
+                  <Button as={RLink} to="/login" onClick={onClose} variant="outline" borderColor="primary" color="primary">Login</Button>
                 </Stack>
-                )
-              }
-            </DrawerBody>
+              </>
+            )}
+          </Stack>
+        </DrawerBody>
 
-            <DrawerFooter as={Stack}>
-                {isLoggedIn && 
-                  <Button display={'flex'} justifyContent={'space-between'} onClick={logout} variant={'ghost'} w={'100%'}> Sign Out  <RiLogoutBoxRLine className='icon' /> </Button>
-                }
-                <Button data-maintenance display={'flex'} justifyContent={'space-between'} variant={'ghost'} w={'100%'}> Contact Support <RiHeadphoneLine className='icon' />  </Button>
-            </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    )
+        <DrawerFooter as={Stack} color="black">
+          {isLoggedIn &&
+            <Button justifyContent="space-between" onClick={logout} variant="ghost" w="100%" rightIcon={<RiLogoutBoxRLine size={20} />}>Sign Out</Button>
+          }
+          <Button as={RLink} to="/support" onClick={onClose} justifyContent="space-between" variant="ghost" w="100%" rightIcon={<RiHeadphoneLine size={20} />}>Contact Support</Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  )
 }
 
 
-export const Footer = ({ props }) => {
+export const Footer = () => {
+  const { authUser } = useContext(GlobalStore);
+  const { pathname } = useLocation();
+  const isLoggedIn = !!authUser;
+  // /business already ends with its own partner call-to-action
+  const showPartnerBand = pathname !== '/business';
+
   const sections = [
     {
       title: 'Product',
-      links: [
-        {label: 'Buy a car', url: '/signup' }, 
-        {label: 'Sell your car', url: '/signup' },
-        {label: 'Rent a car', url: '/signup'},
-        {label: 'Find Mechanic', url: '/signup'}
+      links: isLoggedIn ? [
+        { label: 'Buy a car', url: '/buy' },
+        { label: 'Rent a car', url: '/rent' },
+        { label: 'Find a mechanic', url: '/mechanics' },
+        { label: 'Sell your car', url: '/business' },
+      ] : [
+        { label: 'Buy a car', url: '/signup' },
+        { label: 'Rent a car', url: '/signup' },
+        { label: 'Find a mechanic', url: '/signup' },
+        { label: 'Sell your car', url: '/signup?type=business&as=dealer' },
       ],
     },
     {
       title: 'Company',
       links: [
-        {label: 'About us', url: '/#about-us' }, 
-        {label: 'Careers', coming: true },
-        {label: 'Press', coming: true},
-        {label: 'News', coming: true},
+        { label: 'About us', url: '/about' },
+        { label: 'Features', url: '/features' },
+        { label: 'For Businesses', url: '/business' },
+        { label: 'Careers', coming: true },
       ],
     },
     {
-      title: 'Resources',
+      title: 'Support',
       links: [
-        {label: 'Blog', url: '/blog' }, 
-        {label: 'Newsletter', url: '/bad'},
-        {label: 'Events', },
-        {label: 'Help centre', url: '/help'}
+        { label: 'Help centre', url: '/support' },
+        { label: 'Email us', href: `mailto:${MOTAA_CONTACT.email}` },
+        { label: 'Blog', coming: true },
       ],
     },
     {
       title: 'Legal',
       links: [
-        {label: 'Terms of Service', url: '/terms-of-service' }, 
-        {label: 'Privacy Policy', url: '/privacy-policy' },
-        {label: 'Licenses', url: '/licenses'}
+        { label: 'Terms of Service', url: '/terms-of-service' },
+        { label: 'Privacy Policy', url: '/privacy-policy' },
       ],
     },
   ]
 
+  const socials = [
+    { label: 'Motaa on Instagram', href: MOTAA_CONTACT.instagram, icon: RiInstagramLine },
+    { label: 'Motaa on X', href: MOTAA_CONTACT.x, icon: RiTwitterXFill },
+  ]
+
   return (
-    <Box bg="primary" color="white" pt={20} pb={8}>
+    <Box as="footer" bg="primary" color="white" pt={{ base: 12, md: 20 }} pb={8}>
       <Container maxW="container.lg">
+        {showPartnerBand &&
+        <Flex pb={8} borderBottomWidth={1} borderColor="whiteAlpha.500" justifyContent="space-between" alignItems={{ md: 'center' }} flexDirection={{ base: 'column', md: 'row' }} gap={6}>
+          <Box>
+            <Heading as="h2" size="xl" fontWeight="500">Become a partner!</Heading>
+            <Text fontSize="lg" mt={3}>Join our community of dealers, car rentals and mechanics.</Text>
+          </Box>
 
-        <Box pb={8} borderBottomWidth={1} borderColor="gray.200">
-          <Flex justifyContent="space-between" flexWrap="wrap">
-            <Box>
-              <Heading size="xl" fontWeight="400">Become a partner!</Heading>
-              <Text fontSize="lg" mt={3}>Join our successful community of dealers, car rentals, and mechanics. </Text>
-            </Box>
-
-            <Flex gap={5}>
-              <Button data-maintenance size="lg" colorScheme="yellow" bg="tertiary" color="primary"> Get Started </Button>
-              <Button data-maintenance size="lg" colorScheme="white" bg="white" color="black"> Learn More </Button>
-            </Flex>
+          <Flex gap={4} flexWrap="wrap">
+            <Button as={RLink} to={isLoggedIn ? '/business' : '/signup?type=business'} size="lg" colorScheme="yellow" bg="tertiary" color="primary">Get Started</Button>
+            <Button as={RLink} to="/business" size="lg" bg="white" color="black" _hover={{ bg: 'gray.100' }}>Learn More</Button>
           </Flex>
-        </Box>
+        </Flex>
+        }
 
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 6 }} spacing={8} py={8}>
-          <Box gridColumn="span 2">
-            <Box width="150px" height="70px">
-              <Image src="/assets/images/motaa-logo-2.png" mb={4} w="100%" alt="Motaa" />
+        <SimpleGrid columns={{ base: 2, md: 4, lg: 6 }} spacingX={6} spacingY={8} py={8}>
+          <Box gridColumn={{ base: 'span 2', md: 'span 4', lg: 'span 2' }}>
+            <Box as={RLink} to="/" display="block" width="150px" mb={4}>
+              <Image src="/assets/images/motaa-logo-2.png" w="100%" alt="Motaa home" />
             </Box>
-
-            <Text fontSize="sm" color="white.700" maxW="xs">
+            <Text fontSize="sm" maxW="xs">
               Note: Transactions made on Motaa are between you and the respective service
-              provider. Motaa does not have any liability to you in relation of your purchase.
+              provider. Motaa does not have any liability to you in relation to your purchase.
             </Text>
           </Box>
-          
+
           {sections.map((section) => (
-            <Stack key={section.title} spacing={4}>
-              <Text fontWeight="bold">{section.title}</Text>
-              {section.links.map(({ label, url, coming}) => (
-                <Text
-                  key={label}
-                  as={url && RLink}
-                  to={url}
-                  fontSize="sm"
-                  color="white.800"
-                  cursor="pointer"
-                  _hover={{ color: 'gray.500' }}
-                >
-                  {label} {coming ? <Tag colorScheme="green" size="sm"> coming soon </Tag> : null}
-                </Text>
+            <Stack as="nav" aria-label={section.title} key={section.title} spacing={3}>
+              <Text as="h2" fontWeight="bold">{section.title}</Text>
+              {section.links.map(({ label, url, href, coming }) => (
+                url ? (
+                  <Link key={label} as={RLink} to={url} fontSize="sm" _hover={{ color: 'tertiary' }}>{label}</Link>
+                ) : href ? (
+                  <Link key={label} href={href} fontSize="sm" _hover={{ color: 'tertiary' }}>{label}</Link>
+                ) : (
+                  <Text key={label} fontSize="sm" color="whiteAlpha.800">
+                    {label} {coming && <Tag colorScheme="green" size="sm" ml={1}>coming soon</Tag>}
+                  </Text>
+                )
               ))}
             </Stack>
           ))}
         </SimpleGrid>
 
-        <Box pt={8} borderTopWidth={1} borderColor="gray.200">
-          <Stack
-            direction={{ base: 'column', md: 'row' }}
-            justify="space-between"
-            align="center"
-            spacing={4}
-          >
-            <Text fontSize="sm" color="white">
-              © {new Date().getFullYear()} Motaa Limited. All rights reserved.
-            </Text>
-            <HStack spacing={4}>
-              {[Facebook, Twitter, Instagram, Linkedin, Youtube].map(
-                (SocialIcon, index) => (
-                  <Icon
-                    key={index}
-                    as={SocialIcon}
-                    boxSize={'30px'}
-                    color="gray.800"
-                    cursor="pointer"
-                    _hover={{ color: 'blue.500' }}
-                    px={1.5}
-                    py={1.35}
-                    bg={'tertiary'}
-                    borderRadius={'5px'}
-                  />
-                )
-              )}
+        <Box pt={8} borderTopWidth={1} borderColor="whiteAlpha.500">
+          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" spacing={4}>
+            <Text fontSize="sm">© {new Date().getFullYear()} Motaa Limited. All rights reserved.</Text>
+            <HStack spacing={3}>
+              {socials.map((s) => (
+                <IconButton
+                  key={s.href}
+                  as="a"
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  icon={<s.icon size={18} />}
+                  size="sm"
+                  bg="tertiary"
+                  color="secondary"
+                  _hover={{ bg: 'white' }}
+                />
+              ))}
             </HStack>
           </Stack>
         </Box>
@@ -1163,10 +607,8 @@ export const Footer = ({ props }) => {
 export const FormStepper = () => {
   return (
     <Box textAlign="center" p={5}>
-      {/* Logo */}
-      <Image src="/assets/images/motaa-logo-3.png" alt="Logo" mb={4} width="100px" />
+      <Image src="/assets/images/motaa-logo-3.png" alt="Motaa" mb={4} width="100px" />
 
-      {/* Title */}
       <Text fontSize="2xl" fontWeight="bold" color="gray.800" mb={2}>
         Verify your account
       </Text>
@@ -1174,36 +616,22 @@ export const FormStepper = () => {
         Verify your account in 4 easy steps!
       </Text>
 
-      {/* Stepper */}
       <HStack justifyContent="space-between" spacing={0}>
-        {/* Step 1 */}
         <Flex direction="column" align="center">
           <CheckCircleIcon w={6} h={6} color="blue.500" />
           <Text fontSize="xs" color="blue.500" mt={2}>Step 1</Text>
         </Flex>
-
-        {/* Connector */}
         <Progress colorScheme="blue" size="xs" value={50} width="40px" my="auto" />
-
-        {/* Step 2 */}
         <Flex direction="column" align="center">
           <Circle size="24px" border="2px solid" borderColor="blue.500" />
           <Text fontSize="xs" color="blue.500" mt={2}>Step 2</Text>
         </Flex>
-
-        {/* Connector */}
         <Progress colorScheme="gray" size="xs" value={50} width="40px" my="auto" />
-
-        {/* Step 3 */}
         <Flex direction="column" align="center">
           <Circle size="24px" border="2px solid" borderColor="gray.300" />
           <Text fontSize="xs" color="gray.500" mt={2}>Step 3</Text>
         </Flex>
-
-        {/* Connector */}
         <Progress colorScheme="gray" size="xs" value={50} width="40px" my="auto" />
-
-        {/* Step 4 */}
         <Flex direction="column" align="center">
           <Circle size="24px" border="2px solid" borderColor="gray.300" />
           <Text fontSize="xs" color="gray.500" mt={2}>Step 4</Text>
@@ -1212,7 +640,3 @@ export const FormStepper = () => {
     </Box>
   );
 };
-
-
-
-

@@ -4,8 +4,11 @@ import './assets/index.css';
 import App from './App.jsx';
 import "animate.css/animate.compat.css";
 import reportWebVitals from './reportWebVitals';
+import { glassEnabled, isIOS } from './utils/platform';
 
-
+// Hooks for platform-specific CSS (see assets/index.css)
+if (isIOS) document.documentElement.classList.add('ios');
+if (glassEnabled) document.documentElement.classList.add('glass');
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

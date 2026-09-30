@@ -9,159 +9,149 @@ import {
   Badge,
   Flex,
   Button,
-  useColorModeValue,
+  Heading,
 } from '@chakra-ui/react'
-import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react'
-import { useContext, useState, useEffect } from 'react'
-import {Link} from 'react-router-dom'
-import { objectifyJSON, jsonifyObject } from '../../utils'
+import { X, AlertCircle, CheckCircle, AlertTriangle, Info, Bell } from 'lucide-react'
+import { useContext } from 'react'
+import { Link } from 'react-router-dom'
 import { GlobalStore } from '../../App'
+import { useApiQuery, useApiMutation } from '../../hooks/useApi'
+import { AsyncState, EmptyState } from '../../components/states'
+import { asList } from '../../utils'
 
-function NotificationCard({ type, title, message, action, onClose }) {
-  const borderColors = {
-    info: 'blue.500',
-    success: 'green.500',
-    error: 'red.500',
-    warning: 'orange.500',
-  }
+const LEVELS = {
+  info: { color: 'blue', icon: Info },
+  success: { color: 'green', icon: CheckCircle },
+  error: { color: 'red', icon: AlertCircle },
+  warning: { color: 'orange', icon: AlertTriangle },
+}
 
-  const icons = {
-    info: Info,
-    success: CheckCircle,
-    error: AlertCircle,
-    warning: AlertTriangle,
-  }
-
-  const Icon = icons[type]
-  const borderColor = borderColors[type]
-  const bgColor = useColorModeValue('white', 'gray.800')
+function NotificationCard({ level, title, message, action, onDismiss, dismissing }) {
+  const { color, icon: Icon } = LEVELS[level] || LEVELS.info
 
   return (
     <Box
       w="full"
-      bg={bgColor}
-      borderRadius="5px"
-      borderColor="lavender"
-      borderWidth="2px"
+      bg="white"
+      borderRadius="md"
+      borderColor="gray.100"
+      borderWidth="1px"
       borderLeftWidth={4}
-      borderLeftColor={borderColor}
+      borderLeftColor={`${color}.500`}
       boxShadow="sm"
-      position="relative"
-      overflow="hidden"
     >
       <Flex gap={4} justifyContent="space-between" p={4} alignItems="flex-start">
-        <Icon size="17px" />
-        
-        <Box flex={1} borderRight="1px solid lavender">
-          <Text className="bold" mb={1}> {title} </Text>
-          <Text color="gray.600" fontSize="sm"> {message} </Text>
+        <Box color={`${color}.500`} pt={1} aria-hidden="true"><Icon size="17px" /></Box>
+
+        <Box flex={1} minW={0}>
+          <Text className="bold" mb={1}>{title}</Text>
+          <Text color="gray.600" fontSize="sm">{message}</Text>
           {action?.link && (
-            <Link to={action?.link}>
-              <Button
-                size="sm"
-                colorScheme={
-                  type === 'info'
-                    ? 'blue'
-                    : type === 'success'
-                    ? 'green'
-                    : type === 'error'
-                    ? 'red'
-                    : 'orange'
-                }
-                mt={3}
-              >
-                {action?.label}
-              </Button>
-            </Link>
+            // cta_link is a full URL on the backend; keep same-site links in the SPA
+            action.link.startsWith('/') || action.link.startsWith(window.location.origin)
+              ? <Button as={Link} to={action.link.replace(window.location.origin, '')} size="sm" colorScheme={color} mt={3}>{action.label || 'View'}</Button>
+              : <Button as="a" href={action.link} target="_blank" rel="noopener noreferrer" size="sm" colorScheme={color} mt={3}>{action.label || 'View'}</Button>
           )}
         </Box>
 
         <IconButton
-          icon={<X size="20px" />}
+          icon={<X size="18px" />}
           variant="ghost"
           size="sm"
-          onClick={onClose}
-          aria-label="Close notification"
+          onClick={onDismiss}
+          isLoading={dismissing}
+          aria-label={`Mark "${title}" as read`}
         />
-
       </Flex>
     </Box>
   )
 }
 
+// "Today", "Yesterday", or a date label for grouping.
+function dayLabel(value, naturalDate) {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return 'Earlier'
+  const today = new Date()
+  const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const diffDays = Math.round((startOf(today) - startOf(date)) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  return naturalDate(date)
+}
+
+function groupByDay(notifications, naturalDate) {
+  const groups = []
+  for (const notification of notifications) {
+    const label = dayLabel(notification?.date_created, naturalDate)
+    const group = groups.find((g) => g.label === label)
+    if (group) group.items.push(notification)
+    else groups.push({ label, items: [notification] })
+  }
+  return groups
+}
+
 function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const {axios} = useContext(GlobalStore);
-
-  async function init(){
-    const res = await axios.get('/accounts/notifications/');
-    const data = objectifyJSON(res.data);
-    if (res.status === 200){
-      setNotifications(data.data)
-    }
-  }
-
-
-  async function readNotification(notification_id){
-    const res = await axios.post('/accounts/notifications/', jsonifyObject({notification_id}));
-    const data = objectifyJSON(res.data);
-    if (res.status === 200){
-      setNotifications(data.data)
-    }
-  }
-
-  
-
-  useEffect(() => {
-    init()
-  }, [])
+  const { naturalDate } = useContext(GlobalStore)
+  // the endpoint returns unread notifications only
+  const query = useApiQuery(
+    (api, signal) => api.get('/accounts/notifications/', { signal }),
+    [],
+    { select: (body) => asList(body?.data) }
+  )
+  const markRead = useApiMutation(
+    (api, notificationId) => api.post('/accounts/notifications/', { notification_id: notificationId }),
+    { onSuccess: (body) => query.setData(asList(body?.data)), errorTitle: "Couldn't update notification" }
+  )
+  const unread = query.data?.length ?? 0
 
   return (
-    <Box minH="100vh">
-      <Container maxW="container.xl" py={8}>
+    <Box minH="70vh">
+      <Container maxW="container.md" py={8}>
         <HStack mb={1} alignItems="center">
-          <Text fontSize="2xl" fontWeight="bold"> Notifications </Text>
-          <Badge px={3} colorScheme="blue" color="primary" py={"5px"} borderRadius="30px" fontSize="sm"> {notifications?.length} </Badge>
+          <Heading as="h1" fontSize="2xl">Notifications</Heading>
+          {unread > 0 && <Badge px={3} colorScheme="blue" py="5px" borderRadius="30px" fontSize="sm">{unread}</Badge>}
         </HStack>
 
         <Text color="gray.600" mb={8}>
-          You have {notifications?.length} unread messages.
+          {query.loading && query.data === undefined
+            ? 'Checking for new notifications…'
+            : query.error && query.data === undefined
+              ? 'Your notifications will appear here.'
+              : unread === 0
+              ? "You're all caught up."
+              : `You have ${unread} unread notification${unread === 1 ? '' : 's'}.`}
         </Text>
 
-          <Box mb={8}>
-            <Text
-              color="gray.500"
-              as={Flex}
-              alignItems="center"
-              gap={3}
-              fontSize="sm"
-              className="bold"
-              textAlign="center"
-              mb={4}
-            >
-              <Divider /> Today <Divider />
-            </Text>
-
-            <Container maxW="700px">
+        <AsyncState
+          query={query}
+          loadingLabel="Loading notifications…"
+          isEmpty={(items) => items.length === 0}
+          empty={<EmptyState icon={Bell} title="No new notifications" description="Updates about your orders, bookings and payments will show up here." />}
+        >
+          {(items) => groupByDay(items, naturalDate).map((group) => (
+            <Box key={group.label} mb={8}>
+              <Text as={Flex} color="gray.500" alignItems="center" gap={3} fontSize="sm" className="bold" mb={4} whiteSpace="nowrap">
+                <Divider /> {group.label} <Divider />
+              </Text>
               <VStack spacing={4} align="stretch">
-                {notifications?.map((notification) => (
+                {group.items.map((notification) => (
                   <NotificationCard
-                    key={notification?.id}
-                    type={notification?.level}
+                    key={notification?.uuid || notification?.id}
+                    level={notification?.level}
                     title={notification?.subject}
                     message={notification?.message}
-                    action={{link: notification?.cta_link, label: notification?.cta_text}}
-                    onClose={() => readNotification(notification?.uuid)}
+                    action={{ link: notification?.cta_link, label: notification?.cta_text }}
+                    dismissing={markRead.loading}
+                    onDismiss={() => markRead.mutate(notification?.uuid)}
                   />
                 ))}
               </VStack>
-            </Container>
-          </Box>
-        
+            </Box>
+          ))}
+        </AsyncState>
       </Container>
     </Box>
   )
 }
 
 export default NotificationsPage
-
