@@ -373,7 +373,8 @@ function SignupFlow({ accountType, presetBusinessType }) {
         </Stack>
       </form>
 
-      {GOOGLE_SIGN_IN_AVAILABLE && (
+      {/* Google sign-in is for personal accounts only; businesses use email + password */}
+      {GOOGLE_SIGN_IN_AVAILABLE && !isBusiness && (
         <>
           <HStack my={6}>
             <Divider />

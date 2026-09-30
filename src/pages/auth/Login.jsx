@@ -192,6 +192,9 @@ export const LoginView = () => {
           >
             Continue with Google
           </Button>
+          <Text fontSize="sm" color="gray.500" textAlign="center" mt={2}>
+            For personal accounts. Business accounts log in with email and password.
+          </Text>
         </>
       )}
 
