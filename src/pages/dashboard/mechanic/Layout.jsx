@@ -5,6 +5,7 @@ import { GlobalStore } from '../../../App';
 import { MechanicDashboardSideBar, MechanicNavbar } from '../../../components/nav';
 import { VerificationNotice } from '../../../components';
 import { useApiQuery } from '../../../hooks/useApi';
+import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
 import { LoadingState, ErrorState } from '../../../components/states';
 
 export const MechanicContext = createContext({
@@ -13,7 +14,7 @@ export const MechanicContext = createContext({
 });
 
 function MechanicDashboardLayout({ hideSidebar }) {
-  const { api, notify, notifyError, authUser } = useContext(GlobalStore);
+  const { notify, notifyError, authUser } = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
   const [isMobile] = useMediaQuery('(max-width: 991px)');
   const profile = useApiQuery((client, signal) => client.get('/admin/mechanics/', { signal }), [], {
@@ -21,20 +22,12 @@ function MechanicDashboardLayout({ hideSidebar }) {
   });
   const mechanic = profile.data;
 
+  useVerificationUpdates({ onUpdate: profile.reload, pending: mechanic?.verification_status === 'pending' });
+
   async function onVerification(type, data) {
     if (type === 'success') {
-      try {
-        const body = await api.post('/accounts/verify-business/', {
-          verification_ref: data?.referenceId,
-          scope: ['verified_id', 'verified_tin', 'verified_business', 'user.verified_email', 'verified_phone_number'],
-          object: 'mechanic',
-          object_id: mechanic?.uuid,
-        });
-        notify({ title: 'Verification submitted', body: body?.message || 'Your business verification was received.' });
-        profile.reload();
-      } catch (error) {
-        notifyError(error, "We couldn't verify your business");
-      }
+      notify({ title: 'Verification submitted', body: 'Your details were submitted. Your dashboard will update when the result is confirmed.' });
+      profile.reload();
     } else if (type === 'error') {
       notifyError(new Error(data?.message || 'The verification could not be completed. Please try again.'), 'Verification failed');
     }
@@ -52,7 +45,7 @@ function MechanicDashboardLayout({ hideSidebar }) {
     content = (
       <>
         {mechanic && !mechanic.verified_business && (
-          <VerificationNotice user={authUser} onVerification={onVerification} businessType="mechanic" />
+          <VerificationNotice user={authUser} onVerification={onVerification} businessType="mechanic" verificationStatus={mechanic?.verification_status} />
         )}
         <Suspense fallback={<LoadingState minH="50vh" />}><Outlet /></Suspense>
       </>

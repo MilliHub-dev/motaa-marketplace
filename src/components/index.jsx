@@ -119,8 +119,23 @@ export const ComboBox = ({ defaultOptions, onSelect }) => {
  * businessType: 'dealership' | 'mechanic' (keys of DOJAH.appIds / DOJAH.widgetIds).
  * onVerification(type, data) receives the Dojah events ('success', 'error', 'close', ...).
  */
-export const VerificationNotice = ({ businessType, user, onVerification, ...props })=>{
+export const VerificationNotice = ({ businessType, user, onVerification, verificationStatus, ...props })=>{
   const [beginVerification, setVerificationState] = useState(false);
+  const { api, notifyError } = useContext(GlobalStore);
+  const [session, setSession] = useState(null);
+  const [starting, setStarting] = useState(false);
+  async function startVerification() {
+    setStarting(true);
+    try {
+      const body = await api.post('/accounts/verify-business/session/', {});
+      setSession(body.data);
+      setVerificationState(true);
+    } catch (error) {
+      notifyError(error, "Couldn't start verification");
+    } finally {
+      setStarting(false);
+    }
+  }
   const appId = DOJAH.appIds?.[businessType];
   const widgetId = DOJAH.widgetIds?.[businessType];
   const configured = Boolean(DOJAH.publicKey && appId && widgetId);
@@ -139,6 +154,11 @@ export const VerificationNotice = ({ businessType, user, onVerification, ...prop
           You haven't completed your business verification yet. Verify your business to {
             businessType === 'dealership' ? 'add and publish listings' : 'add services'
           }.
+          {verificationStatus === 'pending' && (
+            <Text as="span" display="block" fontWeight="normal" mt={1}>
+              Verification is in progress. This page updates automatically when a result arrives.
+            </Text>
+          )}
           {!configured && (
             <Text as="span" display="block" fontWeight="normal" mt={1}>
               Online verification is unavailable right now. Please contact Motaa support to verify your business.
@@ -146,8 +166,8 @@ export const VerificationNotice = ({ businessType, user, onVerification, ...prop
           )}
         </AlertTitle>
         <Button
-          onClick={() => setVerificationState(true)}
-          isLoading={beginVerification}
+          onClick={startVerification}
+          isLoading={beginVerification || starting}
           loadingText="Verification open"
           isDisabled={!configured}
           colorScheme="yellow"
@@ -161,7 +181,8 @@ export const VerificationNotice = ({ businessType, user, onVerification, ...prop
           <Dojah
             response={handleResponse}
             publicKey={DOJAH.publicKey}
-            appId={appId}
+            appID={appId}
+            metadata={session?.metadata}
             type="custom"
             config={{
               widget_id: widgetId,

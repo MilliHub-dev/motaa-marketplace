@@ -18,7 +18,7 @@ export const API_URL = (
 // Server origin (API_URL without the /api/v1 path) — used for chat sockets and documents.
 export const SERVER_ORIGIN = new URL(API_URL).origin;
 
-// Websocket origin for live chat; defaults to the API host (wss:// for https).
+// Websocket origin for live chat and verification; defaults to the API host (wss:// for https).
 export const WS_URL = (
   env.VITE_WS_URL || SERVER_ORIGIN.replace(/^http/, 'ws')
 ).replace(/\/+$/, '');

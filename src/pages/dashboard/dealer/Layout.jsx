@@ -5,25 +5,16 @@ import { GlobalStore } from '../../../App';
 import { DealerDashboardSideBar, DealerNavbar } from '../../../components/nav';
 import { VerificationNotice } from '../../../components';
 import { useApiQuery } from '../../../hooks/useApi';
+import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
 import { LoadingState, ErrorState } from '../../../components/states';
-import { toApiError } from '../../../api/client';
 
 export const DealershipContext = createContext({
   dealership: null,
   reloadDealership: () => {},
 });
 
-// What a successful Dojah business verification covers.
-const VERIFICATION_SCOPE = [
-  'verified_id',
-  'verified_tin',
-  'verified_business',
-  'user.verified_email',
-  'verified_phone_number',
-];
-
 function DealerDashboardLayout({ hideSidebar }) {
-  const { api, notify, notifyError, authUser } = useContext(GlobalStore);
+  const { notify, authUser } = useContext(GlobalStore);
   const [sidebarOpen, setSidebarState] = useState(false);
   const [isMobile] = useMediaQuery('(max-width: 991px)');
 
@@ -34,24 +25,12 @@ function DealerDashboardLayout({ hideSidebar }) {
   );
   const dealership = dealershipQuery.data;
 
+  useVerificationUpdates({ onUpdate: dealershipQuery.reload, pending: dealership?.verification_status_code === 'pending' });
+
   async function onVerification(type, data) {
     if (type === 'success') {
-      try {
-        const body = await api.post('/accounts/verify-business/', {
-          verification_ref: data?.referenceId,
-          scope: VERIFICATION_SCOPE,
-          object: 'dealership',
-          object_id: dealership?.uuid,
-        });
-        notify({ title: 'Verification complete', body: body?.message || 'Your business is now verified.' });
-      } catch (error) {
-        const apiError = toApiError(error);
-        if (!apiError.isNetworkError && !(apiError.status >= 500)) {
-          notifyError(apiError, "We couldn't confirm your verification");
-        }
-      } finally {
-        dealershipQuery.reload();
-      }
+      notify({ title: 'Verification submitted', body: 'Your details were submitted. Your dashboard will update when the result is confirmed.' });
+      dealershipQuery.reload();
     } else if (type === 'error') {
       notify({
         title: "Verification didn't complete",
@@ -77,7 +56,7 @@ function DealerDashboardLayout({ hideSidebar }) {
     content = (
       <>
         {!hideSidebar && dealership?.uuid && !dealership.verified_business && (
-          <VerificationNotice user={authUser} onVerification={onVerification} businessType="dealership" />
+          <VerificationNotice user={authUser} onVerification={onVerification} businessType="dealership" verificationStatus={dealership?.verification_status_code} />
         )}
         <Suspense fallback={<LoadingState minH="50vh" />}><Outlet /></Suspense>
       </>
