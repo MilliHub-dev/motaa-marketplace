@@ -158,7 +158,9 @@ export default function RentalDetails() {
                       </Flex>
                       {dealer?.headline && <Text fontSize="sm" mt={3} color="gray.700">{dealer.headline}</Text>}
                       {dealer?.uuid && (
-                        <ChatPopup isOpen={chatOpen} onClose={() => setChatOpen(false)} recipient_type="dealer" recipient_id={dealer.uuid} />
+                        <ChatPopup isOpen={chatOpen} onClose={() => setChatOpen(false)} recipient_type="dealer" recipient_id={dealer.uuid}
+                          recipient_name={dealer.business_name}
+                          listing={listing?.uuid ? { ...listing, listing_type: listing.listing_type || 'rental' } : undefined} />
                       )}
                     </Box>
                   )}

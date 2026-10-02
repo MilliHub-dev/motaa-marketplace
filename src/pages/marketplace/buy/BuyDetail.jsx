@@ -141,6 +141,8 @@ export const BuyDetail = () => {
                              onClose={() => setPopupState(false)}
                              recipient_type="dealer"
                              recipient_id={dealer.uuid}
+                             recipient_name={dealer.business_name}
+                             listing={listing?.uuid ? { ...listing, listing_type: listing.listing_type || 'sale' } : undefined}
                             />
                         )}
 

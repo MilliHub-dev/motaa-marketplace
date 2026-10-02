@@ -18,6 +18,7 @@ import { GlobalStore } from '../../../App';
 import { WS_URL } from '../../../config';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { ErrorState } from '../../../components/states';
+import { ListingChatCard } from '../../../components/chat';
 import { asList } from '../../../utils';
 
 const MAX_LENGTH = 4000;
@@ -121,6 +122,9 @@ function MessageBubble({ msg, mine, naturalTime }) {
   const date = toDate(msg?.date_created);
   return (
     <Box alignSelf={mine ? 'flex-end' : 'flex-start'} maxW={{ base: '85%', md: '70%' }}>
+      {msg?.listing && (
+        <ListingChatCard listing={msg.listing} label={mine ? 'You asked about' : 'Asking about'} compact mb={1} />
+      )}
       <Box
         bg={mine ? 'secondary' : 'accent'}
         color={mine ? 'white' : 'gray.800'}
