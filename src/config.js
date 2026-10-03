@@ -31,7 +31,14 @@ export const MAINTENANCE_MODE = envFlag(env.VITE_MAINTENANCE_MODE, false);
 
 // ---- Third-party public keys -----------------------------------------------
 
-export const GOOGLE_MAPS_API_KEY = env.VITE_GOOGLE_MAPS_API_KEY || '';
+// Mapbox *public* token (pk.…) for map display. Public tokens are meant to ship in the
+// browser; restrict this one to the site's URLs in the Mapbox dashboard.
+export const MAPBOX_TOKEN = env.VITE_MAPBOX_TOKEN
+  || 'pk.eyJ1IjoibW90YWEiLCJhIjoiY211c24xdmh4MG4xYzJ4c2RzYjUydmI0ZCJ9.i1FcFe-SLqG_hLTrB0ifbg';
+
+// Photon geocoder (address search, OpenStreetMap data). The public server is fine for
+// light use; point this at a self-hosted Photon if traffic grows.
+export const PHOTON_URL = (env.VITE_PHOTON_URL || 'https://photon.komoot.io').replace(/\/+$/, '');
 
 // Paystack *public* key (pk_test_... in development). Paystack is the only payment gateway.
 export const PAYSTACK_PUBLIC_KEY = env.VITE_PAYSTACK_PUBLIC_KEY || env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || '';
@@ -61,7 +68,6 @@ export const DOJAH = {
 
 // Warn once in the console about missing keys so a misconfigured deploy is obvious.
 const required = {
-  VITE_GOOGLE_MAPS_API_KEY: GOOGLE_MAPS_API_KEY,
   VITE_PAYSTACK_PUBLIC_KEY: PAYSTACK_PUBLIC_KEY,
   VITE_FIREBASE_API_KEY: FIREBASE_CONFIG.apiKey,
 };

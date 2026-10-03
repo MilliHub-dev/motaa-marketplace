@@ -1,11 +1,12 @@
-import { GoogleMap, MarkerF } from "@react-google-maps/api";
 import { Box, Flex, Input, List, ListItem, Spinner, Text } from "@chakra-ui/react";
-import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
-import { GlobalStore } from "../App";
+import { MAPBOX_TOKEN } from "../config";
+import { searchPlaces } from "../api/geocode";
 
 // Abuja city centre: used when we don't know where the user is yet.
 export const DEFAULT_MAP_CENTER = { lat: 9.0765, lng: 7.3986 };
+const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
 
 function validPoint(point) {
   const lat = Number(point?.lat);
@@ -13,86 +14,110 @@ function validPoint(point) {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 }
 
+// Mapbox GL is large, so it is only downloaded on pages that show a map.
+let mapboxPromise;
+function loadMapbox() {
+  if (!mapboxPromise) {
+    mapboxPromise = Promise.all([import("mapbox-gl"), import("mapbox-gl/dist/mapbox-gl.css")])
+      .then(([module]) => {
+        const mapboxgl = module.default || module;
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        return mapboxgl;
+      })
+      .catch((error) => { mapboxPromise = undefined; throw error; });
+  }
+  return mapboxPromise;
+}
+
 /**
- * Google map centred on `location` ({lat, lng}) with a marker.
- * Uses the Maps script App already loads (useJsApiLoader), so no second loader.
+ * Mapbox map centred on `location` ({lat, lng}) with a marker.
  * The centre only moves when `location` changes, so the user can pan freely.
+ * If the map can't load (offline, blocked, bad token) a plain notice is shown instead.
  */
 export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...props }) => {
-  const { mapsLoaded, mapsError } = useContext(GlobalStore);
   const point = validPoint(location);
   const lat = point?.lat;
   const lng = point?.lng;
-  const center = useMemo(
-    () => (lat !== undefined ? { lat, lng } : DEFAULT_MAP_CENTER),
-    [lat, lng]
-  );
+  const container = useRef(null);
+  const map = useRef(null);
+  const marker = useRef(null);
+  const [status, setStatus] = useState(MAPBOX_TOKEN ? 'loading' : 'error');
 
-  // Google draws its own "This page can't load Google Maps correctly" box inside the
-  // map when it rejects the key (billing, restrictions). Watch for it and show our fallback.
-  const wrapper = useRef(null);
-  const [rejected, setRejected] = useState(false);
+  // create the map once
   useEffect(() => {
-    const node = wrapper.current;
-    if (!mapsLoaded || !node) return undefined;
-    const check = () => { if (node.querySelector('.gm-err-container, .dismissButton')) setRejected(true); };
-    const observer = new MutationObserver(check);
-    observer.observe(node, { childList: true, subtree: true });
-    check();
-    return () => observer.disconnect();
-  }, [mapsLoaded]);
+    if (!MAPBOX_TOKEN) return undefined;
+    let cancelled = false;
+    loadMapbox().then((mapboxgl) => {
+      if (cancelled || !container.current) return;
+      if (mapboxgl.supported && !mapboxgl.supported()) return setStatus('error');
+      const instance = new mapboxgl.Map({
+        container: container.current,
+        style: MAP_STYLE,
+        center: lat !== undefined ? [lng, lat] : [DEFAULT_MAP_CENTER.lng, DEFAULT_MAP_CENTER.lat],
+        zoom,
+        attributionControl: true,
+        cooperativeGestures: true, // page scroll isn't hijacked by the map
+      });
+      instance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+      instance.on('load', () => { if (!cancelled) setStatus('ready'); });
+      // a rejected token or unreachable style: fall back to the notice
+      instance.on('error', (event) => {
+        const code = event?.error?.status;
+        if (!cancelled && (code === 401 || code === 403 || !instance.isStyleLoaded())) setStatus((s) => (s === 'ready' ? s : 'error'));
+      });
+      map.current = instance;
+      map.current.mapboxgl = mapboxgl;
+    }).catch(() => { if (!cancelled) setStatus('error'); });
+    return () => {
+      cancelled = true;
+      marker.current = null;
+      map.current?.remove();
+      map.current = null;
+    };
+    // the map is created once; later changes are handled below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (!mapsLoaded || rejected) {
-    return (
-      <Flex
-        align="center"
-        justify="center"
-        direction="column"
-        gap={2}
-        bg="gray.100"
-        color="gray.600"
-        borderRadius="lg"
-        minH="200px"
-        textAlign="center"
-        px={4}
-        style={style}
-        {...props}
-      >
-        {mapsError || rejected ? (
-          <>
-            <MapPin aria-hidden="true" />
-            <Text fontSize="sm">The map isn't available right now. You can still type your address.</Text>
-          </>
-        ) : (
-          <Spinner color="primary" aria-label="Loading map" />
-        )}
-      </Flex>
-    );
-  }
+  // follow `location`
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || status !== 'ready') return;
+    if (lat === undefined) {
+      marker.current?.remove();
+      marker.current = null;
+      return;
+    }
+    if (!marker.current) marker.current = new instance.mapboxgl.Marker({ color: '#0460CC' });
+    marker.current.setLngLat([lng, lat]).addTo(instance);
+    instance.easeTo({ center: [lng, lat], zoom: Math.max(instance.getZoom(), zoom), duration: 600 });
+  }, [lat, lng, zoom, status]);
 
   return (
-    <Box ref={wrapper} role="region" aria-label={label} borderRadius="lg" overflow="hidden" style={style} {...props}>
-      <GoogleMap
-        mapContainerStyle={{ width: "100%", height: "100%", minHeight: "200px" }}
-        center={center}
-        zoom={zoom}
-        options={{ streetViewControl: false, mapTypeControl: false, clickableIcons: false }}
-      >
-        {point && <MarkerF position={point} />}
-      </GoogleMap>
+    <Box position="relative" role="region" aria-label={label} borderRadius="lg" overflow="hidden" minH="200px" bg="gray.100" style={style} {...props}>
+      {/* Mapbox makes its container position:relative, so it gets its size from this wrapper */}
+      <Box position="absolute" inset={0} visibility={status === 'error' ? 'hidden' : 'visible'}>
+        <div ref={container} style={{ width: '100%', height: '100%' }} />
+      </Box>
+      {status !== 'ready' && (
+        <Flex position="absolute" inset={0} align="center" justify="center" direction="column" gap={2} color="gray.600" textAlign="center" px={4} pointerEvents="none">
+          {status === 'error' ? (
+            <>
+              <MapPin aria-hidden="true" />
+              <Text fontSize="sm">The map isn't available right now. You can still type your address.</Text>
+            </>
+          ) : (
+            <Spinner color="primary" aria-label="Loading map" />
+          )}
+        </Flex>
+      )}
     </Box>
   );
 };
 
-
-function component(result, type, key = 'long_name') {
-  return result?.address_components?.find((comp) => comp?.types?.includes(type))?.[key];
-}
-
 /**
- * Address search backed by Google Places.
+ * Address search backed by Photon (OpenStreetMap).
  * onPlaceChange({ place_id, country, state, city, formatted_address, zip_code, lat, lng, name })
- * fires once the chosen place's coordinates are known.
+ * fires when a suggestion is chosen.
  */
 export const CustomPlacesAutocomplete = ({
   value,
@@ -109,10 +134,8 @@ export const CustomPlacesAutocomplete = ({
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const { mapsLoaded } = useContext(GlobalStore);
-  const autocompleteService = useRef(null);
-  const placesService = useRef(null);
   const debounce = useRef(null);
+  const request = useRef(null);
   const listId = useId();
 
   // keep the text in sync when the parent sets a new value (e.g. reverse-geocoded location)
@@ -120,72 +143,45 @@ export const CustomPlacesAutocomplete = ({
     if (value !== undefined) setInputValue(value || '');
   }, [value]);
 
-  useEffect(() => {
-    if (!mapsLoaded || !window.google?.maps?.places) return;
-    if (!autocompleteService.current) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService();
-    }
-    if (!placesService.current) {
-      placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
-    }
-  }, [mapsLoaded]);
-
-  useEffect(() => () => clearTimeout(debounce.current), []);
+  useEffect(() => () => {
+    clearTimeout(debounce.current);
+    request.current?.abort();
+  }, []);
 
   const fetchPredictions = (input) => {
     clearTimeout(debounce.current);
+    request.current?.abort();
     setMessage('');
-    if (!autocompleteService.current || input.trim().length < 2) {
+    if (input.trim().length < 2) {
       setPredictions([]);
-      if (!mapsLoaded && input.trim().length >= 2) setMessage("Address search is unavailable right now.");
+      setLoading(false);
       return;
     }
-    debounce.current = setTimeout(() => {
+    debounce.current = setTimeout(async () => {
+      const controller = new AbortController();
+      request.current = controller;
       setLoading(true);
-      const request = { input };
-      if (country) request.componentRestrictions = { country };
-      autocompleteService.current.getPlacePredictions(request, (results, status) => {
-        setLoading(false);
-        setPredictions(results || []);
+      try {
+        const results = await searchPlaces(input, { country, signal: controller.signal });
+        setPredictions(results);
         setActive(-1);
-        if (!results?.length && status !== 'OK') setMessage('No suggestions found. You can type the full address instead.');
-      });
-    }, 250);
+        if (!results.length) setMessage('No suggestions found. You can type the full address instead.');
+      } catch (error) {
+        if (error?.name === 'AbortError') return; // a newer search replaced this one
+        setPredictions([]);
+        setMessage('Address search is unavailable right now. You can type the full address instead.');
+      } finally {
+        if (request.current === controller) setLoading(false);
+      }
+    }, 300);
   };
 
   const handleSelect = (place) => {
     if (!place) return;
-    setInputValue(place.description);
+    setInputValue(place.formatted_address);
     setPredictions([]);
     setActive(-1);
-    if (!placesService.current) {
-      setMessage("Couldn't look up that address. Please try again.");
-      return;
-    }
-
-    setLoading(true);
-    placesService.current.getDetails(
-      { placeId: place.place_id, fields: ['geometry', 'formatted_address', 'address_components', 'name', 'place_id'] },
-      (details, status) => {
-        setLoading(false);
-        const location = details?.geometry?.location;
-        if (status !== 'OK' || !location) {
-          setMessage('No suggestions found. You can type the full address instead.');
-          return;
-        }
-        onPlaceChange?.({
-          place_id: place.place_id,
-          name: details.name || place.description,
-          country: component(details, 'country', 'short_name'),
-          state: component(details, 'administrative_area_level_1', 'short_name'),
-          city: component(details, 'administrative_area_level_2') || component(details, 'locality'),
-          formatted_address: details.formatted_address || place.description,
-          zip_code: component(details, 'postal_code'),
-          lat: location.lat(),
-          lng: location.lng(),
-        });
-      }
-    );
+    onPlaceChange?.(place);
   };
 
   function onKeyDown(e) {
@@ -260,7 +256,7 @@ export const CustomPlacesAutocomplete = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(place)}
             >
-              {place.description}
+              {place.formatted_address}
             </ListItem>
           ))}
         </List>

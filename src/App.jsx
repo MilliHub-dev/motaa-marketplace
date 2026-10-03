@@ -3,14 +3,13 @@ import { Outlet, BrowserRouter as Router, Routes, Route, Navigate } from 'react-
 import Cookies from 'js-cookie';
 import { glassEnabled } from './utils/platform';
 import { lazyPage } from './utils/lazyPage';
-import { API_URL, GOOGLE_MAPS_API_KEY, MAINTENANCE_MODE } from './config';
+import { API_URL, MAINTENANCE_MODE } from './config';
 import { createApiClient, toApiError } from './api/client';
 import { glassTheme } from './theme/glass';
 import { ChakraProvider, ToastProvider, useToast, extendTheme } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
 import { LoadingState } from './components/states';
-import {useJsApiLoader} from "@react-google-maps/api";
 
 
 // pages — the landing page, site layout and login load up front; everything
@@ -106,7 +105,6 @@ export const GlobalStore = createContext({
 
 // Must be a module-level constant — a fresh array each render makes
 // useJsApiLoader tear down and re-inject the script on every render.
-const GOOGLE_MAPS_LIBRARIES = ['places'];
 const AUTH_STORAGE_KEY = 'motaa-auth-user';
 
 function readStoredUser(){
@@ -132,23 +130,6 @@ function App() {
   const tokenRef = useRef(authUser?.token)
   tokenRef.current = authUser?.token
 
-  // Loads the Maps script WITHOUT gating the app on it. If Google is
-  // unreachable (offline, blocked network, ad-blocker) mapsLoaded stays false
-  // and map-dependent widgets degrade instead of the whole site going dark.
-  // Google calls window.gm_authFailure when the key is missing/rejected; without this the
-  // map area shows Google's own "This page can't load Google Maps correctly" box.
-  const [mapsAuthFailed, setMapsAuthFailed] = useState(false);
-  useEffect(() => {
-    window.gm_authFailure = () => setMapsAuthFailed(true);
-    return () => { delete window.gm_authFailure; };
-  }, []);
-  const {isLoaded: mapsScriptLoaded, loadError: mapsLoadError} = useJsApiLoader({
-    id: 'script-loader',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
-  const mapsLoaded = mapsScriptLoaded && !mapsAuthFailed && Boolean(GOOGLE_MAPS_API_KEY);
-  const mapsError = mapsLoadError || (mapsAuthFailed || !GOOGLE_MAPS_API_KEY ? new Error('Maps unavailable') : undefined);
   // The API client: returns parsed bodies and throws ApiError with a readable
   // message (see src/api/client.js). Use this for all new code.
   const api = useMemo(() => createApiClient({
@@ -296,8 +277,6 @@ function App() {
     naturalTime,
     setOtherContext,
     otherContext,
-    mapsLoaded,
-    mapsError,
   }
 
   // keep tabs in sync: logging in/out in one tab applies to the others

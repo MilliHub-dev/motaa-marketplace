@@ -9,6 +9,7 @@ import { ChevronDownIcon, ChevronUpIcon, MapPinIcon, StarIcon, VerifiedIcon, Mes
 import { LocationBreadcrumb, ReviewCard, RatingCard } from '../../../components';
 import { ChatPopup } from "../../../components/chat";
 import { MapComponent, CustomPlacesAutocomplete } from "../../../components/maps";
+import { reversePlace } from "../../../api/geocode";
 import { CashMoneyIcon, TopRatedBadgeIcon } from "../../../components/icons";
 import { AsyncState } from "../../../components/states";
 import { MechanicListSkeleton } from "../../../components/loaders";
@@ -64,7 +65,6 @@ const ServiceAccordion = ({ service }) => {
 
 export const MechanicDetailPage = () => {
   const { mechId } = useParams();
-  const { mapsLoaded } = useContext(GlobalStore);
   const [showPopup, setPopupState] = useState(false);
   const [place, setPlace] = useState(null);
   const [street, setStreet] = useState('');
@@ -89,12 +89,16 @@ export const MechanicDetailPage = () => {
     );
   }, []);
   useEffect(() => {
-    if (!device || place || !mapsLoaded || !window.google?.maps?.Geocoder) return;
-    new window.google.maps.Geocoder().geocode({ location: device }, (results, status) => {
-      const formatted = status === 'OK' ? results?.[0]?.formatted_address : null;
-      setPlace((current) => current || { ...device, formatted_address: formatted || 'Current location' });
-    });
-  }, [device, mapsLoaded, place]);
+    if (!device || place) return undefined;
+    const controller = new AbortController();
+    reversePlace(device, { signal: controller.signal })
+      .catch(() => null)
+      .then((found) => {
+        if (controller.signal.aborted) return;
+        setPlace((current) => current || { ...device, formatted_address: found?.formatted_address || 'Current location' });
+      });
+    return () => controller.abort();
+  }, [device, place]);
 
   const errors = {
     place: !place?.formatted_address?.trim() ? 'Enter your area so the mechanic can find you' : '',
