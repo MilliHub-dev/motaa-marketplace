@@ -229,7 +229,8 @@ const OrderListAdmin = () => {
                   <Tr key={order?.uuid || order?.id}>
                     <Td py={3}><OrderCarCell order={order} /></Td>
                     <Td isNumeric>
-                      <Text fontWeight="600" color="green.600">₦{commaInt(order?.order_item?.price)}</Text>
+                      {/* what the dealer earns for this order (rentals: rate × period), not the listing's unit price */}
+                      <Text fontWeight="600" color="green.600">₦{commaInt(order?.sub_total ?? order?.order_item?.price)}</Text>
                     </Td>
                     <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
                     <Td><OrderStatusBadge status={order?.order_status} /></Td>
@@ -298,6 +299,7 @@ export function OrderDetailsDrawer({ order, onClose, onContact }) {
               </Box>
               <Box>
                 <DetailRow label="Status"><OrderStatusBadge status={order.order_status} /></DetailRow>
+                <DetailRow label={isRental ? 'Rental amount' : 'Sale amount'}>₦{commaInt(order.sub_total ?? order.order_item?.price)}</DetailRow>
                 <DetailRow label="Listing price">
                   ₦{commaInt(order.order_item?.price)}
                   {isRental && order.order_item?.payment_cycle && ` ${optionLabel('payment_cycle', order.order_item.payment_cycle).toLowerCase()}`}
@@ -307,6 +309,9 @@ export function OrderDetailsDrawer({ order, onClose, onContact }) {
                 </DetailRow>
                 <DetailRow label="Payment method">{PAYMENT_OPTIONS[order.payment_option] || '—'}</DetailRow>
                 <DetailRow label="Customer">{customerName(order)}</DetailRow>
+                {order.contact_phone && <DetailRow label="Customer phone"><a href={`tel:${order.contact_phone}`}>{order.contact_phone}</a></DetailRow>}
+                {order.delivery_address && <DetailRow label={isRental ? 'Pickup / delivery address' : 'Delivery address'}>{order.delivery_address}</DetailRow>}
+                {isRental && order.with_driver && <DetailRow label="Driver">Requested</DetailRow>}
                 <DetailRow label="Ordered on">{fmt(order.date_created)}</DetailRow>
                 {isRental && (
                   <>

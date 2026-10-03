@@ -62,7 +62,7 @@ export const MechanicOverview = () => {
             <>
               <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={8}>
                 <Box gridColumn={{ base: 'span 2', md: 'auto' }}>
-                  <MetricCard title="Revenue (completed)" value={`₦${commaInt(data?.total_revenue)}`} />
+                  <MetricCard title="Completed jobs (quoted value)" value={`₦${commaInt(data?.total_revenue)}`} />
                 </Box>
                 <MetricCard title="Hires" value={commaInt(data?.total_hires)} />
                 <MetricCard title="Bookings" value={commaInt(data?.total_bookings)} />

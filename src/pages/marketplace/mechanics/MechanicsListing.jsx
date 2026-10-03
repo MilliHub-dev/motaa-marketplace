@@ -35,14 +35,16 @@ export const MechanicListPage = () => {
     const bgColor = useColorModeValue("white", "gray.800");
     const borderColor = useColorModeValue("gray.200", "gray.700");
 
-    // where to search from: a picked place (in the URL), else the device location, else Abuja
+    // where to search from: a picked place (in the URL), else the device location.
+    // With neither, list every mechanic rather than guessing a city (the map just centres on Abuja).
     const urlLat = parseFloat(params.get('lat'));
     const urlLng = parseFloat(params.get('lng'));
     const [deviceLocation, setDeviceLocation] = useState(null);
     const [geoStatus, setGeoStatus] = useState('locating');
     const picked = Number.isFinite(urlLat) && Number.isFinite(urlLng) ? { lat: urlLat, lng: urlLng } : null;
-    const location = picked || deviceLocation || DEFAULT_MAP_CENTER;
-    const locationName = params.get('near') || (picked ? 'Selected location' : deviceLocation ? 'Your current location' : 'Abuja');
+    const searchPoint = picked || deviceLocation;
+    const location = searchPoint || DEFAULT_MAP_CENTER;
+    const locationName = params.get('near') || (picked ? 'Selected location' : deviceLocation ? 'Your current location' : 'Nigeria');
 
     useEffect(() => {
         if (!("geolocation" in navigator)) { setGeoStatus('unsupported'); return; }
@@ -56,7 +58,7 @@ export const MechanicListPage = () => {
         );
     }, []);
 
-    const qs = new URLSearchParams({ lat: location.lat.toFixed(5), lng: location.lng.toFixed(5) });
+    const qs = new URLSearchParams(searchPoint ? { lat: searchPoint.lat.toFixed(5), lng: searchPoint.lng.toFixed(5) } : {});
     if (params.get('services')) qs.set('services', params.get('services'));
     if (params.get('offset')) qs.set('offset', params.get('offset'));
     const apiQs = qs.toString();
@@ -110,13 +112,15 @@ export const MechanicListPage = () => {
                 {!picked && (geoStatus === 'denied' || geoStatus === 'unsupported') && (
                     <Alert status="info" rounded="md" my={3}>
                         <AlertIcon />
-                        We couldn't get your location, so we're showing mechanics near Abuja. Pick your area on the map panel to see who's closest.
+                        We couldn't get your location, so we're showing all mechanics. Search your area in the map panel to see who's closest.
                     </Alert>
                 )}
 
                 <Text fontSize="xl" className="subtitle" color="primary" fontWeight="medium" my={4} role="status">
                     {!mechanics.data
-                        ? `Looking for mechanics near ${locationName}…`
+                        ? (searchPoint ? `Looking for mechanics near ${locationName}…` : 'Looking for mechanics…')
+                        : !searchPoint
+                        ? `${Number.isFinite(count) ? count : shown} mechanic${(Number.isFinite(count) ? count : shown) === 1 ? '' : 's'} on Motaa`
                         : Number.isFinite(count)
                         ? `${count} mechanic${count === 1 ? '' : 's'} within 30 km of ${locationName}`
                         : `${shown} mechanic${shown === 1 ? '' : 's'} near ${locationName}`}

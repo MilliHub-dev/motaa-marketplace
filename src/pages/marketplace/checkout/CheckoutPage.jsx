@@ -488,7 +488,9 @@ function CheckoutPage() {
                 <Checkbox mt={1} isChecked={form.consent} onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))} aria-describedby="escrow-copy" />
                 <Box>
                   <Text id="escrow-copy" fontSize="sm">
-                    I understand that Motaa doesn't sell cars. My payment is held in escrow and only released to the dealer after I confirm I've received the car.
+                    {isRental
+                      ? "I understand that Motaa doesn't rent out cars itself. My payment is held in escrow and only released to the dealer after I confirm I've picked up the car."
+                      : "I understand that Motaa doesn't sell cars. My payment is held in escrow and only released to the dealer after I confirm I've received the car."}
                   </Text>
                   <Button variant="link" size="sm" color="primary" mt={1} onClick={escrowInfo.onToggle} aria-expanded={escrowInfo.isOpen}>
                     What is escrow?
@@ -496,7 +498,7 @@ function CheckoutPage() {
                   <Collapse in={escrowInfo.isOpen} animateOpacity>
                     <Text fontSize="sm" color="gray.700" mt={2}>
                       Escrow means Motaa holds your money safely while the deal happens. The dealer is paid only when you tap
-                      “I’ve received my car” on your order. If the dealer can’t deliver, your money isn’t released to them.
+                      {isRental ? '“I’ve picked up the car”' : '“I’ve received my car”'} on your order. If the dealer can’t deliver, your money isn’t released to them.
                     </Text>
                   </Collapse>
                 </Box>
@@ -529,7 +531,7 @@ function CheckoutPage() {
         isLoading={placing}
         amount={amountDue}
         balance={data?.wallet_balance}
-        title="Pay for this car from your wallet"
+        title={isRental ? 'Pay for this rental from your wallet' : 'Pay for this car from your wallet'}
       />
     </Box>
   );

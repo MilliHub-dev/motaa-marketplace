@@ -23,7 +23,7 @@ const FILTERS = [
   { key: 'accepted', label: 'Accepted' },
   { key: 'working', label: 'In progress' },
   { key: 'completed', label: 'Completed' },
-  { key: 'canceled', label: 'Canceled' },
+  { key: 'canceled', label: 'Cancelled' },
   { key: 'declined', label: 'Declined' },
 ];
 

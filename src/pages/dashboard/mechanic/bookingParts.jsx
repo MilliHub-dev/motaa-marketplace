@@ -62,7 +62,7 @@ export const STATUS_LABELS = {
   completed: 'Completed',
   declined: 'Declined',
   expired: 'Expired',
-  canceled: 'Canceled',
+  canceled: 'Cancelled',
 };
 
 export function StatusBadge({ status }) {
@@ -115,7 +115,7 @@ const ACTIONS = {
     label: 'Decline', colorScheme: 'red', variant: 'outline', done: 'Booking declined',
     confirm: {
       title: 'Decline this booking?',
-      body: (name) => `${name} will be told you can't take this job. This can't be undone.`,
+      body: (name) => `${name} will be told you can't take this job and their booking fee will be refunded. This can't be undone.`,
       cta: 'Decline booking',
     },
   },
@@ -130,10 +130,10 @@ const ACTIONS = {
     },
   },
   cancel: {
-    label: 'Cancel job', colorScheme: 'red', variant: 'outline', done: 'Job canceled',
+    label: 'Cancel job', colorScheme: 'red', variant: 'outline', done: 'Job cancelled',
     confirm: {
       title: 'Cancel this job?',
-      body: (name) => `${name} will be told you canceled the booking. This can't be undone.`,
+      body: (name) => `${name} will be told you cancelled the booking and their booking fee will be refunded. This can't be undone.`,
       cta: 'Cancel job',
     },
   },
@@ -271,7 +271,11 @@ export function BookingDetailsModal({ booking, onClose, actions }) {
               <DetailRow label="Requested">{formatDate(booking.date_created)}</DetailRow>
               {booking.started_on && <DetailRow label="Started">{formatDate(booking.started_on)}</DetailRow>}
               {booking.ended_on && <DetailRow label="Ended">{formatDate(booking.ended_on)}</DetailRow>}
-              <DetailRow label="Total">₦{commaInt(booking.sub_total)}</DetailRow>
+              {booking.location && <DetailRow label="Address">{booking.location}</DetailRow>}
+              {booking.customer?.phone && ['accepted', 'working'].includes(booking.status) && (
+                <DetailRow label="Phone"><a href={`tel:${booking.customer.phone}`}>{booking.customer.phone}</a></DetailRow>
+              )}
+              <DetailRow label="Quoted total">₦{commaInt(booking.sub_total)}</DetailRow>
               <Box>
                 <Text color="gray.500" fontSize="sm" mb={2}>Services</Text>
                 <Wrap>

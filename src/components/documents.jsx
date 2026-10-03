@@ -3,13 +3,42 @@
 //   GET  /listings/checkout/documents/?doc_type=order-slip|inspection-slip&order_id=<order or listing uuid>
 //        -> { data: { file_id, url, signed, order_id } }
 //   POST /listings/checkout/documents/ { file_id, signature: 'data:image/png;base64,…' } -> same shape, signed: true
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, Button, Flex, FormControl, FormLabel, HStack, Input, Radio, RadioGroup, Text, VStack } from '@chakra-ui/react';
 import SignaturePad from 'react-signature-canvas';
 import { useApiMutation, useApiQuery } from '../hooks/useApi';
 import { ErrorState, LoadingState } from './states';
 
 const DOCUMENTS_ENDPOINT = '/listings/checkout/documents/';
+
+/**
+ * Download the PDF and hand back a local blob: URL for the preview frame.
+ * Framing the file's own URL is unreliable: servers commonly forbid it
+ * (X-Frame-Options / CSP) and the frame then shows "refused to connect".
+ * status: 'loading' | 'ready' | 'failed'
+ */
+function usePdfPreview(url) {
+  const [state, setState] = useState({ status: 'loading', src: '' });
+  useEffect(() => {
+    if (!url) return undefined;
+    let cancelled = false;
+    let objectUrl = '';
+    setState({ status: 'loading', src: '' });
+    fetch(url)
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        setState({ status: 'ready', src: objectUrl });
+      })
+      .catch(() => { if (!cancelled) setState({ status: 'failed', src: '' }); });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+  return state;
+}
 
 export const PreviewWithSignature = ({ docType, orderId, onSignatureComplete }) => {
   const [sigMode, setSigMode] = useState('type'); // 'type' | 'draw'
@@ -23,6 +52,7 @@ export const PreviewWithSignature = ({ docType, orderId, onSignatureComplete }) 
     { enabled: Boolean(orderId), select: (body) => body?.data }
   );
   const document = query.data;
+  const preview = usePdfPreview(document?.url);
 
   const sign = useApiMutation((api, signature) => api.post(DOCUMENTS_ENDPOINT, { file_id: document.file_id, signature }), {
     successMessage: 'Your document has been signed.',
@@ -65,7 +95,16 @@ export const PreviewWithSignature = ({ docType, orderId, onSignatureComplete }) 
   return (
     <Flex direction="column" align="center" px={4}>
       <Box w="100%" maxW="560px" h={{ base: '60vh', md: '70vh' }} maxH="720px" rounded="20px" border="1px solid" borderColor="gray.200" mb={4} overflow="hidden">
-        <iframe title="Document preview" src={document.url} width="100%" height="100%" style={{ border: 'none' }} />
+        {preview.status === 'ready' ? (
+          <iframe title="Document preview" src={preview.src} width="100%" height="100%" style={{ border: 'none' }} />
+        ) : preview.status === 'loading' ? (
+          <LoadingState label="Loading your document…" minH="100%" />
+        ) : (
+          <Flex direction="column" align="center" justify="center" h="100%" px={6} textAlign="center" gap={2} bg="gray.50">
+            <Text className="bold">Preview unavailable</Text>
+            <Text color="gray.600" fontSize="sm">Open the PDF in a new tab to read it, then sign below.</Text>
+          </Flex>
+        )}
       </Box>
       <Button as="a" href={document.url} target="_blank" rel="noopener noreferrer" variant="link" color="primary" mb={4}>
         Open the PDF in a new tab

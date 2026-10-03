@@ -251,9 +251,14 @@ function BookingForm({ mechanic }) {
           </FormControl>
 
           <VStack spacing={3}>
+            {mechanic?.available === false && (
+              <Text role="alert" color="orange.700" bg="orange.50" p={3} borderRadius="md" fontSize="sm">
+                {mechanic?.business_name || 'This mechanic'} is busy with another job and isn't taking new bookings right now. Please check back later or choose another mechanic.
+              </Text>
+            )}
             <Button type="submit" w="full" size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }}
               isLoading={paying || sending} loadingText={paying ? 'Opening Paystack' : 'Sending request'}
-              isDisabled={fee === undefined || Boolean(pending) || serviceOptions.length === 0}>
+              isDisabled={fee === undefined || Boolean(pending) || serviceOptions.length === 0 || mechanic?.available === false}>
               {fee !== undefined ? `Pay ₦${commaInt(fee)} & book` : 'Book'}
             </Button>
             <Button w="full" variant="outline" size="lg" color="gray.700" leftIcon={<Send size={16} />} onClick={chat.onOpen}>

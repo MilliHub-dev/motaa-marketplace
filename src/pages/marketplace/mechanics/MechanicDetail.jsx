@@ -97,7 +97,7 @@ export const MechanicDetailPage = () => {
   }, [device, mapsLoaded, place]);
 
   const errors = {
-    place: !place?.lat ? 'Choose your area so the mechanic can find you' : '',
+    place: !place?.formatted_address?.trim() ? 'Enter your area so the mechanic can find you' : '',
     street: !street.trim() ? 'Enter your street address' : '',
   };
 
@@ -106,7 +106,9 @@ export const MechanicDetailPage = () => {
     setSubmitted(true);
     if (errors.place || errors.street) return;
     const address = [street.trim(), place.formatted_address].filter(Boolean).join(', ');
-    const qs = new URLSearchParams({ lat: String(place.lat), lng: String(place.lng), address });
+    const qs = new URLSearchParams({ address });
+    // coordinates only exist when a suggestion was picked; a typed area still works
+    if (place.lat && place.lng) { qs.set('lat', String(place.lat)); qs.set('lng', String(place.lng)); }
     navigate(`/mechanics/book/${mechId}?${qs.toString()}`);
   }
 
@@ -215,6 +217,7 @@ export const MechanicDetailPage = () => {
                             placeholder="Search your area"
                             aria-label="Your area"
                             onPlaceChange={(chosen) => setPlace(chosen)}
+                            inputProps={{ onInput: (e) => setPlace(e.target.value.trim() ? { formatted_address: e.target.value } : null) }}
                           />
                         </Box>
                         <FormErrorMessage>{errors.place}</FormErrorMessage>

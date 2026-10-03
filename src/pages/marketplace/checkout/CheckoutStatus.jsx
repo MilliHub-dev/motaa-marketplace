@@ -70,6 +70,7 @@ function nextStep(order) {
 function OrderView({ order, reload, setOrder }) {
   const { commaInt, naturalDate } = useContext(GlobalStore);
   const [params] = useSearchParams();
+  const isRental = order.order_type === 'rental';
   const view = STATUS_VIEW[order.order_status] || STATUS_VIEW.pending;
   const listing = order.listing || {};
   const pay = usePaystack();
@@ -128,7 +129,11 @@ function OrderView({ order, reload, setOrder }) {
         <Flex w={16} h={16} rounded="full" bg={`${view.color}.50`} color={`${view.color}.500`} align="center" justify="center">
           <Icon as={view.icon} boxSize={8} aria-hidden="true" />
         </Flex>
-        <Heading as="h1" size="lg">{justPlaced && order.order_status === 'pending' ? 'Order placed!' : view.title}</Heading>
+        <Heading as="h1" size="lg">
+          {justPlaced && order.order_status === 'pending'
+            ? (isRental ? 'Rental booked!' : 'Order placed!')
+            : (isRental && order.order_status === 'completed' ? 'Rental confirmed' : view.title)}
+        </Heading>
         <Text color="gray.600">Order #{order.id} · {order.status_label}</Text>
         {step && <Text maxW="520px">{step}</Text>}
       </Flex>
@@ -165,7 +170,10 @@ function OrderView({ order, reload, setOrder }) {
           <Row label="Inspection fee" value={`₦${commaInt(order.inspection_fee)}`} />
           <Divider />
           <Row bold label="Total" value={`₦${commaInt(order.total_amount)}`} />
-          <Row label="Paid (held in escrow)" value={`₦${commaInt(order.amount_paid)}`} />
+          <Row
+            label={{ released: 'Paid', refunded: 'Paid (refunded to your wallet)' }[order.payment_status] || 'Paid (held in escrow)'}
+            value={`₦${commaInt(order.amount_paid)}`}
+          />
           {Number(order.amount_outstanding) > 0 && <Row bold label="Balance due" value={`₦${commaInt(order.amount_outstanding)}`} />}
         </VStack>
       </Box>
@@ -217,7 +225,7 @@ function OrderView({ order, reload, setOrder }) {
           </>
         )}
         {order.can_complete && (
-          <Button colorScheme="green" onClick={confirmDialog.onOpen}>I’ve received my car</Button>
+          <Button colorScheme="green" onClick={confirmDialog.onOpen}>{isRental ? 'I’ve picked up the car' : 'I’ve received my car'}</Button>
         )}
         <Button as={RLink} to={`/checkout/docs?docType=order-slip&orderId=${order.uuid}`} variant="ghost" leftIcon={<FileText size={18} />} color="primary">
           Order agreement
@@ -263,7 +271,7 @@ function OrderView({ order, reload, setOrder }) {
       <AlertDialog isOpen={confirmDialog.isOpen} leastDestructiveRef={cancelRef} onClose={confirmDialog.onClose} isCentered>
         <AlertDialogOverlay>
           <AlertDialogContent mx={4}>
-            <AlertDialogHeader>Confirm you’ve received the car?</AlertDialogHeader>
+            <AlertDialogHeader>{isRental ? 'Confirm you’ve picked up the car?' : 'Confirm you’ve received the car?'}</AlertDialogHeader>
             <AlertDialogBody>
               This releases ₦{commaInt(order.sub_total)} from escrow to {listing.dealer?.business_name || 'the dealer'}. Only confirm once
               you have the car and you’re happy with it — this can’t be undone.

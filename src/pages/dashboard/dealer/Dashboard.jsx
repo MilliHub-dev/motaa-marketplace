@@ -102,7 +102,7 @@ function Dashboard() {
                       {recentOrders.map((order) => (
                         <Tr key={order?.uuid || order?.id}>
                           <Td py={3}><OrderCarCell order={order} /></Td>
-                          <Td isNumeric><Text color="green.600" fontWeight="600">₦{commaInt(order?.order_item?.price)}</Text></Td>
+                          <Td isNumeric><Text color="green.600" fontWeight="600">₦{commaInt(order?.sub_total ?? order?.order_item?.price)}</Text></Td>
                           <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
                           <Td><OrderStatusBadge status={order?.order_status} /></Td>
                           <Td>

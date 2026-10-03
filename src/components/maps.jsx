@@ -28,7 +28,21 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
     [lat, lng]
   );
 
-  if (!mapsLoaded) {
+  // Google draws its own "This page can't load Google Maps correctly" box inside the
+  // map when it rejects the key (billing, restrictions). Watch for it and show our fallback.
+  const wrapper = useRef(null);
+  const [rejected, setRejected] = useState(false);
+  useEffect(() => {
+    const node = wrapper.current;
+    if (!mapsLoaded || !node) return undefined;
+    const check = () => { if (node.querySelector('.gm-err-container, .dismissButton')) setRejected(true); };
+    const observer = new MutationObserver(check);
+    observer.observe(node, { childList: true, subtree: true });
+    check();
+    return () => observer.disconnect();
+  }, [mapsLoaded]);
+
+  if (!mapsLoaded || rejected) {
     return (
       <Flex
         align="center"
@@ -44,10 +58,10 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
         style={style}
         {...props}
       >
-        {mapsError ? (
+        {mapsError || rejected ? (
           <>
             <MapPin aria-hidden="true" />
-            <Text fontSize="sm">The map couldn't load. You can still search for an address.</Text>
+            <Text fontSize="sm">The map isn't available right now. You can still type your address.</Text>
           </>
         ) : (
           <Spinner color="primary" aria-label="Loading map" />
@@ -57,7 +71,7 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
   }
 
   return (
-    <Box role="region" aria-label={label} borderRadius="lg" overflow="hidden" style={style} {...props}>
+    <Box ref={wrapper} role="region" aria-label={label} borderRadius="lg" overflow="hidden" style={style} {...props}>
       <GoogleMap
         mapContainerStyle={{ width: "100%", height: "100%", minHeight: "200px" }}
         center={center}
@@ -134,7 +148,7 @@ export const CustomPlacesAutocomplete = ({
         setLoading(false);
         setPredictions(results || []);
         setActive(-1);
-        if (!results?.length && status !== 'OK') setMessage('Address not found');
+        if (!results?.length && status !== 'OK') setMessage('No suggestions found. You can type the full address instead.');
       });
     }, 250);
   };
@@ -156,7 +170,7 @@ export const CustomPlacesAutocomplete = ({
         setLoading(false);
         const location = details?.geometry?.location;
         if (status !== 'OK' || !location) {
-          setMessage('Address not found');
+          setMessage('No suggestions found. You can type the full address instead.');
           return;
         }
         onPlaceChange?.({

@@ -260,6 +260,8 @@ const BookingForm = ({ listing, ...props }) => {
                 placeholder="Search an address"
                 aria-label="Pickup location"
                 onPlaceChange={(chosen) => setPlace(chosen)}
+                // a typed address is enough when there are no suggestions to pick from
+                inputProps={{ onInput: (e) => setPlace(e.target.value.trim() ? { formatted_address: e.target.value } : null) }}
               />
             </Box>
             <FormErrorMessage>{errors.where}</FormErrorMessage>

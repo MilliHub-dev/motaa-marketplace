@@ -78,17 +78,24 @@ export function useApiMutation(action, options = {}) {
   const { api, notify, notifyError } = useContext(GlobalStore);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // always call the latest action/options: they usually close over state that
+  // loaded after the first render (a stale copy would act on missing data)
+  const actionRef = useRef(action);
+  actionRef.current = action;
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => {
+    mounted.current = true; // effects re-run in StrictMode: don't stay "unmounted"
+    return () => { mounted.current = false; };
+  }, []);
 
   const mutate = useCallback(async (...args) => {
     const { successMessage, errorTitle, onSuccess, onError, notifyOnError = true } = optionsRef.current;
     setLoading(true);
     setError(null);
     try {
-      const result = await action(api, ...args);
+      const result = await actionRef.current(api, ...args);
       if (successMessage) {
         const body = typeof successMessage === 'function' ? successMessage(result) : successMessage;
         notify({ title: 'Success', body });
