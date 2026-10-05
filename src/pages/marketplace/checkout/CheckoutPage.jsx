@@ -158,6 +158,7 @@ function CheckoutPage() {
     phone: '',
     with_driver: params.get('driver') === '1',
     payment_option: 'card',
+    inspection_method: 'card', // how the inspection fee is paid when "pay after inspection" is chosen
     consent: false,
   });
   const [submitted, setSubmitted] = useState(false);
@@ -184,6 +185,23 @@ function CheckoutPage() {
   const selected = options.find((o) => o.value === form.payment_option);
   const amountDue = selected?.amount_due ?? pricing?.total;
 
+  // "Pay after inspection": the inspection fee is added to the order and is all that is paid today,
+  // by card or from the wallet. Paying in full has no inspection fee.
+  const afterInspection = form.payment_option === 'pay-after-inspection';
+  const inspectionFee = afterInspection ? (selected?.inspection_fee ?? pricing?.inspection_fee_quote ?? 0) : 0;
+  const orderTotal = afterInspection ? (selected?.total ?? pricing?.total_with_inspection ?? pricing?.total) : pricing?.total;
+  const feeMethods = afterInspection ? (selected?.methods || []) : [];
+  const feeMethod = feeMethods.find((m) => m.value === form.inspection_method);
+  const payingFromWallet = form.payment_option === 'wallet' || (afterInspection && form.inspection_method === 'wallet');
+
+  // keep the fee method valid (e.g. the wallet can't cover the fee)
+  useEffect(() => {
+    if (afterInspection && feeMethods.length && !feeMethod?.available) {
+      const first = feeMethods.find((m) => m.available);
+      if (first && first.value !== form.inspection_method) setForm((f) => ({ ...f, inspection_method: first.value }));
+    }
+  }, [afterInspection, feeMethods, feeMethod, form.inspection_method]);
+
   // keep the choice valid when options change (e.g. wallet becomes unavailable)
   useEffect(() => {
     if (options.length && (!selected || !selected.available)) {
@@ -206,7 +224,8 @@ function CheckoutPage() {
     phone: !customerPhone && phoneDigits.length !== 10 ? 'Enter a valid Nigerian phone number' : '',
     dates: isRental ? (data?.dates_error || (!dates.from || !dates.until ? 'Choose your rental dates' : '')) : '',
     consent: !form.consent ? 'Please confirm you understand how escrow works' : '',
-    option: !selected?.available ? 'Choose an available payment option' : '',
+    option: !selected?.available ? 'Choose an available payment option'
+      : afterInspection && feeMethods.length && !feeMethod?.available ? 'Choose how to pay the inspection fee' : '',
   };
   const valid = Object.values(errors).every((e) => !e);
   const blocked = Boolean(data?.unavailable_reason);
@@ -217,6 +236,7 @@ function CheckoutPage() {
     const phone = customerPhone || (phoneDigits ? `+234${phoneDigits}` : '');
     return {
       payment_option: form.payment_option,
+      inspection_payment_method: afterInspection ? form.inspection_method : undefined,
       reference,
       delivery_address: [form.street.trim(), form.area.trim()].filter(Boolean).join(', '),
       postal_code: form.postal_code.trim(),
@@ -249,7 +269,7 @@ function CheckoutPage() {
     e?.preventDefault();
     setSubmitted(true);
     if (!valid || blocked || !pricing) return;
-    if (form.payment_option === 'wallet') return walletDialog.onOpen();
+    if (payingFromWallet) return walletDialog.onOpen();
 
     setPaying(true);
     const reference = newReference('mtord');
@@ -445,13 +465,13 @@ function CheckoutPage() {
                   )}
                   <SummaryRow muted label={`VAT (${Number(pricing.tax_rate) * 100}%)`} value={`₦${commaInt(pricing.tax)}`} />
                   <SummaryRow muted label={`Motaa service fee (${Number(pricing.motaa_fee_rate) * 100}%)`} value={`₦${commaInt(pricing.motaa_fee)}`} />
-                  <SummaryRow muted label="Inspection fee" value={`₦${commaInt(pricing.inspection_fee)}`} />
+                  {afterInspection && <SummaryRow muted label="Inspection fee" value={`₦${commaInt(inspectionFee)}`} />}
                   <Divider my={2} />
-                  <SummaryRow bold label="Total" value={`₦${commaInt(pricing.total)}`} />
-                  {form.payment_option === 'pay-after-inspection' && (
+                  <SummaryRow bold label="Total" value={`₦${commaInt(orderTotal)}`} />
+                  {afterInspection && (
                     <>
-                      <SummaryRow bold label="Due today (inspection fee)" value={`₦${commaInt(pricing.inspection_fee)}`} />
-                      <Text fontSize="sm" color="gray.600">You'll pay the remaining ₦{commaInt(Number(pricing.total) - Number(pricing.inspection_fee))} after the inspection.</Text>
+                      <SummaryRow bold label="Due today (inspection fee)" value={`₦${commaInt(inspectionFee)}`} />
+                      <Text fontSize="sm" color="gray.600">You'll pay the remaining ₦{commaInt(Number(orderTotal) - Number(inspectionFee))} after the inspection.</Text>
                     </>
                   )}
                   {isRental && dates.from && dates.until && !data?.dates_error && (
@@ -477,6 +497,41 @@ function CheckoutPage() {
                   ))}
                 </SimpleGrid>
                 <FormErrorMessage>{errors.option}</FormErrorMessage>
+                {afterInspection && feeMethods.length > 0 && (
+                  <Box mt={4} p={4} borderWidth={1} borderRadius="lg" role="radiogroup" aria-labelledby="inspection-fee-method">
+                    <Text id="inspection-fee-method" className="bold" mb={1}>Pay the ₦{commaInt(inspectionFee)} inspection fee with</Text>
+                    <Text fontSize="sm" color="gray.600" mb={3}>The fee reserves the car while you inspect it. You pay the rest only if you're happy with it.</Text>
+                    <Stack direction={{ base: 'column', sm: 'row' }} spacing={3}>
+                      {feeMethods.map((method) => {
+                        const active = method.value === form.inspection_method;
+                        return (
+                          <Button
+                            key={method.value}
+                            role="radio"
+                            aria-checked={active}
+                            isDisabled={!method.available}
+                            onClick={() => setForm((f) => ({ ...f, inspection_method: method.value }))}
+                            variant="outline"
+                            borderWidth="2px"
+                            borderColor={active ? 'primary' : 'gray.200'}
+                            bg={active ? 'blue.50' : 'white'}
+                            h="auto" py={3} flex={1} whiteSpace="normal"
+                            leftIcon={<Icon as={method.value === 'wallet' ? WalletIcon : CreditCard} aria-hidden="true" />}
+                          >
+                            <Box textAlign="left">
+                              <Text>{method.value === 'wallet' ? 'Motaa wallet' : 'Card, transfer or USSD'}</Text>
+                              {method.value === 'wallet' && <Text fontSize="xs" color="gray.600" fontWeight="500">Balance ₦{commaInt(data?.wallet_balance)}</Text>}
+                              {!method.available && method.reason && <Text fontSize="xs" color="red.600" fontWeight="500">{method.reason}</Text>}
+                            </Box>
+                          </Button>
+                        );
+                      })}
+                    </Stack>
+                    {feeMethods.some((m) => m.value === 'wallet' && !m.available) && (
+                      <Button as={RLink} to="/wallet/deposit" size="sm" variant="link" color="primary" mt={2}>Top up your wallet</Button>
+                    )}
+                  </Box>
+                )}
                 {form.payment_option === 'wallet' && selected && !selected.available && (
                   <Button as={RLink} to="/wallet/deposit" size="sm" variant="link" color="primary" mt={2}>Top up your wallet</Button>
                 )}
@@ -510,7 +565,7 @@ function CheckoutPage() {
               <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" flex={1}
                 isLoading={paying || placing} loadingText={paying ? 'Opening Paystack' : 'Placing order'}
                 isDisabled={loadingFirst || blocked || Boolean(pending)} leftIcon={<Lock size={18} />}>
-                {pricing ? (form.payment_option === 'wallet' ? `Pay ₦${commaInt(amountDue)} from wallet` : `Pay ₦${commaInt(amountDue)}`) : 'Pay'}
+                {pricing ? (payingFromWallet ? `Pay ₦${commaInt(amountDue)} from wallet` : `Pay ₦${commaInt(amountDue)}`) : 'Pay'}
               </Button>
               <Button as={RLink} to={listing ? `/${isRental ? 'rent' : 'buy'}/${listing.uuid}` : '/home'} variant="ghost" size="lg" color="primary">
                 Cancel
@@ -531,7 +586,7 @@ function CheckoutPage() {
         isLoading={placing}
         amount={amountDue}
         balance={data?.wallet_balance}
-        title={isRental ? 'Pay for this rental from your wallet' : 'Pay for this car from your wallet'}
+        title={afterInspection ? 'Pay the inspection fee from your wallet' : isRental ? 'Pay for this rental from your wallet' : 'Pay for this car from your wallet'}
       />
     </Box>
   );

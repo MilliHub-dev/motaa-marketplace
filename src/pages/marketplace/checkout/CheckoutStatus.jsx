@@ -167,7 +167,7 @@ function OrderView({ order, reload, setOrder }) {
           <Row label={order.order_type === 'rental' ? `Rental (${order.units} × ₦${commaInt(listing.price)})` : 'Car price'} value={`₦${commaInt(order.sub_total)}`} />
           <Row label="VAT" value={`₦${commaInt(order.tax)}`} />
           <Row label="Motaa service fee" value={`₦${commaInt(order.motaa_fee)}`} />
-          <Row label="Inspection fee" value={`₦${commaInt(order.inspection_fee)}`} />
+          {Number(order.inspection_fee) > 0 && <Row label="Inspection fee" value={`₦${commaInt(order.inspection_fee)}`} />}
           <Divider />
           <Row bold label="Total" value={`₦${commaInt(order.total_amount)}`} />
           <Row
