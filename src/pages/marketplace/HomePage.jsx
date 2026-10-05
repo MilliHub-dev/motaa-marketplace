@@ -21,7 +21,8 @@ import {
   Flex,
 } from "@chakra-ui/react"
 import { Search, Car } from "lucide-react"
-import { ListingItemCard, LocationBreadcrumb } from "../../components";
+import { ListingItemCard } from "../../components";
+import FeaturedSlider from "../../components/FeaturedSlider";
 import { GlobalStore } from "../../App";
 import { useApiQuery } from "../../hooks/useApi";
 import { AsyncState, EmptyState } from "../../components/states";
@@ -85,10 +86,7 @@ export default function MainPage() {
       {/* Hero Section */}
       <Box>
         <Container maxW="container.xl" pb={8} pt={6}>
-          <LocationBreadcrumb />
-
           <Grid
-           mt={5}
            templateColumns={{ base: "minmax(0, 1fr)", md: "1fr 1fr" }}
            gap={8}
            alignItems="center"
@@ -136,14 +134,21 @@ export default function MainPage() {
               </VStack>
             </Box>
 
-            <Box position="relative" gridArea="image" py={5}>
-              <Image loading="lazy" src="/assets/images/motaa-car-top.png" alt="" w="full" h="auto" />
-              <Box display={{ base: 'none', sm: 'block' }} width={{ sm: '180px', lg: '247px' }} position="absolute" top={4} right={4} p={2}>
-                <Image w="100%" loading="lazy" src="/assets/icons/1.png" h="auto" alt="Verified car dealers" />
-              </Box>
-              <Box display={{ base: 'none', sm: 'block' }} width={{ sm: '180px', lg: '247px' }} position="absolute" bottom={{ sm: 4, lg: 20 }} left={4} p={2}>
-                <Image w="100%" loading="lazy" src="/assets/icons/2.png" h="auto" alt="Certified mechanics" />
-              </Box>
+            <Box gridArea="image" py={5} minW={0}>
+              {/* featured cars from the admin; the original picture when there are none */}
+              <FeaturedSlider
+                fallback={
+                  <Box position="relative">
+                    <Image loading="lazy" src="/assets/images/motaa-car-top.png" alt="" w="full" h="auto" />
+                    <Box display={{ base: 'none', sm: 'block' }} width={{ sm: '180px', lg: '247px' }} position="absolute" top={4} right={4} p={2}>
+                      <Image w="100%" loading="lazy" src="/assets/icons/1.png" h="auto" alt="Verified car dealers" />
+                    </Box>
+                    <Box display={{ base: 'none', sm: 'block' }} width={{ sm: '180px', lg: '247px' }} position="absolute" bottom={{ sm: 4, lg: 20 }} left={4} p={2}>
+                      <Image w="100%" loading="lazy" src="/assets/icons/2.png" h="auto" alt="Certified mechanics" />
+                    </Box>
+                  </Box>
+                }
+              />
             </Box>
           </Grid>
         </Container>

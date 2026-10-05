@@ -32,6 +32,7 @@ const RentListing = lazyPage(() => import('./pages/marketplace/rent/RentListing'
 const RentDetail = lazyPage(() => import('./pages/marketplace/rent/RentDetail'));
 const BuyListing = lazyPage(() => import('./pages/marketplace/buy/BuyListing'));
 const BuyDetail = lazyPage(() => import('./pages/marketplace/buy/BuyDetail'));
+const FeaturedCarPage = lazyPage(() => import('./pages/marketplace/FeaturedCar'));
 const MechanicSearchPage = lazyPage(() => import('./pages/marketplace/search/MechanicSearch'));
 const CarSearchPage = lazyPage(() => import('./pages/marketplace/search/CarSearch'));
 const MechanicListPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicsListing'));
@@ -336,6 +337,7 @@ function App() {
 
                         <Route ErrorBoundary={ErrorBoundary} path='/buy' element={<BuyListing />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/buy/:listingId' element={<BuyDetail />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/featured/:slug' element={<FeaturedCarPage />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics' element={<MechanicListPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/book/:mechId' element={<ConfirmMechanicBookingPage />} />
