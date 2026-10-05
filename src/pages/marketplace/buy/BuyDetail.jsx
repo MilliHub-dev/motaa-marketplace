@@ -15,6 +15,7 @@ import { HiMiniReceiptPercent } from 'react-icons/hi2';
 import { FaCartPlus } from 'react-icons/fa';
 import { FaCartShopping } from 'react-icons/fa6';
 import { Phone } from 'lucide-react';
+import { profilePicture } from '../../../utils';
 
 
 function SpecList({ items }) {
@@ -91,7 +92,7 @@ export const BuyDetail = () => {
                             >
                                 {dealer?.uuid && (
                                     <Flex as={Link} to={`/dealership/${dealer.uuid}`} gap={3} alignItems="center" _hover={{ textDecoration: 'underline' }}>
-                                        <Avatar name={dealer?.business_name} src={dealer?.logo || undefined} />
+                                        <Avatar name={dealer?.business_name} src={profilePicture(dealer)} />
                                         <Stack spacing={0} minW={0}>
                                             <Heading as="p" size={'sm'} noOfLines={1}>{dealer?.business_name || 'Dealer'}</Heading>
                                             <Text fontSize="sm" color="gray.600">View dealer profile</Text>

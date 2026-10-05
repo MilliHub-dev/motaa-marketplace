@@ -19,6 +19,7 @@ import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { EmptyState, ErrorState } from '../../../components/states';
 import { asList } from '../../../utils';
+import { profilePicture } from '../../../utils';
 
 /** Height from the element's top to the bottom of the viewport (the navbar above varies by user type). */
 function useFillViewport() {
@@ -111,7 +112,7 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
                 _hover={{ bg: active ? 'blue.50' : 'gray.50' }}
                 _focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '-2px' }}
               >
-                <Avatar size="md" name={conversation?.recipient?.name} src={conversation?.recipient?.image || undefined} />
+                <Avatar size="md" name={conversation?.recipient?.name} src={profilePicture(conversation?.recipient)} />
                 <Box flex={1} minW={0}>
                   <HStack justify="space-between" spacing={2}>
                     <Text fontWeight="600" noOfLines={1}>{conversation?.recipient?.name || 'Conversation'}</Text>

@@ -13,6 +13,7 @@ import { ListingDetailSkeleton, ListingSkeleton } from '../../components/loaders
 import { useApiQuery } from '../../hooks/useApi';
 import { asList } from '../../utils';
 import { MessageCircle, MapPin, Star, MoreVertical, Share2, Flag, Phone, Mail, Car } from 'lucide-react';
+import { profilePicture } from '../../utils';
 
 const SUPPORT_EMAIL = 'support@motaa.net';
 
@@ -110,7 +111,7 @@ export default function DealerProfile() {
                 <Box flex={1} minW={0} w="100%">
                   <Flex gap={4} mb={6} direction={{ base: 'column', sm: 'row' }} alignItems={{ base: 'flex-start', sm: 'flex-end' }}>
                     <Box mt={'-40px'} bg="white" borderRadius={'50%'} zIndex={'1'} p={2}>
-                      <Avatar size="xl" name={name} src={data?.logo || undefined} />
+                      <Avatar size="xl" name={name} src={profilePicture(data)} />
                     </Box>
 
                     <Box flex={1} minW={0}>

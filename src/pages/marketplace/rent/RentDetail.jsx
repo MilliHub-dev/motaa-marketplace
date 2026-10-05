@@ -18,6 +18,7 @@ import {
   Box, Container, Grid, Heading, Text, Button, HStack, VStack, Stack, Avatar, Badge, Flex, Icon,
   SimpleGrid, Switch, FormControl, FormLabel, FormErrorMessage, Tag,
 } from '@chakra-ui/react'
+import { profilePicture } from '../../../utils';
 
 
 const FeatureIcons = {
@@ -138,7 +139,7 @@ export default function RentalDetails() {
                     <Box mb={8}>
                       <Heading as="h2" size="md" mb={4} fontWeight={'500'}>Host</Heading>
                       <Flex gap={4} align="center" flexWrap="wrap">
-                        <Avatar size="lg" src={dealer?.logo || undefined} name={dealer?.business_name} />
+                        <Avatar size="lg" src={profilePicture(dealer)} name={dealer?.business_name} />
                         <Box flex={1} minW="160px">
                           <Heading as="p" size="sm">{dealer?.business_name || 'Host'}</Heading>
                           <HStack spacing={1} mt={1}>

@@ -20,6 +20,7 @@ import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { ErrorState } from '../../../components/states';
 import { ListingChatCard } from '../../../components/chat';
 import { asList } from '../../../utils';
+import { profilePicture } from '../../../utils';
 
 const MAX_LENGTH = 4000;
 const MAX_BACKOFF = 30000;
@@ -276,7 +277,7 @@ function ChatRoom() {
           aria-label="Back to all messages"
           display={{ base: 'inline-flex', md: 'none' }}
         />
-        <Avatar size="sm" name={recipient?.name} src={recipient?.image || undefined} />
+        <Avatar size="sm" name={recipient?.name} src={profilePicture(recipient)} />
         <Box minW={0} flex={1}>
           <Text as="h2" fontWeight="600" noOfLines={1}>{recipient?.name || 'Conversation'}</Text>
           {recipient?.user_type && recipient.user_type !== 'customer' && (
