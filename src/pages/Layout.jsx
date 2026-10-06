@@ -3,11 +3,12 @@ import { LoadingState } from "../components/states";
 import { GlobalStore } from "../App";
 import {
     Footer, UnauthenticatedNavbar, CustomerNavbar,
-    DealerNavbar, MechanicNavbar, DealerDashboardSideBar, MechanicDashboardSideBar,
+    DealerNavbar, MechanicNavbar, PartsDealerNavbar, DealerDashboardSideBar, MechanicDashboardSideBar, PartsDealerDashboardSideBar,
 } from "../components/nav";
 import { Box, Stack } from "@chakra-ui/react";
 import { Outlet, useLocation } from "react-router-dom";
 import LandingMaintenance from "../components/LandingMaintenance";
+import { isBusinessUser } from "../utils";
 
 // Pages logged-out visitors can always use, even in maintenance mode.
 export const PUBLIC_PATHS = [
@@ -15,11 +16,11 @@ export const PUBLIC_PATHS = [
     '/about', '/features', '/business', '/support', '/reset-password/*',
 ];
 
-// Dealers and mechanics keep their dashboard navbar (and its menu drawer) on shared pages.
+// Dealers, mechanics and parts dealers keep their dashboard navbar (and its menu drawer) on shared pages.
 function BusinessNav({ userType }){
     const [sidebarOpen, setSidebarState] = useState(false);
-    const Navbar = userType === 'mechanic' ? MechanicNavbar : DealerNavbar;
-    const SideBar = userType === 'mechanic' ? MechanicDashboardSideBar : DealerDashboardSideBar;
+    const Navbar = userType === 'mechanic' ? MechanicNavbar : userType === 'parts_dealer' ? PartsDealerNavbar : DealerNavbar;
+    const SideBar = userType === 'mechanic' ? MechanicDashboardSideBar : userType === 'parts_dealer' ? PartsDealerDashboardSideBar : DealerDashboardSideBar;
     return (
         <>
             <Navbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar />
@@ -30,7 +31,7 @@ function BusinessNav({ userType }){
 
 function UserNav({ authUser }){
     if (!authUser) return <UnauthenticatedNavbar />;
-    if (['dealer', 'mechanic'].includes(authUser.user_type)) return <BusinessNav userType={authUser.user_type} />;
+    if (isBusinessUser(authUser)) return <BusinessNav userType={authUser.user_type} />;
     return <CustomerNavbar />;
 }
 

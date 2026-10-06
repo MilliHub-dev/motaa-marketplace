@@ -45,11 +45,13 @@ import {
 const BUSINESS_TYPES = [
   { value: 'dealer', label: 'Car dealer' },
   { value: 'mechanic', label: 'Mechanic' },
+  { value: 'parts_dealer', label: 'Parts dealer' },
 ];
+const CHOOSE_BUSINESS_TYPE = "Choose whether you're a car dealer, a mechanic or a parts dealer.";
 
 export function SignupView() {
   const [params] = useSearchParams();
-  // ?type=business → dealer/mechanic signup; anything else (customer, personal, none) → personal
+  // ?type=business → dealer/mechanic/parts dealer signup (&as=dealer|mechanic|parts_dealer presets it); anything else (customer, personal, none) → personal
   const accountType = params.get('type') === 'business' ? 'business' : 'customer';
   const preset = BUSINESS_TYPES.some((t) => t.value === params.get('as')) ? params.get('as') : '';
   // a new key resets the whole flow when switching between personal and business
@@ -78,7 +80,7 @@ function SignupFlow({ accountType, presetBusinessType }) {
 
   function checkBusinessType() {
     if (isBusiness && !businessType) {
-      setErrors((e) => ({ ...e, user_type: "Choose whether you're a car dealer or a mechanic." }));
+      setErrors((e) => ({ ...e, user_type: CHOOSE_BUSINESS_TYPE }));
       return false;
     }
     return true;
@@ -101,7 +103,7 @@ function SignupFlow({ accountType, presetBusinessType }) {
     e.preventDefault();
     if (pending) return;
     const nextErrors = {
-      user_type: isBusiness && !businessType ? "Choose whether you're a car dealer or a mechanic." : '',
+      user_type: isBusiness && !businessType ? CHOOSE_BUSINESS_TYPE : '',
       email: validateEmail(form.email),
       password: validatePassword(form.password, { email: form.email }),
     };
@@ -257,7 +259,7 @@ function SignupFlow({ accountType, presetBusinessType }) {
                 </InputGroup>
                 {errors.phone_number
                   ? <FormErrorMessage>{errors.phone_number}</FormErrorMessage>
-                  : <FormHelperText>Dealers and mechanics use this to reach you about bookings and orders.</FormHelperText>}
+                  : <FormHelperText>Dealers, mechanics and parts sellers use this to reach you about bookings and orders.</FormHelperText>}
               </FormControl>
             )}
 
@@ -303,8 +305,8 @@ function SignupFlow({ accountType, presetBusinessType }) {
     <AuthShell
       title={isBusiness ? 'Create a business account' : 'Create your account'}
       description={isBusiness
-        ? 'List your cars or offer your repair services to drivers across Nigeria.'
-        : 'Buy, rent and service cars across Nigeria.'}
+        ? 'List your cars, offer your repair services or sell spare parts to drivers across Nigeria.'
+        : 'Buy, rent and service cars, and order spare parts, across Nigeria.'}
     >
       <form onSubmit={submitAccount} noValidate>
         <Stack spacing={4}>
@@ -318,6 +320,8 @@ function SignupFlow({ accountType, presetBusinessType }) {
                     <Button
                       key={type.value}
                       flex={1}
+                      px={{ base: 2, sm: 4 }}
+                      fontSize={{ base: 'sm', sm: 'md' }}
                       aria-pressed={selected}
                       variant={selected ? 'solid' : 'outline'}
                       colorScheme="blue"

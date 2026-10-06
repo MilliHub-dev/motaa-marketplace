@@ -25,6 +25,7 @@ import { useContext, useRef, useState } from 'react';
 import { Link as RLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { GlobalStore } from '../../App';
 import { toApiError } from '../../api/client';
+import { isBusinessUser } from '../../utils';
 import { GoogleSignInCancelled, GOOGLE_SIGN_IN_AVAILABLE, signInWithGoogle } from '../../firebase';
 import {
   AuthShell,
@@ -54,7 +55,7 @@ export const LoginView = () => {
 
   function finishLogin(body) {
     if (!isAuthPayload(body)) throw new Error(UNEXPECTED);
-    if (['dealer', 'mechanic'].includes(body.user_type) && body.profile_complete === false) {
+    if (isBusinessUser(body) && body.profile_complete === false) {
       // account exists but the business profile was never finished
       saveOnboarding(body);
       notify({ title: 'Almost there', body: 'Finish setting up your business profile to continue.', color: 'blue' });
@@ -203,7 +204,7 @@ export const LoginView = () => {
         <Link as={RLink} to="/signup" color="primary" fontWeight="semibold">Sign up</Link>
       </Text>
       <Text textAlign="center" mt={2} color="gray.600" fontSize="sm">
-        Selling cars or offering repairs?{' '}
+        Selling cars or parts, or offering repairs?{' '}
         <Link as={RLink} to="/signup?type=business" color="primary" fontWeight="semibold">Create a business account</Link>
       </Text>
 

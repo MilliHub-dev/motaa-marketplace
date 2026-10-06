@@ -116,7 +116,8 @@ export const ComboBox = ({ defaultOptions, onSelect }) => {
 
 
 /**
- * businessType: 'dealership' | 'mechanic' (keys of DOJAH.appIds / DOJAH.widgetIds).
+ * businessType: 'dealership' | 'mechanic' (keys of DOJAH.appIds / DOJAH.widgetIds) | 'parts_dealer'
+ * (parts dealers are verified through the same Dojah app and widget as car dealers).
  * onVerification(type, data) receives the Dojah events ('success', 'error', 'close', ...).
  */
 export const VerificationNotice = ({ businessType, user, onVerification, verificationStatus, ...props })=>{
@@ -136,8 +137,9 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
       setStarting(false);
     }
   }
-  const appId = DOJAH.appIds?.[businessType];
-  const widgetId = DOJAH.widgetIds?.[businessType];
+  const dojahKey = businessType === 'parts_dealer' ? 'dealership' : businessType;
+  const appId = DOJAH.appIds?.[dojahKey];
+  const widgetId = DOJAH.widgetIds?.[dojahKey];
   const configured = Boolean(DOJAH.publicKey && appId && widgetId);
 
   function handleResponse(type, data){
@@ -152,7 +154,7 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
       <Flex width="100%" alignItems="center" flexWrap="wrap" justify="space-between" gap={3}>
         <AlertTitle fontSize="sm" fontWeight="600" flex="1 1 260px" whiteSpace="normal">
           You haven't completed your business verification yet. Verify your business to {
-            businessType === 'dealership' ? 'add and publish listings' : 'add services'
+            businessType === 'dealership' ? 'add and publish listings' : businessType === 'parts_dealer' ? 'put your parts on sale' : 'add services'
           }.
           {verificationStatus === 'pending' && (
             <Text as="span" display="block" fontWeight="normal" mt={1}>

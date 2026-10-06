@@ -399,8 +399,9 @@ export function ListingDetailsForm({ form, errors = {}, onChange }) {
  * items: [{ key, file?, previewUrl?, uuid?, url?, removed? }]
  * New files get previewUrl; server images have uuid+url. Removing a server image only
  * marks it (`removed: true`) — the page deletes it when the dealer saves the step.
+ * `title`, `subject` and `owner` word it for something other than a car listing (e.g. a spare part).
  */
-export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error }) {
+export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error, title = 'Photos of the car', subject = 'Car', owner = 'listing' }) {
   const inputId = useId();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);
@@ -416,7 +417,7 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
     for (const file of files) {
       if (!file.type?.startsWith('image/')) { issues.push(`${file.name} isn't an image.`); continue; }
       if (file.size > maxMb * 1024 * 1024) { issues.push(`${file.name} is larger than ${maxMb} MB.`); continue; }
-      if (accepted.length >= remaining) { issues.push(`Only ${limit} photos are allowed per listing.`); break; }
+      if (accepted.length >= remaining) { issues.push(`Only ${limit} photos are allowed per ${owner}.`); break; }
       accepted.push({ key: `new-${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`, file, previewUrl: URL.createObjectURL(file) });
     }
     setProblem(issues.join(' '));
@@ -433,7 +434,7 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
   }
 
   function restore(item) {
-    if (kept.length >= limit) return setProblem(`Only ${limit} photos are allowed per listing.`);
+    if (kept.length >= limit) return setProblem(`Only ${limit} photos are allowed per ${owner}.`);
     onChange(items.map((i) => (i.key === item.key ? { ...i, removed: false } : i)));
   }
 
@@ -442,7 +443,7 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
   return (
     <VStack spacing={3} align="stretch" w="full">
       <Box>
-        <Text fontWeight="600">Photos of the car</Text>
+        <Text fontWeight="600">{title}</Text>
         <Text fontSize="sm" color="gray.600">
           Add up to {limit} clear photos (JPG, PNG or WebP, max {maxMb} MB each). The first photo is the cover.
         </Text>
@@ -493,7 +494,7 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
             const position = kept.indexOf(item) + 1;
             return (
               <Box key={item.key} position="relative" borderRadius="lg" overflow="hidden" borderWidth={1} opacity={item.removed ? 0.45 : 1}>
-                <Image src={item.previewUrl || item.url} alt={item.removed ? 'Photo marked for removal' : `Car photo ${position}`} h="110px" w="100%" objectFit="cover" />
+                <Image src={item.previewUrl || item.url} alt={item.removed ? 'Photo marked for removal' : `${subject} photo ${position}`} h="110px" w="100%" objectFit="cover" />
                 {!item.removed && (
                   <Badge position="absolute" top={2} left={2} borderRadius="full" px={2} bg="whiteAlpha.900" color="gray.800">
                     {position === 1 ? 'Cover' : position}
@@ -522,7 +523,7 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
         </SimpleGrid>
       )}
       {items.some((i) => i.removed) && (
-        <Text fontSize="sm" color="gray.600">Faded photos will be deleted when you continue.</Text>
+        <Text fontSize="sm" color="gray.600">Faded photos will be deleted when you {owner === 'listing' ? 'continue' : 'save'}.</Text>
       )}
     </VStack>
   );

@@ -12,11 +12,12 @@ import {
 } from '@chakra-ui/react';
 import { Link as RLink } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { isBusinessUser } from '../../utils';
 
 // ------------------------------------------------------------------ onboarding session
 // A business account exists (and has a token) before its profile is complete. The token is
 // kept in sessionStorage — not the app's login storage — until onboarding finishes, so the
-// app never treats a half-created dealer/mechanic as logged in.
+// app never treats a half-created dealer, mechanic or parts dealer as logged in.
 const ONBOARDING_KEY = 'motaa-onboarding';
 
 export function saveOnboarding(user) {
@@ -26,7 +27,7 @@ export function saveOnboarding(user) {
 export function readOnboarding() {
   try {
     const user = JSON.parse(sessionStorage.getItem(ONBOARDING_KEY) || 'null');
-    return user?.token && ['dealer', 'mechanic'].includes(user?.user_type) ? user : null;
+    return user?.token && isBusinessUser(user) ? user : null;
   } catch {
     return null;
   }
@@ -40,7 +41,8 @@ export const authHeader = (token) => ({ headers: { Authorization: `Token ${token
 
 // ------------------------------------------------------------------ navigation
 export function roleHome(user) {
-  return ['dealer', 'mechanic'].includes(user?.user_type) ? '/dashboard' : '/home';
+  if (user?.user_type === 'parts_dealer') return '/parts-store';
+  return isBusinessUser(user) ? '/dashboard' : '/home';
 }
 
 /** Only same-site paths are allowed as ?next= targets (no open redirects, no auth loops). */

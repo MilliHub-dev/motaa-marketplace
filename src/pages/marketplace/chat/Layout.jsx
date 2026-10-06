@@ -18,7 +18,7 @@ import { Link as RLink, Outlet, useParams } from 'react-router-dom';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { EmptyState, ErrorState } from '../../../components/states';
-import { asList } from '../../../utils';
+import { asList, BUSINESS_USER_TYPES } from '../../../utils';
 import { profilePicture } from '../../../utils';
 
 /** Height from the element's top to the bottom of the viewport (the navbar above varies by user type). */
@@ -77,14 +77,14 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
   } else if (query.error && query.data === undefined) {
     body = <ErrorState error={query.error} onRetry={query.reload} minH="200px" />;
   } else if (conversations.length === 0) {
-    const business = userType === 'dealer' || userType === 'mechanic';
+    const business = BUSINESS_USER_TYPES.includes(userType);
     body = (
       <EmptyState
         icon={MessageCircle}
         title="No conversations yet"
         description={business
-          ? 'When a customer messages you from one of your listings or your profile, the conversation will appear here.'
-          : 'Chats start when you message a dealer from a car listing or a mechanic from their profile. Your conversations will appear here.'}
+          ? 'When a customer messages you from one of your listings, parts or your profile, the conversation will appear here.'
+          : 'Chats start when you message a dealer from a car listing, a mechanic from their profile or a seller from a spare part. Your conversations will appear here.'}
         action={business ? undefined : { label: 'Browse cars', to: '/buy' }}
         minH="280px"
       />

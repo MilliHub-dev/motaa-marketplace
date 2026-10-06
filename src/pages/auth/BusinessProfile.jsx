@@ -1,4 +1,4 @@
-// Business onboarding (last signup step for dealers and mechanics) at /signup/business.
+// Business onboarding (last signup step for dealers, mechanics and parts dealers) at /signup/business.
 // The account already exists; its token lives in sessionStorage (see shared.jsx) until this
 // profile is saved, then the user is logged in and sent to their dashboard.
 import {
@@ -36,11 +36,13 @@ import {
   isAuthPayload,
   normalizeNgPhone,
   readOnboarding,
+  roleHome,
   validateEmail,
   validateNgPhone,
 } from './shared';
 
-// Must match DEALER_SERVICES / MECHANIC_SERVICES in accounts/api/serializers.py
+// Must match DEALER_SERVICES / MECHANIC_SERVICES in accounts/api/serializers.py.
+// Parts dealers have no services to choose: they sell parts.
 const SERVICES = {
   dealer: ['Car Sale', 'Car Leasing', 'Drivers', 'Car Trade-in'],
   mechanic: ['Oil Change', 'Engine Repair', 'Brake Service', 'Diagnostics', 'Electrical Repairs',
@@ -55,6 +57,14 @@ export default function BusinessProfile() {
   const [account] = useState(readOnboarding);
   const userType = account?.user_type;
   const isDealer = userType === 'dealer';
+  const isMechanic = userType === 'mechanic';
+  const isPartsDealer = userType === 'parts_dealer';
+  const services = SERVICES[userType] || [];
+  const copy = isDealer
+    ? { title: 'Set up your dealership', name: 'e.g. Lekki Autos', headline: 'e.g. Clean, verified cars at fair prices' }
+    : isPartsDealer
+      ? { title: 'Set up your parts shop', name: 'e.g. Ladipo Auto Spares', headline: 'e.g. Genuine Toyota and Lexus parts, delivered' }
+      : { title: 'Set up your mechanic business', name: 'e.g. Ade Auto Repairs', headline: 'e.g. Honest repairs, done right the first time' };
 
   const [form, setForm] = useState({
     business_name: '',
@@ -127,7 +137,7 @@ export default function BusinessProfile() {
       business_name: form.business_name.trim().length >= 2 ? '' : 'Enter your business name.',
       headline: form.headline.trim() ? '' : 'Add a short headline or motto.',
       about: about.length >= MIN_ABOUT ? '' : `Tell customers a bit more (at least ${MIN_ABOUT} characters — ${MIN_ABOUT - about.length} to go).`,
-      services: form.services.length ? '' : 'Select at least one service you offer.',
+      services: !services.length || form.services.length ? '' : 'Select at least one service you offer.',
       contact_email: validateEmail(form.contact_email),
       contact_phone: validateNgPhone(form.contact_phone),
       street_address: form.street_address.trim() ? '' : 'Enter your street address.',
@@ -154,7 +164,7 @@ export default function BusinessProfile() {
     payload.append('contact_email', form.contact_email.trim());
     payload.append('contact_phone', normalizeNgPhone(form.contact_phone));
     form.services.forEach((service) => payload.append('services', service));
-    if (!isDealer) payload.append('business_type', form.business_type);
+    if (isMechanic) payload.append('business_type', form.business_type);
     payload.append('location', JSON.stringify({ ...(place || {}), street_address: form.street_address.trim() }));
 
     setSaving(true);
@@ -165,8 +175,13 @@ export default function BusinessProfile() {
       if (!isAuthPayload(user)) throw new Error("We couldn't finish setting up your profile. Please try again.");
       clearOnboarding();
       onAuthenticated(user);
-      notify({ title: `Welcome to Motaa, ${form.business_name.trim()}!`, body: 'Your business profile is live. Verify your business from the dashboard to build trust with customers.' });
-      navigate('/dashboard', { replace: true });
+      notify({
+        title: `Welcome to Motaa, ${form.business_name.trim()}!`,
+        body: isPartsDealer
+          ? 'Your parts shop is set up. Verify your business from the dashboard so customers can see your parts.'
+          : 'Your business profile is live. Verify your business from the dashboard to build trust with customers.',
+      });
+      navigate(roleHome(user), { replace: true });
     } catch (err) {
       const error = toApiError(err);
       const fields = error.fieldErrors;
@@ -195,7 +210,7 @@ export default function BusinessProfile() {
   return (
     <AuthShell
       maxW="640px"
-      title={isDealer ? 'Set up your dealership' : 'Set up your mechanic business'}
+      title={copy.title}
       description="Final step · This is what customers see on Motaa."
     >
       <form onSubmit={submit} noValidate>
@@ -228,13 +243,13 @@ export default function BusinessProfile() {
               <FormControl isInvalid={Boolean(errors.business_name)} isRequired>
                 <FormLabel>Business name</FormLabel>
                 <Input id="bp-business_name" autoComplete="organization" value={form.business_name}
-                  onChange={(e) => setField('business_name', e.target.value)} placeholder={isDealer ? 'e.g. Lekki Autos' : 'e.g. Ade Auto Repairs'} />
+                  onChange={(e) => setField('business_name', e.target.value)} placeholder={copy.name} />
                 <FormErrorMessage>{errors.business_name}</FormErrorMessage>
               </FormControl>
               <FormControl isInvalid={Boolean(errors.headline)} isRequired>
                 <FormLabel>Headline or motto</FormLabel>
                 <Input id="bp-headline" maxLength={200} value={form.headline}
-                  onChange={(e) => setField('headline', e.target.value)} placeholder={isDealer ? 'e.g. Clean, verified cars at fair prices' : 'e.g. Honest repairs, done right the first time'} />
+                  onChange={(e) => setField('headline', e.target.value)} placeholder={copy.headline} />
                 <FormErrorMessage>{errors.headline}</FormErrorMessage>
               </FormControl>
             </Stack>
@@ -244,16 +259,17 @@ export default function BusinessProfile() {
             <FormLabel>About your business</FormLabel>
             <Textarea id="bp-about" minH="120px" maxLength={2000} value={form.about}
               onChange={(e) => setField('about', e.target.value)}
-              placeholder="What do you offer, where are you based and what makes you different?" />
+              placeholder={isPartsDealer ? 'What parts do you sell, for which cars, and where are you based?' : 'What do you offer, where are you based and what makes you different?'} />
             {errors.about
               ? <FormErrorMessage>{errors.about}</FormErrorMessage>
               : <FormHelperText>{aboutLength < MIN_ABOUT ? `${aboutLength}/${MIN_ABOUT} characters minimum` : `${aboutLength} characters`}</FormHelperText>}
           </FormControl>
 
+          {services.length > 0 && (
           <FormControl isInvalid={Boolean(errors.services)} isRequired as="fieldset">
             <FormLabel as="legend">Services you offer</FormLabel>
             <Wrap spacing={2} id="bp-services" tabIndex={-1}>
-              {SERVICES[userType].map((service) => {
+              {services.map((service) => {
                 const selected = form.services.includes(service);
                 return (
                   <WrapItem key={service}>
@@ -277,8 +293,9 @@ export default function BusinessProfile() {
               ? <FormErrorMessage>{errors.services}</FormErrorMessage>
               : <FormHelperText>{isDealer ? 'You can change these later in Settings.' : 'Set your prices for each service from your dashboard.'}</FormHelperText>}
           </FormControl>
+          )}
 
-          {!isDealer && (
+          {isMechanic && (
             <FormControl as="fieldset">
               <FormLabel as="legend">How do you work?</FormLabel>
               <RadioGroup value={form.business_type} onChange={(value) => setField('business_type', value)}>
@@ -292,7 +309,7 @@ export default function BusinessProfile() {
 
           <Box>
             <Text fontWeight="semibold">Contact details</Text>
-            <Text fontSize="sm" color="gray.600" mb={4}>Shown to customers and on inspection slips and receipts.</Text>
+            <Text fontSize="sm" color="gray.600" mb={4}>{isPartsDealer ? 'How customers and Motaa reach you about orders.' : 'Shown to customers and on inspection slips and receipts.'}</Text>
             <Stack spacing={4}>
               <FormControl isInvalid={Boolean(errors.contact_email)} isRequired>
                 <FormLabel>Business email</FormLabel>

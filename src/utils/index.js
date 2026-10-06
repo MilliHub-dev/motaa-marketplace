@@ -28,3 +28,11 @@ export function profilePicture(profile) {
   return profile?.logo || profile?.image || (profile?.profile_hidden ? MOTAA_ICON : undefined);
 }
 
+
+// Account types that run a business dashboard (everything else is a customer).
+export const BUSINESS_USER_TYPES = ['dealer', 'mechanic', 'parts_dealer'];
+
+/** True for car dealers, mechanics and parts dealers. */
+export function isBusinessUser(user) {
+  return BUSINESS_USER_TYPES.includes(user?.user_type);
+}

@@ -16,11 +16,12 @@ import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuChartLine } from 'react-icons/lu';
-import { HelpCircle, Settings, ArrowLeft, ArrowRight } from 'lucide-react';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck } from 'lucide-react';
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';
 import { CustomerSearchBar } from '.';
+import { usePartsCartCount } from './parts';
 
 // Public contact/social details (same as the Privacy Policy / Terms contact sections).
 export const MOTAA_CONTACT = {
@@ -37,6 +38,7 @@ const PUBLIC_NAV = [
   { label: 'Home', to: '/' },
   { label: 'About', to: '/about' },
   { label: 'Features', to: '/features' },
+  { label: 'Spare Parts', to: '/parts' },
   { label: 'For Businesses', to: '/business' },
 ];
 
@@ -45,6 +47,7 @@ const CUSTOMER_NAV = [
   { label: 'Buy', to: '/buy' },
   { label: 'Rent', to: '/rent' },
   { label: 'Find Mechanic', to: '/mechanics' },
+  { label: 'Spare Parts', to: '/parts' },
 ];
 
 
@@ -164,9 +167,27 @@ export const UnauthenticatedNavbar = () => {
 }
 
 
-const NavIconLink = ({ to, label, icon }) => (
-  <IconButton as={RLink} to={to} aria-label={label} title={label} variant="ghost" icon={icon} fontSize="22px" />
+const NavIconLink = ({ to, label, icon, ...props }) => (
+  <IconButton as={RLink} to={to} aria-label={label} title={label} variant="ghost" icon={icon} fontSize="22px" {...props} />
 )
+
+// Parts cart with the number of parts in it. Phones only show it once something is in the cart
+// (the menu drawer always links to it), so the navbar still fits a small screen.
+const PartsCartLink = () => {
+  const count = usePartsCartCount();
+  const label = count ? `Parts cart, ${count} ${count === 1 ? 'item' : 'items'}` : 'Parts cart';
+  return (
+    <Box position="relative" display={{ base: count ? 'block' : 'none', md: 'block' }}>
+      <NavIconLink to="/parts/cart" label={label} icon={<ShoppingBasket size={22} />} />
+      {count > 0 && (
+        <Flex position="absolute" top="2px" right="0px" minW="18px" h="18px" px={1} rounded="full" bg="primary" color="white"
+          fontSize="11px" fontWeight="700" align="center" justify="center" pointerEvents="none" aria-hidden="true">
+          {count > 99 ? '99+' : count}
+        </Flex>
+      )}
+    </Box>
+  );
+}
 
 
 export const CustomerNavbar = () => {
@@ -211,6 +232,7 @@ export const CustomerNavbar = () => {
           <NavIconLink to="/chat" label="Messages" icon={<AiOutlineMessage />} />
           <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
           <NavIconLink to="/cart" label="Cart" icon={<HiOutlineShoppingCart />} />
+          <PartsCartLink />
 
           <Box display={{ base: 'none', lg: 'block' }}>
             <Menu placement="bottom-end">
@@ -221,6 +243,7 @@ export const CustomerNavbar = () => {
                   {fullName && <Text fontWeight="600">{fullName}</Text>}
                   {authUser?.email && <Text fontSize="sm" color="gray.600">{authUser.email}</Text>}
                 </VStack>
+                <MenuItem as={RLink} to="/parts/orders" icon={<Receipt size={18} />}>My parts orders</MenuItem>
                 <MenuItem as={RLink} to="/support" icon={<RiHeadphoneLine size={18} />}>Contact Support</MenuItem>
                 <MenuItem onClick={logout} icon={<RiLogoutBoxRLine size={18} />}>Sign Out</MenuItem>
               </MenuList>
@@ -250,7 +273,7 @@ export const CustomerNavbar = () => {
 }
 
 
-// Navbar shared by the dealer and mechanic dashboards.
+// Navbar shared by the dealer, mechanic and parts dealer dashboards.
 const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
   const { authUser, logout } = useContext(GlobalStore);
   const fullName = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');
@@ -314,12 +337,14 @@ const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
 
 export const DealerNavbar = (props) => <BusinessNavbar {...props} />;
 export const MechanicNavbar = (props) => <BusinessNavbar {...props} />;
+export const PartsDealerNavbar = (props) => <BusinessNavbar {...props} />;
 
 
 const DEALER_LINKS = [
   { icon: Home3, label: 'Dashboard', path: '/dashboard' },
   { icon: Coin, label: 'Orders', path: '/orders' },
   { icon: Shop, label: 'Inventory', path: '/inventory' },
+  { icon: Package, label: 'Parts shop', path: '/parts-store' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
   { icon: HelpCircle, label: 'Support', path: '/support' },
   { icon: Settings, label: 'Settings', path: '/settings' },
@@ -329,9 +354,20 @@ const MECHANIC_LINKS = [
   { icon: GiHomeGarage, label: 'Dashboard', path: '/dashboard' },
   { icon: GrUserWorker, label: 'Bookings', path: '/bookings' },
   { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services' },
+  { icon: Package, label: 'Parts shop', path: '/parts-store' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
   { icon: HelpCircle, label: 'Support', path: '/support' },
   { icon: Settings, label: 'Settings', path: '/settings' },
+];
+
+// `end`: only the overview itself, not every /parts-store page, marks "Overview" as current.
+const PARTS_DEALER_LINKS = [
+  { icon: Home3, label: 'Overview', path: '/parts-store', end: true },
+  { icon: Package, label: 'Parts', path: '/parts-store/parts' },
+  { icon: Coin, label: 'Orders', path: '/parts-store/orders' },
+  { icon: Truck, label: 'Shop settings', path: '/parts-store/settings' },
+  { icon: HelpCircle, label: 'Support', path: '/support' },
+  { icon: Settings, label: 'Business profile', path: '/settings' },
 ];
 
 // Business header + links; NavLink marks the current section (incl. nested pages like /inventory/add).
@@ -351,6 +387,7 @@ const SidebarNavLinks = ({ business, links }) => (
          key={item.path}
          as={NavLink}
          to={item.path}
+         end={item.end}
          w="100%"
          variant="ghost"
          justifyContent="flex-start"
@@ -419,6 +456,10 @@ export const MechanicDashboardSideBar = ({ mechanic, onClose, ...props }) => (
   <BusinessSideBar business={mechanic} links={MECHANIC_LINKS} {...props} />
 );
 
+export const PartsDealerDashboardSideBar = ({ business, onClose, ...props }) => (
+  <BusinessSideBar business={business} links={PARTS_DEALER_LINKS} {...props} />
+);
+
 
 const DrawerLink = ({ to, onClose, children, end }) => (
   <Text
@@ -451,6 +492,8 @@ export const Sidebar = ({ show, onClose }) => {
             {isLoggedIn ? (
               <>
                 {CUSTOMER_NAV.map((item) => <DrawerLink key={item.to} to={item.to} onClose={onClose}>{item.label}</DrawerLink>)}
+                <DrawerLink to="/parts/cart" onClose={onClose}>Parts cart</DrawerLink>
+                <DrawerLink to="/parts/orders" onClose={onClose}>My parts orders</DrawerLink>
                 <DrawerLink to="/wallet" onClose={onClose}>Wallet</DrawerLink>
               </>
             ) : (
@@ -491,11 +534,13 @@ export const Footer = () => {
         { label: 'Buy a car', url: '/buy' },
         { label: 'Rent a car', url: '/rent' },
         { label: 'Find a mechanic', url: '/mechanics' },
+        { label: 'Spare parts', url: '/parts' },
         { label: 'Sell your car', url: '/business' },
       ] : [
         { label: 'Buy a car', url: '/signup' },
         { label: 'Rent a car', url: '/signup' },
         { label: 'Find a mechanic', url: '/signup' },
+        { label: 'Spare parts', url: '/parts' },
         { label: 'Sell your car', url: '/signup?type=business&as=dealer' },
       ],
     },
@@ -537,7 +582,7 @@ export const Footer = () => {
         <Flex pb={8} borderBottomWidth={1} borderColor="whiteAlpha.500" justifyContent="space-between" alignItems={{ md: 'center' }} flexDirection={{ base: 'column', md: 'row' }} gap={6}>
           <Box>
             <Heading as="h2" size="xl" fontWeight="500">Become a partner!</Heading>
-            <Text fontSize="lg" mt={3}>Join our community of dealers, car rentals and mechanics.</Text>
+            <Text fontSize="lg" mt={3}>Join our community of dealers, car rentals, mechanics and parts sellers.</Text>
           </Box>
 
           <Flex gap={4} flexWrap="wrap">

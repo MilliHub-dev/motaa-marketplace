@@ -70,6 +70,27 @@ const OrderListAdmin = lazyPage(() => import('./pages/dashboard/dealer/orders/Or
 const AnalyticsDashboard = lazyPage(() => import('./pages/dashboard/dealer/analytics/AnalyticsOverview'));
 const DealershipSettings = lazyPage(() => import('./pages/dashboard/dealer/settings/Settings'));
 
+// Spare parts: customer pages
+const PartsListing = lazyPage(() => import('./pages/marketplace/parts/PartsListing'));
+const PartDetail = lazyPage(() => import('./pages/marketplace/parts/PartDetail'));
+const PartsStorePage = lazyPage(() => import('./pages/marketplace/parts/PartsStore'));
+const PartsCart = lazyPage(() => import('./pages/marketplace/parts/PartsCart'));
+const PartsCheckout = lazyPage(() => import('./pages/marketplace/parts/PartsCheckout'));
+const PartsOrderPlaced = lazyPage(() => import('./pages/marketplace/parts/PartsOrderPlaced'));
+const PartsOrders = lazyPage(() => import('./pages/marketplace/parts/PartsOrders'));
+const PartsOrderDetail = lazyPage(() => import('./pages/marketplace/parts/PartsOrderDetail'));
+
+// Spare parts: seller pages (parts dealers, and car dealers / mechanics who open a parts shop)
+const PartsDealerDashboardLayout = lazyPage(() => import('./pages/dashboard/parts/Layout'));
+const PartsShopGate = lazyPage(() => import('./pages/dashboard/parts/shop'));
+const PartsShopOverview = lazyPage(() => import('./pages/dashboard/parts/Overview'));
+const PartsShopParts = lazyPage(() => import('./pages/dashboard/parts/Parts'));
+const PartsShopPartForm = lazyPage(() => import('./pages/dashboard/parts/PartForm'));
+const PartsShopOrders = lazyPage(() => import('./pages/dashboard/parts/Orders'));
+const PartsShopOrderDetail = lazyPage(() => import('./pages/dashboard/parts/OrderDetail'));
+const PartsShopSettings = lazyPage(() => import('./pages/dashboard/parts/ShopSettings'));
+const PartsDealerBusinessProfile = lazyPage(() => import('./pages/dashboard/parts/BusinessProfile'));
+
 // Wallet
 const WalletLayout = lazyPage(() => import('./pages/marketplace/wallet/Layout'));
 const WalletHomePage = lazyPage(() => import('./pages/marketplace/wallet/Dashboard'));
@@ -119,6 +140,34 @@ function readStoredUser(){
 }
 
 let lastServerNotice = 0;
+
+// The seller's parts shop. The same screens serve parts dealers (their whole dashboard) and car
+// dealers / mechanics ("Parts shop" in their dashboard). Notifications link to these exact paths.
+// Called as a function inside <Routes>, which only accepts <Route> elements as children.
+function partsShopRoutes(){
+  return (
+    <Route ErrorBoundary={ErrorBoundary} path='/parts-store' element={<PartsShopGate />}>
+      <Route ErrorBoundary={ErrorBoundary} path='parts/add' element={<PartsShopPartForm />} />
+      <Route ErrorBoundary={ErrorBoundary} path='parts/:partId' element={<PartsShopPartForm />} />
+      <Route ErrorBoundary={ErrorBoundary} path='parts' element={<PartsShopParts />} />
+      <Route ErrorBoundary={ErrorBoundary} path='orders/:orderId' element={<PartsShopOrderDetail />} />
+      <Route ErrorBoundary={ErrorBoundary} path='orders' element={<PartsShopOrders />} />
+      <Route ErrorBoundary={ErrorBoundary} path='settings' element={<PartsShopSettings />} />
+      <Route ErrorBoundary={ErrorBoundary} path='' element={<PartsShopOverview />} />
+      <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='/parts-store' replace />} />
+    </Route>
+  );
+}
+
+// Parts pages anyone can browse without logging in (the cart, checkout and orders need an account).
+function publicPartsRoutes(){
+  return (
+    <Fragment>
+      <Route ErrorBoundary={ErrorBoundary} path='/parts' element={<PartsListing />} />
+      <Route ErrorBoundary={ErrorBoundary} path='/parts/stores/:storeId' element={<PartsStorePage />} />
+    </Fragment>
+  );
+}
 
   
 function App() {
@@ -307,6 +356,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateListingAdmin />} />
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
+                      {partsShopRoutes()}
                       <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<DealershipSettings />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
@@ -325,10 +375,21 @@ function App() {
                           <Route ErrorBoundary={ErrorBoundary} path='' element={<ServiceOfferings />} />
                         </Route>
 
+                        {partsShopRoutes()}
                         <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
+                      </Route>
+                    ) : authUser?.user_type === 'parts_dealer' ? (
+                      <Route ErrorBoundary={ErrorBoundary} element={<PartsDealerDashboardLayout />}>
+                        {partsShopRoutes()}
+                        {/* a parts dealer's dashboard is their shop */}
+                        <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<Navigate to='/parts-store' replace />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<PartsDealerBusinessProfile />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to='/parts-store' replace />} />
                       </Route>
                     ) : (
                       <Route ErrorBoundary={ErrorBoundary} element={<Layout />}>
@@ -344,6 +405,15 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dealership/:dealerId' element={<DealerProfile />} />
                         
+                        {/* spare parts: the specific paths come before /parts/:partId */}
+                        {publicPartsRoutes()}
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/cart' element={<PartsCart />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/checkout/placed' element={<PartsOrderPlaced />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/checkout' element={<PartsCheckout />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/orders/:orderId' element={<PartsOrderDetail />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/orders' element={<PartsOrders />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
+
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<DocumentSigningPage />} />
@@ -371,6 +441,7 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} element={
                     authUser?.user_type === 'dealer' ? <DealerDashboardLayout hideSidebar={true} hideFooter={true} />
                     : authUser?.user_type === 'mechanic' ? <MechanicDashboardLayout hideFooter={true} hideSidebar={true} />
+                    : authUser?.user_type === 'parts_dealer' ? <PartsDealerDashboardLayout hideFooter={true} hideSidebar={true} />
                     : <Layout hideFooter={true} />
                   }>
                     <Route ErrorBoundary={ErrorBoundary} path={'/wallet'} element={<WalletLayout />}>
@@ -400,6 +471,12 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/features' element={<FeaturesPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/business' element={<BusinessPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
+                  {/* spare parts can be browsed without an account; buying sends you to log in */}
+                  {publicPartsRoutes()}
+                  <Route ErrorBoundary={ErrorBoundary} path='/parts/cart' element={<LoginRedirect />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/parts/checkout/*' element={<LoginRedirect />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/parts/orders/*' element={<LoginRedirect />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/' element={<LandingPage />} />
                   {/* deep links need an account: send them to login and come back afterwards */}
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LoginRedirect />} />
@@ -419,7 +496,7 @@ function App() {
 /** Unknown/protected path while logged out → /login?next=<path> (landing for junk paths). */
 function LoginRedirect(){
   const path = window.location.pathname + window.location.search
-  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services)(\/|$)/
+  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services|parts|parts-store)(\/|$)/
   if (!appPaths.test(window.location.pathname)) return <Navigate to='/' replace />
   return <Navigate to={`/login?next=${encodeURIComponent(path)}`} replace />
 }

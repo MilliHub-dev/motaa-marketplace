@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Link as RLink, useSearchParams } from "react-router-dom";
-import { CalendarClock, Car, KeyRound, Receipt, Wrench } from "lucide-react";
+import { CalendarClock, Car, KeyRound, Package, Receipt, Wrench } from "lucide-react";
 import { GlobalStore } from "../../App";
 import { useApiMutation, useApiQuery } from "../../hooks/useApi";
 import { EmptyState, ErrorState } from "../../components/states";
@@ -271,6 +271,15 @@ export const CartPage = () => {
             <Container maxW="container.lg">
                 <Heading as="h1" fontSize={{ base: '2xl', md: '3xl' }} mb={1}>Your cart</Heading>
                 <Text color="gray.600" mb={4}>Cars you've saved, your orders and mechanic bookings.</Text>
+
+                <Flex as="nav" aria-label="Spare parts" align="center" gap={3} flexWrap="wrap" p={3} mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="gray.50">
+                    <Flex align="center" gap={2} flex={1} minW="200px" color="gray.700">
+                        <Package size={18} aria-hidden="true" />
+                        <Text fontSize="sm">Spare parts have their own cart and orders.</Text>
+                    </Flex>
+                    <Button as={RLink} to="/parts/cart" size="sm" variant="outline" borderColor="primary" color="primary">Parts cart</Button>
+                    <Button as={RLink} to="/parts/orders" size="sm" variant="outline" borderColor="primary" color="primary">My parts orders</Button>
+                </Flex>
 
                 {query.loading && query.data === undefined ? (
                     <CartSkeleton />

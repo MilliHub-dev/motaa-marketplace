@@ -281,7 +281,7 @@ function ChatRoom() {
         <Box minW={0} flex={1}>
           <Text as="h2" fontWeight="600" noOfLines={1}>{recipient?.name || 'Conversation'}</Text>
           {recipient?.user_type && recipient.user_type !== 'customer' && (
-            <Text fontSize="xs" color="gray.500" textTransform="capitalize">{recipient.user_type === 'dealer' ? 'Dealership' : recipient.user_type}</Text>
+            <Text fontSize="xs" color="gray.500" textTransform="capitalize">{{ dealer: 'Dealership', parts_dealer: 'Parts dealer' }[recipient.user_type] || recipient.user_type}</Text>
           )}
         </Box>
       </HStack>
