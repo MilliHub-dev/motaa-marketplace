@@ -66,9 +66,9 @@ export const MechanicListPage = () => {
     const ready = Boolean(picked) || geoStatus !== 'locating';
 
     const mechanics = useApiQuery(
-        (api, signal) => api.get(`/mechanics/?${apiQs}`, { signal }),
+        (api, signal, { useCache }) => api.get(`/mechanics/?${apiQs}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [apiQs],
-        { enabled: ready, select: (body) => body?.data }
+        { enabled: ready, select: (body) => body?.data, keepAs: `mechanics:${apiQs}` }
     );
 
     function update(changes) {

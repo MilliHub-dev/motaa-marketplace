@@ -75,7 +75,7 @@ export const MechanicDetailPage = () => {
   const query = useApiQuery(
     (api, signal) => api.get(`/mechanics/${mechId}/`, { signal }),
     [mechId],
-    { select: (body) => body?.data }
+    { select: (body) => body?.data, keepAs: `mechanic:${mechId}` }
   );
 
   // start from the device location (reverse-geocoded) when the user allows it

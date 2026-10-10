@@ -54,7 +54,7 @@ export default function PartDetail() {
   const query = useApiQuery(
     (api, signal) => api.get(`/parts/${partId}/`, { signal }),
     [partId],
-    { select: (body) => body?.data }
+    { select: (body) => body?.data, keepAs: `part:${partId}` }
   );
   const part = query.data?.part;
   const store = part?.store;

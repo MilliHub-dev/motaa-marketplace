@@ -23,7 +23,7 @@ function BlueCircle() {
 }
 
 export default function FeaturedSlider({ fallback = null }) {
-  const query = useApiQuery((api, signal) => api.get('/listings/featured/', { signal, cacheTTL: 60000 }), [], { select: (body) => asList(body?.data) });
+  const query = useApiQuery((api, signal) => api.get('/listings/featured/', { signal, cacheTTL: 60000 }), [], { select: (body) => asList(body?.data), keepAs: 'featured' });
   const cars = asList(query.data).filter((car) => car?.slug && car?.image);
   const count = cars.length;
 

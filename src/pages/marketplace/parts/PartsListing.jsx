@@ -249,13 +249,13 @@ export default function PartsListing() {
   const filtersQuery = useApiQuery(
     (api, signal, { useCache }) => api.get('/parts/filters/', { signal, cacheTTL: useCache ? 60000 : 0 }),
     [],
-    { select: (body) => body?.data || {} }
+    { select: (body) => body?.data || {}, keepAs: 'parts-filters' }
   );
   const filters = filtersQuery.data || {};
   const parts = useApiQuery(
     (api, signal, { useCache }) => api.get(`/parts/?${qs}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
     [qs],
-    { select: (body) => body?.data }
+    { select: (body) => body?.data, keepAs: `parts:${qs}` }
   );
 
   const filtered = hasPartsFilters(params);

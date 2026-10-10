@@ -69,8 +69,9 @@ export default function MainPage() {
   const { authUser } = useContext(GlobalStore);
   const navigate = useNavigate();
   const home = useApiQuery(
-    (api, signal) => api.get('/listings/my-listings/?summary=1&scope=recents;top-deals', { signal }),
+    (api, signal, { useCache }) => api.get('/listings/my-listings/?summary=1&scope=recents;top-deals', { signal, cacheTTL: useCache ? 30000 : 0 }),
     [],
+    { keepAs: 'home' },
   );
   const recentlyViewed = asList(home.data?.recents);
   const name = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');

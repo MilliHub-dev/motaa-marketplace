@@ -41,7 +41,7 @@ export const BuyDetail = () => {
     const detail = useApiQuery(
         (api, signal) => api.get(`/listings/buy/${listingId}/`, { signal }),
         [listingId],
-        { select: (body) => body?.data }
+        { select: (body) => body?.data, keepAs: `buy-detail:${listingId}` }
     );
     // the customer's cart, to show "In cart" instead of offering to add it twice
     const cart = useApiQuery(

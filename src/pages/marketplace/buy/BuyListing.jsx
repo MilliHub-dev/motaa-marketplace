@@ -61,7 +61,7 @@ const BuyListing = () => {
     const listings = useApiQuery(
         (api, signal, { useCache }) => api.get(`/listings/buy/?summary=1${qs ? `&${qs}` : ''}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [qs],
-        { select: (body) => body?.data }
+        { select: (body) => body?.data, keepAs: `buy:${qs}` }
     );
 
     const banners = [

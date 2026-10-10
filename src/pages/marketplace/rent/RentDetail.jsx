@@ -52,7 +52,7 @@ export default function RentalDetails() {
   const detail = useApiQuery(
     (api, signal) => api.get(`/listings/rentals/${listingId}/`, { signal }),
     [listingId],
-    { select: (body) => body?.data }
+    { select: (body) => body?.data, keepAs: `rent-detail:${listingId}` }
   );
 
   return (

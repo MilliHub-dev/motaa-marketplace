@@ -27,7 +27,7 @@ export function reloadForNewVersion() {
 
 /** React.lazy that reloads the page (once) when the chunk belongs to an older deploy. */
 export function lazyPage(factory) {
-  return lazy(() =>
+  const Page = lazy(() =>
     factory().catch((error) => {
       if (isChunkLoadError(error) && reloadForNewVersion()) {
         return new Promise(() => {}); // keep suspended while the page reloads
@@ -35,4 +35,31 @@ export function lazyPage(factory) {
       throw error;
     })
   );
+  // download the page's code ahead of time (see preloadPages); a failure here is ignored
+  // and handled properly when the page is actually opened
+  Page.preload = () => factory().catch(() => {});
+  return Page;
+}
+
+/**
+ * Download the code for pages the visitor is likely to open next, once the browser is idle,
+ * so opening them doesn't start with a "Loading…" screen. Skipped on data-saver connections.
+ */
+export function preloadPages(pages) {
+  if (typeof window === 'undefined') return () => {};
+  const connection = navigator.connection;
+  if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || '')) return () => {};
+  let cancelled = false;
+  const run = () => {
+    // one at a time, so this never competes with what the current page is loading
+    pages.reduce((chain, page) => chain.then(() => (cancelled ? undefined : page?.preload?.())), Promise.resolve());
+  };
+  const idle = window.requestIdleCallback
+    ? window.requestIdleCallback(run, { timeout: 4000 })
+    : window.setTimeout(run, 1500);
+  return () => {
+    cancelled = true;
+    if (window.cancelIdleCallback && window.requestIdleCallback) window.cancelIdleCallback(idle);
+    else window.clearTimeout(idle);
+  };
 }

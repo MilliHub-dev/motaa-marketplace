@@ -2,7 +2,8 @@ import { createContext, Fragment, Suspense, useCallback, useEffect, useMemo, use
 import { Outlet, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { glassEnabled } from './utils/platform';
-import { lazyPage } from './utils/lazyPage';
+import { lazyPage, preloadPages } from './utils/lazyPage';
+import { forgetShownData } from './hooks/useApi';
 import { API_URL, MAINTENANCE_MODE } from './config';
 import { createApiClient, toApiError } from './api/client';
 import { glassTheme } from './theme/glass';
@@ -328,6 +329,21 @@ function App() {
     setOtherContext,
     otherContext,
   }
+
+  // remembered page data belongs to whoever was signed in
+  const sessionToken = authUser?.token;
+  useEffect(() => { forgetShownData(); }, [sessionToken]);
+
+  // fetch the code for the pages this visitor is most likely to open next, while the browser is idle
+  const visitorType = authUser?.user_type;
+  useEffect(() => {
+    const pages = !visitorType ? [LoginView, SignupView, PartsListing]
+      : visitorType === 'customer' ? [HomePage, BuyListing, RentListing, MechanicListPage, PartsListing, BuyDetail, RentDetail, MechanicDetailPage, PartDetail, CartPage, WalletLayout, WalletHomePage]
+      : visitorType === 'dealer' ? [DealerDashboardLayout, DealerDashboard, ListingsAdmin, OrderListAdmin]
+      : visitorType === 'mechanic' ? [MechanicDashboardLayout, MechanicDashboard, BookingsAdmin, ServiceOfferings]
+      : [PartsDealerDashboardLayout, PartsShopGate, PartsShopOverview, PartsShopParts, PartsShopOrders];
+    return preloadPages(pages);
+  }, [visitorType]);
 
   // keep tabs in sync: logging in/out in one tab applies to the others
   useEffect(() => {

@@ -38,7 +38,7 @@ export const RentListing = () => {
     const listings = useApiQuery(
         (api, signal, { useCache }) => api.get(`/listings/rentals/?summary=1${qs ? `&${qs}` : ''}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [qs],
-        { select: (body) => body?.data }
+        { select: (body) => body?.data, keepAs: `rent:${qs}` }
     );
 
     // trip form draft; committed to the URL by "Search"

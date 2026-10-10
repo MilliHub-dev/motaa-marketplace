@@ -13,15 +13,34 @@ import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { GlobalStore } from '../App';
 import { toApiError } from '../api/client';
 
+// What each `keepAs` query last showed, so coming back to a page shows it straight away
+// (and refreshes it behind the scenes) instead of a loading placeholder. Cleared on log in/out.
+const lastShown = new Map();
+const LAST_SHOWN_MAX = 80;
+
+export function forgetShownData() {
+  lastShown.clear();
+}
+
+function remember(key, value) {
+  lastShown.delete(key);
+  lastShown.set(key, value);
+  if (lastShown.size > LAST_SHOWN_MAX) lastShown.delete(lastShown.keys().next().value);
+}
+
 /**
  * @param {(api, signal, { useCache: boolean }) => Promise<any>} fetcher
  * @param {any[]} deps   re-fetch when these change
- * @param {{ enabled?: boolean, select?: (body) => any, initialData?: any }} [options]
+ * @param {{ enabled?: boolean, select?: (body) => any, initialData?: any, keepAs?: string }} [options]
+ *   keepAs: a name for this exact request (include its filters). The last result is shown at once
+ *   the next time the same request is made, while a fresh copy loads.
  * @returns {{ data, error, loading, reload, setData }}
  */
-export function useApiQuery(fetcher, deps = [], { enabled = true, select, initialData } = {}) {
+export function useApiQuery(fetcher, deps = [], { enabled = true, select, initialData, keepAs } = {}) {
   const { api } = useContext(GlobalStore);
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState(() => (keepAs && lastShown.has(keepAs) ? lastShown.get(keepAs) : initialData));
+  const keepAsRef = useRef(keepAs);
+  keepAsRef.current = keepAs;
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(enabled);
   const requestId = useRef(0);
@@ -36,12 +55,17 @@ export function useApiQuery(fetcher, deps = [], { enabled = true, select, initia
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
+    const key = keepAsRef.current;
+    // a request we have answered before: show that answer while the fresh one loads
+    if (key && lastShown.has(key)) setData(lastShown.get(key));
     setLoading(true);
     setError(null);
     try {
       const body = await fetcherRef.current(api, controller.signal, { useCache });
       if (id !== requestId.current) return;
-      setData(selectRef.current ? selectRef.current(body) : body);
+      const value = selectRef.current ? selectRef.current(body) : body;
+      if (key) remember(key, value);
+      setData(value);
     } catch (err) {
       if (id !== requestId.current) return;
       const apiError = toApiError(err);
