@@ -28,7 +28,7 @@ export const MOTAA_CONTACT = {
   email: 'support@motaa.net',
   phone: '+2348104484364',
   phoneDisplay: '+234 810 448 4364',
-  address: '15 Kawo Road, Kawo, Kaduna State, Nigeria',
+  address: 'Abuja, Nigeria',
   instagram: 'https://www.instagram.com/motaaltd',
   x: 'https://x.com/motaaltd',
 };

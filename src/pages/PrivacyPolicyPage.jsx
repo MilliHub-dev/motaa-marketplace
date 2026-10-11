@@ -317,7 +317,7 @@ const PrivacyPolicy = () => {
             <Flex align="center">
               <Icon as={BsGeoAlt} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Address:</strong> 15 Kawo Road, Kawo, Kaduna State, Nigeria.
+                <strong>Address:</strong> Abuja, Nigeria.
               </Text>
             </Flex>
           </VStack>

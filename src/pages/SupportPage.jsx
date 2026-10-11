@@ -34,7 +34,7 @@ import faqs from '../data/faqs.json';
 const SUPPORT_EMAIL = 'support@motaa.net';
 const SUPPORT_PHONE = '+234 810 448 4364';
 const SUPPORT_PHONE_LINK = 'tel:+2348104484364';
-const ADDRESS = '15 Kawo Road, Kawo, Kaduna State, Nigeria';
+const ADDRESS = 'Abuja, Nigeria';
 
 const TICKET_STATUS = {
   open: { label: 'Open', color: 'blue' },

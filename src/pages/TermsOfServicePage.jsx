@@ -48,15 +48,14 @@ const TermsAndConditions = () => {
           </Heading>
           <Text mb={4}>
             We are Motaa Ltd ("Company," "we," "us," or "our"), a company registered in Nigeria with our principal
-            office at 15 Kawo Road, Kawo, Kaduna State, Nigeria.
+            office in Abuja, Nigeria.
           </Text>
           <Text mb={4}>
             We operate the website www.motaa.net (the "Site"), iOS and android apps as well as any related products and
             services that refer to these terms (collectively, the "Services").
           </Text>
           <Text mb={4}>
-            You can contact us by phone at <Link href="tel:+2348104484364" color="primary" textDecoration="underline">+234 810 448 4364</Link>, email at <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link> or by mail to 15 Kawo Road, Kawo,
-            Kaduna State, Nigeria.
+            You can contact us by phone at <Link href="tel:+2348104484364" color="primary" textDecoration="underline">+234 810 448 4364</Link>, email at <Link href="mailto:support@motaa.net" color="primary" textDecoration="underline">support@motaa.net</Link> or by mail to Abuja, Nigeria.
           </Text>
           <Text mb={4}>
             These Terms and Conditions constitute a legally binding agreement between you, whether personally or on
@@ -312,7 +311,7 @@ const TermsAndConditions = () => {
             <Flex align="center">
               <Icon as={BsGeoAlt} boxSize={4} color="gray.500" mr={2} />
               <Text>
-                <strong>Address:</strong> 15 Kawo Road, Kawo, Kaduna State, Nigeria.
+                <strong>Address:</strong> Abuja, Nigeria.
               </Text>
             </Flex>
           </VStack>
