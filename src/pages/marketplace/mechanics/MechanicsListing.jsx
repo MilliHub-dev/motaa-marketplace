@@ -1,13 +1,14 @@
 import {
     Box, Heading, Button, Container, Flex, Input, InputGroup, InputLeftElement, Text, Avatar, Badge,
-    Alert, AlertIcon, VStack, HStack, Tag, Divider, useColorModeValue,
+    Alert, AlertIcon, VStack, HStack, Tag, Divider, useColorModeValue, useDisclosure,
+    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
 } from "@chakra-ui/react";
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchIcon, StarIcon } from '@chakra-ui/icons';
 import { RiFilterLine } from 'react-icons/ri'
 import { GrLocation } from 'react-icons/gr';
-import { Wrench } from "lucide-react";
+import { Maximize2, Wrench } from "lucide-react";
 import { GlobalStore } from "../../../App";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { MapComponent, CustomPlacesAutocomplete, DEFAULT_MAP_CENTER } from "../../../components/maps";
@@ -88,6 +89,22 @@ export const MechanicListPage = () => {
 
     const count = Number(mechanics.data?.pagination?.count);
     const shown = asList(mechanics.data?.results).length;
+
+    // the mechanics in the list, as pins on the map (those whose workshop has a position)
+    const bigMap = useDisclosure();
+    const pins = asList(mechanics.data?.results).filter((mechanic) => mechanic?.coordinates).map((mechanic) => {
+        const name = mechanic?.business_name || mechanic?.user?.name || 'Mechanic';
+        const path = `/mechanics/${mechanic.uuid}`;
+        return {
+            id: mechanic.uuid, lat: mechanic.coordinates.lat, lng: mechanic.coordinates.lng, title: name,
+            subtitle: [mechanic?.location, distanceLabel(mechanic?.distance)].filter(Boolean).join(' • '),
+            href: path, linkLabel: 'View & book', onOpen: () => navigate(path),
+        };
+    });
+    const pinsNote = !shown ? null
+        : pins.length === 0 ? "These mechanics haven't set a map position yet."
+        : pins.length < shown ? `${pins.length} of the ${shown} mechanics listed are on the map. The others haven't set a map position yet.`
+        : `${pins.length === 1 ? 'The mechanic listed is' : `All ${pins.length} mechanics listed are`} on the map. Tap a red pin to see who it is.`;
 
     return (
         <Box minH="100vh">
@@ -220,7 +237,16 @@ export const MechanicListPage = () => {
                     </Box>
 
                     <Box w="100%" maxW={{ md: "300px", lg: "400px" }} bg={bgColor} borderRadius="20px" borderWidth={1} borderColor={borderColor} p={4} position={{ md: 'sticky' }} top={{ md: 4 }}>
-                        <MapComponent style={{ height: "320px" }} location={location} label={`Map around ${locationName}`} />
+                        <Box position="relative">
+                            <MapComponent style={{ height: "320px" }} location={location} pins={pins} fitPins onMapClick={bigMap.onOpen} label={`Map around ${locationName}`} />
+                            <Button
+                              position="absolute" top={2} left={2} size="sm" bg="white" color="gray.800" boxShadow="md" _hover={{ bg: 'gray.50' }}
+                              leftIcon={<Maximize2 size={14} aria-hidden="true" />} onClick={bigMap.onOpen}
+                            >
+                                Expand map
+                            </Button>
+                        </Box>
+                        {pinsNote && <Text fontSize="xs" color="gray.600" mt={2}>{pinsNote}</Text>}
                         <Box mt={4}>
                             <Text as="label" htmlFor="mech-location" fontWeight="600" fontSize="sm">Search near</Text>
                             <Box borderWidth="1px" rounded="lg" mt={1}>
@@ -241,6 +267,26 @@ export const MechanicListPage = () => {
                     </Box>
                 </Flex>
             </Container>
+
+            {/* the large map: every mechanic in the list as a pin */}
+            <Modal isOpen={bigMap.isOpen} onClose={bigMap.onClose} size={{ base: 'full', md: '6xl' }} isCentered scrollBehavior="inside">
+                <ModalOverlay />
+                <ModalContent overflow="hidden" h={{ base: '100dvh', md: '85vh' }} my={{ base: 0, md: 4 }}>
+                    <ModalHeader pr={12} pb={2}>
+                        <Heading as="h2" size="md">Mechanics near {locationName}</Heading>
+                        {pinsNote && <Text fontSize="sm" fontWeight="normal" color="gray.600" mt={1}>{pinsNote}</Text>}
+                    </ModalHeader>
+                    <ModalCloseButton aria-label="Close map" />
+                    <ModalBody p={0} display="flex">
+                        {bigMap.isOpen && (
+                            <MapComponent
+                              flex={1} minH="320px" borderRadius={0} location={location} pins={pins} fitPins pageScroll={false}
+                              label={`Large map of mechanics near ${locationName}`}
+                            />
+                        )}
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
         </Box>
     );
 };

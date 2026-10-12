@@ -29,19 +29,63 @@ function loadMapbox() {
   return mapboxPromise;
 }
 
+/** What a pin's popup shows: built from DOM nodes so names are never treated as HTML. */
+function pinPopup(pin) {
+  const box = document.createElement('div');
+  box.style.cssText = 'font-family:inherit;min-width:160px;max-width:220px';
+  const title = document.createElement('div');
+  title.textContent = pin.title || 'Mechanic';
+  title.style.cssText = 'font-weight:700;font-size:14px;color:#101828';
+  box.appendChild(title);
+  if (pin.subtitle) {
+    const subtitle = document.createElement('div');
+    subtitle.textContent = pin.subtitle;
+    subtitle.style.cssText = 'font-size:12px;color:#475467;margin-top:2px';
+    box.appendChild(subtitle);
+  }
+  if (pin.href) {
+    const link = document.createElement('a');
+    link.href = pin.href;
+    link.textContent = pin.linkLabel || 'View';
+    link.style.cssText = 'display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:#0460CC;text-decoration:underline';
+    link.addEventListener('click', (event) => {
+      if (!pin.onOpen || event.metaKey || event.ctrlKey || event.shiftKey) return; // new tab: let the browser do it
+      event.preventDefault();
+      pin.onOpen();
+    });
+    box.appendChild(link);
+  }
+  return box;
+}
+
 /**
  * Mapbox map centred on `location` ({lat, lng}) with a marker.
  * The centre only moves when `location` changes, so the user can pan freely.
  * If the map can't load (offline, blocked, bad token) a plain notice is shown instead.
+ *
+ * pins:       more places to mark, e.g. mechanics: [{ id, lat, lng, title, subtitle, href, linkLabel, onOpen }].
+ *             Clicking one shows its name and link.
+ * fitPins:    zoom so `location` and every pin are in view (used by the large map).
+ * onMapClick: called when the map itself is clicked, not dragged (used to open the large map).
+ * pageScroll: true (default) keeps the page scrolling when the pointer is over the map;
+ *             false lets the wheel and one finger move the map (for a full-screen map).
  */
-export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...props }) => {
+export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, fitPins = false, onMapClick, pageScroll = true, ...props }) => {
   const point = validPoint(location);
   const lat = point?.lat;
   const lng = point?.lng;
   const container = useRef(null);
   const map = useRef(null);
   const marker = useRef(null);
+  const pinMarkers = useRef([]);
+  const clickHandler = useRef(onMapClick);
+  clickHandler.current = onMapClick;
   const [status, setStatus] = useState(MAPBOX_TOKEN ? 'loading' : 'error');
+  const validPins = (Array.isArray(pins) ? pins : []).map((pin) => ({ ...pin, ...(validPoint(pin) || {}), ok: Boolean(validPoint(pin)) })).filter((pin) => pin.ok);
+  // re-draw pins only when the places themselves change, not on every render
+  const pinsKey = validPins.map((pin) => `${pin.id ?? ''}:${pin.lat.toFixed(5)},${pin.lng.toFixed(5)}:${pin.title ?? ''}:${pin.subtitle ?? ''}`).join('|');
+  const pinsRef = useRef(validPins);
+  pinsRef.current = validPins;
 
   // create the map once
   useEffect(() => {
@@ -56,7 +100,12 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
         center: lat !== undefined ? [lng, lat] : [DEFAULT_MAP_CENTER.lng, DEFAULT_MAP_CENTER.lat],
         zoom,
         attributionControl: true,
-        cooperativeGestures: true, // page scroll isn't hijacked by the map
+        cooperativeGestures: pageScroll, // page scroll isn't hijacked by the map
+      });
+      instance.on('click', (event) => {
+        // a click on a pin opens that pin, not the large map
+        if (event.originalEvent?.target?.closest?.('.mapboxgl-marker, .mapboxgl-popup')) return;
+        clickHandler.current?.();
       });
       instance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
       instance.on('load', () => { if (!cancelled) setStatus('ready'); });
@@ -71,6 +120,7 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
     return () => {
       cancelled = true;
       marker.current = null;
+      pinMarkers.current = [];
       map.current?.remove();
       map.current = null;
     };
@@ -91,6 +141,36 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', ...pro
     marker.current.setLngLat([lng, lat]).addTo(instance);
     instance.easeTo({ center: [lng, lat], zoom: Math.max(instance.getZoom(), zoom), duration: 600 });
   }, [lat, lng, zoom, status]);
+
+  // the other places (mechanics)
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || status !== 'ready') return;
+    pinMarkers.current.forEach((item) => item.remove());
+    const mapboxgl = instance.mapboxgl;
+    pinMarkers.current = pinsRef.current.map((pin) => {
+      const item = new mapboxgl.Marker({ color: '#E5484D', scale: 0.85 })
+        .setLngLat([pin.lng, pin.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 26, closeButton: true, maxWidth: '240px' }).setDOMContent(pinPopup(pin)))
+        .addTo(instance);
+      const element = item.getElement();
+      element.style.cursor = 'pointer';
+      element.setAttribute('role', 'button');
+      element.setAttribute('tabindex', '0');
+      element.setAttribute('aria-label', pin.title || 'Mechanic');
+      element.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); item.togglePopup(); }
+      });
+      return item;
+    });
+    if (fitPins && pinsRef.current.length) {
+      const bounds = new mapboxgl.LngLatBounds();
+      pinsRef.current.forEach((pin) => bounds.extend([pin.lng, pin.lat]));
+      if (lat !== undefined) bounds.extend([lng, lat]);
+      instance.fitBounds(bounds, { padding: 70, maxZoom: 14, duration: 600 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinsKey, fitPins, status, lat, lng]);
 
   return (
     <Box position="relative" role="region" aria-label={label} borderRadius="lg" overflow="hidden" minH="200px" bg="gray.100" style={style} {...props}>
