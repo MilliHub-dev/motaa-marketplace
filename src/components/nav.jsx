@@ -22,6 +22,7 @@ import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-d
 import { GlobalStore } from '../App';
 import { CustomerSearchBar } from '.';
 import { usePartsCartCount } from './parts';
+import { useChatUnread } from '../hooks/useChatUnread';
 
 // Public contact/social details (same as the Privacy Policy / Terms contact sections).
 export const MOTAA_CONTACT = {
@@ -171,6 +172,23 @@ const NavIconLink = ({ to, label, icon, ...props }) => (
   <IconButton as={RLink} to={to} aria-label={label} title={label} variant="ghost" icon={icon} fontSize="22px" {...props} />
 )
 
+// The chat icon, with the number of messages waiting to be read.
+const ChatLink = () => {
+  const count = useChatUnread();
+  const label = count ? `Messages, ${count} unread` : 'Messages';
+  return (
+    <Box position="relative">
+      <NavIconLink to="/chat" label={label} icon={<AiOutlineMessage />} />
+      {count > 0 && (
+        <Flex position="absolute" top="2px" right="0px" minW="18px" h="18px" px={1} rounded="full" bg="red.500" color="white"
+          fontSize="11px" fontWeight="700" align="center" justify="center" pointerEvents="none" aria-hidden="true">
+          {count > 99 ? '99+' : count}
+        </Flex>
+      )}
+    </Box>
+  );
+}
+
 // Parts cart with the number of parts in it. Phones only show it once something is in the cart
 // (the menu drawer always links to it), so the navbar still fits a small screen.
 const PartsCartLink = () => {
@@ -229,7 +247,7 @@ export const CustomerNavbar = () => {
            color="primary"
           >Wallet</Button>
 
-          <NavIconLink to="/chat" label="Messages" icon={<AiOutlineMessage />} />
+          <ChatLink />
           <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
           <NavIconLink to="/cart" label="Cart" icon={<HiOutlineShoppingCart />} />
           <PartsCartLink />
@@ -303,7 +321,7 @@ const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
          variant="ghost"
          icon={<Image boxSize="24px" src="/assets/icons/WalletIcon.svg" alt="" />}
         />
-        <NavIconLink to="/chat" label="Messages" icon={<AiOutlineMessage />} />
+        <ChatLink />
         <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
 
         <Menu placement="bottom-end">

@@ -17,6 +17,7 @@ import { Link as RLink, useOutletContext, useParams } from 'react-router-dom';
 import { GlobalStore } from '../../../App';
 import { WS_URL } from '../../../config';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
+import { CHAT_REFRESH_MS, announceChatChanged, useVisibleInterval } from '../../../hooks/useChatUnread';
 import { ErrorState } from '../../../components/states';
 import { ListingChatCard } from '../../../components/chat';
 import { asList } from '../../../utils';
@@ -189,7 +190,9 @@ function ChatRoom() {
   const roomData = query.data && (!query.data.uuid || String(query.data.uuid) === String(room)) ? query.data : undefined;
 
   useEffect(() => {
-    if (roomData) setMessages((current) => mergeMessages(current, asList(roomData.messages)));
+    if (!roomData) return;
+    setMessages((current) => mergeMessages(current, asList(roomData.messages)));
+    announceChatChanged(); // loading a conversation reads it: update the badge on the chat icon
   }, [roomData]);
 
   const addMessage = useCallback((msg) => {
@@ -204,6 +207,12 @@ function ChatRoom() {
     onMessage: addMessage,
     onReconnected: query.reload,
   });
+
+  // Check for new messages in the background: every 30 seconds, or every 10 while the live
+  // connection is down, so a message is never stuck until the page is refreshed.
+  const { reload: reloadRoom } = query;
+  const refreshRoom = useCallback(() => { reloadRoom(); }, [reloadRoom]);
+  useVisibleInterval(refreshRoom, socketStatus === 'open' ? CHAT_REFRESH_MS : 10000, Boolean(roomData));
 
   const send = useApiMutation(
     (api, text) => api.post('/chat/message/', { room, message: text }),

@@ -4,6 +4,7 @@ import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
 import { GlobalStore } from '../../../App';
 import { MechanicDashboardSideBar, MechanicNavbar } from '../../../components/nav';
 import { VerificationNotice } from '../../../components';
+import InstallAppNotice from '../../../components/InstallAppNotice';
 import { useApiQuery } from '../../../hooks/useApi';
 import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
 import { LoadingState, ErrorState } from '../../../components/states';
@@ -44,6 +45,7 @@ function MechanicDashboardLayout({ hideSidebar }) {
   } else {
     content = (
       <>
+        <InstallAppNotice />
         {mechanic && !mechanic.verified_business && (
           <VerificationNotice user={authUser} onVerification={onVerification} businessType="mechanic" verificationStatus={mechanic?.verification_status} />
         )}

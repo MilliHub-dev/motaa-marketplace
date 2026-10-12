@@ -4,6 +4,7 @@ import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
 import { GlobalStore } from '../../../App';
 import { PartsDealerDashboardSideBar, PartsDealerNavbar } from '../../../components/nav';
 import { VerificationNotice } from '../../../components';
+import InstallAppNotice from '../../../components/InstallAppNotice';
 import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
 import { LoadingState, ErrorState } from '../../../components/states';
 import { PartsShopContext, usePartsShopQuery } from './shop';
@@ -39,6 +40,7 @@ function PartsDealerDashboardLayout({ hideSidebar }) {
   } else {
     content = (
       <>
+        <InstallAppNotice />
         {shop && !shop.verified && (
           <VerificationNotice user={authUser} onVerification={onVerification} businessType="parts_dealer" verificationStatus={shop.verification_status} />
         )}

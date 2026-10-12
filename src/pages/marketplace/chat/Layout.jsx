@@ -17,6 +17,7 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, u
 import { Link as RLink, Outlet, useParams } from 'react-router-dom';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
+import { CHAT_REFRESH_MS, useVisibleInterval } from '../../../hooks/useChatUnread';
 import { EmptyState, ErrorState } from '../../../components/states';
 import { asList, BUSINESS_USER_TYPES } from '../../../utils';
 import { profilePicture } from '../../../utils';
@@ -97,6 +98,7 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
         {filtered.map((conversation) => {
           const active = String(conversation?.uuid) === String(activeId);
           const time = lastMessageTime(conversation, naturalTime, naturalDate);
+          const unread = active ? 0 : Number(conversation?.unread) || 0;
           return (
             <Box as="li" key={conversation?.uuid || conversation?.id}>
               <HStack
@@ -118,9 +120,17 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
                     <Text fontWeight="600" noOfLines={1}>{conversation?.recipient?.name || 'Conversation'}</Text>
                     {time && <Text fontSize="xs" color="gray.500" flexShrink={0}>{time}</Text>}
                   </HStack>
-                  <Text fontSize="sm" color="gray.500" noOfLines={1}>
-                    {conversation?.last_message?.message || 'No messages yet'}
-                  </Text>
+                  <HStack justify="space-between" spacing={2}>
+                    <Text fontSize="sm" color={unread ? 'gray.800' : 'gray.500'} fontWeight={unread ? '600' : 'normal'} noOfLines={1}>
+                      {conversation?.last_message?.message || 'No messages yet'}
+                    </Text>
+                    {unread > 0 && (
+                      <Flex minW="20px" h="20px" px={1.5} rounded="full" bg="red.500" color="white" fontSize="11px" fontWeight="700"
+                        align="center" justify="center" flexShrink={0} aria-label={`${unread} unread`}>
+                        {unread > 99 ? '99+' : unread}
+                      </Flex>
+                    )}
+                  </HStack>
                 </Box>
               </HStack>
             </Box>
@@ -170,6 +180,10 @@ function ChatLayout() {
   );
   const { setData, reload } = query;
 
+  // keep the list fresh while the page is open
+  const refreshList = useCallback(() => { reload(); }, [reload]);
+  useVisibleInterval(refreshList, CHAT_REFRESH_MS);
+
   useEffect(() => { document.title = 'Messages | Motaa'; }, []);
 
   // a room we don't know yet (e.g. just started from a listing) → refresh the list
@@ -187,6 +201,7 @@ function ChatLayout() {
       if (index === -1) return list;
       const updated = {
         ...items[index],
+        unread: 0, // it arrived in the conversation they have open
         last_message: { message: msg?.text, date_created: msg?.date_created, sender_uuid: msg?.sender_uuid },
       };
       return [updated, ...items.slice(0, index), ...items.slice(index + 1)];

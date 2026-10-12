@@ -6,6 +6,7 @@ import "animate.css/animate.compat.css";
 import reportWebVitals from './reportWebVitals';
 import { glassEnabled, isIOS } from './utils/platform';
 import { reloadForNewVersion } from './utils/lazyPage';
+import './utils/installApp'; // listens for the browser's "install this site" offer from the first moment
 
 // Vite fires this when a code-split chunk (or its CSS) fails to load — usually
 // because a new version was deployed. Reload once to pick it up.

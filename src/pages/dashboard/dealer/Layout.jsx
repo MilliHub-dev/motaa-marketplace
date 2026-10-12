@@ -4,6 +4,7 @@ import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
 import { GlobalStore } from '../../../App';
 import { DealerDashboardSideBar, DealerNavbar } from '../../../components/nav';
 import { VerificationNotice } from '../../../components';
+import InstallAppNotice from '../../../components/InstallAppNotice';
 import { useApiQuery } from '../../../hooks/useApi';
 import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
 import { LoadingState, ErrorState } from '../../../components/states';
@@ -55,6 +56,7 @@ function DealerDashboardLayout({ hideSidebar }) {
   } else {
     content = (
       <>
+        {!hideSidebar && <InstallAppNotice />}
         {!hideSidebar && dealership?.uuid && !dealership.verified_business && (
           <VerificationNotice user={authUser} onVerification={onVerification} businessType="dealership" verificationStatus={dealership?.verification_status_code} />
         )}
