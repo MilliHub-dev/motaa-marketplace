@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom"
 import { GlobalStore } from "../../../App";
 import {
@@ -9,6 +9,8 @@ import { ListingDetailSkeleton } from "../../../components/loaders";
 import { AsyncState } from "../../../components/states";
 import { CustomPlacesAutocomplete } from "../../../components/maps";
 import { ChatPopup } from "../../../components/chat";
+import { ItemOffer } from "../../../components/offers";
+import { offerUnit } from "../../../utils/offers";
 import { useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
 import {
@@ -213,6 +215,7 @@ const BookingForm = ({ listing, ...props }) => {
   ));
   const [driver, setDriver] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const formRef = useRef(null);
   const offersDrivers = Boolean(listing?.vehicle?.dealer?.offers_drivers);
 
   useEffect(() => { setDriver(false); }, [listing?.uuid]);
@@ -237,7 +240,7 @@ const BookingForm = ({ listing, ...props }) => {
 
   return(
     <Box {...props}>
-      <Box as="form" onSubmit={book} noValidate borderWidth="1px" borderRadius="lg" p={{ base: 4, md: 6 }} bg="white" boxShadow="sm" position={{ md: 'sticky' }} top={{ md: 4 }}>
+      <Box as="form" ref={formRef} onSubmit={book} noValidate borderWidth="1px" borderRadius="lg" p={{ base: 4, md: 6 }} bg="white" boxShadow="sm" position={{ md: 'sticky' }} top={{ md: 4 }}>
         <Heading as="h2" size="md" mb={4}>Book this car</Heading>
         <VStack spacing={4} align="stretch">
           <FormControl isInvalid={submitted && Boolean(errors.from)}>
@@ -279,6 +282,12 @@ const BookingForm = ({ listing, ...props }) => {
             Book Rental
           </Button>
           <Text fontSize="xs" color="gray.500" textAlign="center">You won't be charged yet. Fees and tax are shown at checkout.</Text>
+          {/* the agreed price is applied at checkout, once the dates are chosen here */}
+          <ItemOffer kind="rental" itemId={listing?.uuid} title={listing?.title || listing?.vehicle?.name} price={listing?.price}
+            unit={offerUnit('rental', listing?.payment_cycle)}
+            image={asList(listing?.vehicle?.images)[0]?.url || asList(listing?.vehicle?.images)[0]?.image}
+            checkoutLabel="Book at this price"
+            onCheckout={() => { if (valid) formRef.current?.requestSubmit(); else { setSubmitted(true); document.getElementById('book-from')?.focus(); } }} />
         </VStack>
       </Box>
     </Box>

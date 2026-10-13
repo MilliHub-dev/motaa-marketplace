@@ -6,6 +6,7 @@ import { ShoppingCart, Store, Trash2 } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ActionDialog, PartPhoto, QuantityInput, StoreDelivery, SummaryRow, announcePartsCart } from '../../../components/parts';
 import { EmptyState, ErrorState } from '../../../components/states';
+import { AgreedPriceTag } from '../../../components/offers';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 
@@ -99,7 +100,17 @@ export default function PartsCart() {
                             <Text fontSize="sm" color="gray.600">
                               {[part.condition_label, part.brand].filter(Boolean).join(' · ')}
                             </Text>
-                            <Text fontSize="sm" color="gray.600">₦{commaInt(part.price)} each</Text>
+                            {line.agreed_price ? (
+                              <Flex align="center" gap={2} flexWrap="wrap" mt={0.5}>
+                                <Text fontSize="sm" color="gray.600">
+                                  <Text as="s">₦{commaInt(part.price)}</Text>{' '}
+                                  <Text as="span" fontWeight="600" color="gray.800">₦{commaInt(line.unit_price)}</Text> each
+                                </Text>
+                                <AgreedPriceTag />
+                              </Flex>
+                            ) : (
+                              <Text fontSize="sm" color="gray.600">₦{commaInt(line.unit_price ?? part.price)} each</Text>
+                            )}
                             {line.problem && <Text fontSize="sm" color="red.600" fontWeight="600" mt={1} role="alert">{line.problem}</Text>}
                           </Box>
                           <Text fontWeight="700" whiteSpace="nowrap">₦{commaInt(line.line_total)}</Text>

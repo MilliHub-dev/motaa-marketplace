@@ -8,6 +8,7 @@ import { GlobalStore } from "../../../App";
 import { ImageCarousel, LocationBreadcrumb, ListingItemCard, formatMileage } from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { ChatPopup } from "../../../components/chat";
+import { ItemOffer } from "../../../components/offers";
 import { AsyncState } from "../../../components/states";
 import { useApiMutation, useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
@@ -129,6 +130,8 @@ export const BuyDetail = () => {
                                         )}
                                     </Flex>
                                     {inCart && <Text fontSize="sm" color="green.600">In your cart. <Link to="/cart"><u>View cart</u></Link></Text>}
+                                    <ItemOffer kind="sale" itemId={listing?.uuid} title={title} price={listing?.price}
+                                        image={asList(vehicle?.images)[0]?.url || asList(vehicle?.images)[0]?.image} />
                                     {dealer?.uuid && (
                                         <Button onClick={() => setPopupState(true)} variant={'outline'} colorScheme="blue" w={'100%'}>Message Seller</Button>
                                     )}

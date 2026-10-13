@@ -10,6 +10,7 @@ import { MessageCircle, ShieldCheck, ShoppingCart } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ImageCarousel } from '../../../components';
 import { ChatPopup } from '../../../components/chat';
+import { ItemOffer } from '../../../components/offers';
 import { BackButton } from '../../../components/nav';
 import { PartCard, QuantityInput, ReturnPolicy, StoreDelivery, VerifiedSeller, announcePartsCart } from '../../../components/parts';
 import { ErrorState } from '../../../components/states';
@@ -134,6 +135,7 @@ export default function PartDetail() {
                 <Button as={RLink} to={loginPath} size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<ShoppingCart size={18} />}>
                   Log in to buy
                 </Button>
+                <ItemOffer kind="part" itemId={part.uuid} title={part.name} price={part.price} unit="each" size="lg" />
                 <Text fontSize="sm" color="gray.600">New to Motaa? <Text as={RLink} to="/signup" color="primary" fontWeight="600">Create an account</Text></Text>
               </Stack>
             ) : !isCustomer ? (
@@ -158,6 +160,8 @@ export default function PartDetail() {
                 ) : (
                   <Button size="lg" isDisabled>{part.in_stock ? 'All available stock is in your cart' : 'Out of stock'}</Button>
                 )}
+                <ItemOffer kind="part" itemId={part.uuid} title={part.name} price={part.price} unit="each"
+                  image={asList(part.images)[0]?.url || asList(part.images)[0]?.image} />
                 <HStack spacing={2} color="gray.600" fontSize="sm" align="start">
                   <Icon as={ShieldCheck} boxSize={4} mt={0.5} aria-hidden="true" />
                   <Text>Motaa holds your payment until you confirm the order arrived.</Text>

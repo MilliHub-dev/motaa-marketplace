@@ -11,6 +11,7 @@ import { CreditCard, Lock, MapPin, ShieldCheck, ShoppingCart, Truck, Wallet as W
 import { GlobalStore } from '../../../App';
 import { toApiError } from '../../../api/client';
 import { PartPhoto, ReturnPolicy, SummaryRow, announcePartsCart } from '../../../components/parts';
+import { AgreedPriceTag } from '../../../components/offers';
 import { EmptyState, ErrorState } from '../../../components/states';
 import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
 import { useApiQuery } from '../../../hooks/useApi';
@@ -294,6 +295,15 @@ export default function PartsCheckout() {
                             <Box flex={1} minW={0}>
                               <Text fontSize="sm" noOfLines={2}>{line.part?.name}</Text>
                               <Text fontSize="xs" color="gray.600">Qty {line.quantity}</Text>
+                              {line.agreed_price && (
+                                <Flex align="center" gap={2} flexWrap="wrap" mt={1}>
+                                  <Text fontSize="xs" color="gray.600">
+                                    <Text as="s">₦{commaInt(line.part?.price)}</Text>{' '}
+                                    <Text as="span" fontWeight="600" color="gray.800">₦{commaInt(line.unit_price)}</Text> each
+                                  </Text>
+                                  <AgreedPriceTag />
+                                </Flex>
+                              )}
                             </Box>
                             <Text fontSize="sm" fontWeight="600" whiteSpace="nowrap">₦{commaInt(line.line_total)}</Text>
                           </Flex>

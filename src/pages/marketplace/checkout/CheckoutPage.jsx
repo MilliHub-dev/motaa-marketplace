@@ -39,6 +39,8 @@ import { useApiQuery } from '../../../hooks/useApi';
 import { EmptyState, ErrorState } from '../../../components/states';
 import { CustomPlacesAutocomplete } from '../../../components/maps';
 import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { AgreedPriceTag } from '../../../components/offers';
+import { validForWords } from '../../../utils/offers';
 
 const OPTION_META = {
   card: { icon: CreditCard, title: 'Pay online', hint: 'Card, bank transfer or USSD via Paystack' },
@@ -104,9 +106,10 @@ function SummaryRow({ label, value, bold, muted }) {
   );
 }
 
-function CarCard({ listing, commaInt }) {
+function CarCard({ listing, agreement, commaInt }) {
   const vehicle = listing?.vehicle || {};
   const dealer = listing?.dealer;
+  const cycle = listing?.listing_type === 'rental' && listing?.payment_cycle && listing.payment_cycle !== 'single' ? ` / ${listing.payment_cycle}` : '';
   return (
     <Box borderWidth={1} borderRadius="20px" overflow="hidden" bg="white">
       <Box h={{ base: '180px', md: '220px' }} bg="gray.100">
@@ -119,9 +122,15 @@ function CarCard({ listing, commaInt }) {
           <Heading as="h2" size="md">{listing?.title}</Heading>
           {vehicle.condition && <Badge flexShrink={0}>{vehicle.condition}</Badge>}
         </Flex>
-        <Text mt={1} color="secondary" className="bold">
-          ₦{commaInt(listing?.price)}{listing?.listing_type === 'rental' && listing?.payment_cycle && listing.payment_cycle !== 'single' ? ` / ${listing.payment_cycle}` : ''}
-        </Text>
+        {agreement ? (
+          <Flex mt={1} align="center" gap={2} flexWrap="wrap">
+            <Text color="gray.600"><Text as="s">₦{commaInt(agreement.listed_price)}</Text></Text>
+            <Text color="secondary" className="bold">₦{commaInt(agreement.amount)}{cycle}</Text>
+            <AgreedPriceTag />
+          </Flex>
+        ) : (
+          <Text mt={1} color="secondary" className="bold">₦{commaInt(listing?.price)}{cycle}</Text>
+        )}
         <HStack mt={3} spacing={4} flexWrap="wrap" color="gray.700" fontSize="sm">
           {vehicle.mileage && <HStack spacing={1}><Icon as={Gauge} aria-hidden="true" /><Text>{/\d/.test(vehicle.mileage) && !/km|mi/i.test(vehicle.mileage) ? `${commaInt(String(vehicle.mileage).replace(/\D/g, ''))} km` : vehicle.mileage}</Text></HStack>}
           {vehicle.transmission && <Text>{vehicle.transmission}</Text>}
@@ -357,7 +366,7 @@ function CheckoutPage() {
         <Flex gap={8} direction={{ base: 'column', lg: 'row' }} align="start">
           {/* Car summary first on phones */}
           <Box w="100%" maxW={{ lg: '360px' }} order={{ base: 0, lg: 1 }} position={{ lg: 'sticky' }} top={{ lg: '90px' }}>
-            {loadingFirst ? <Skeleton h="360px" borderRadius="20px" /> : <CarCard listing={listing} commaInt={commaInt} />}
+            {loadingFirst ? <Skeleton h="360px" borderRadius="20px" /> : <CarCard listing={listing} agreement={data?.agreement} commaInt={commaInt} />}
           </Box>
 
           <Box as="form" noValidate onSubmit={proceed} flex={1} w="100%" minW={0} order={{ base: 1, lg: 0 }}>
@@ -455,6 +464,19 @@ function CheckoutPage() {
                 <VStack align="stretch" spacing={3}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} h="18px" />)}</VStack>
               ) : (
                 <VStack align="stretch" spacing={2}>
+                  {data?.agreement && (
+                    <Box role="status" bg="green.50" borderWidth="1px" borderColor="green.200" borderRadius="md" p={3} mb={2} data-testid="checkout-agreement">
+                      <Text fontWeight="700" color="green.800">Price agreed in chat</Text>
+                      <Text>
+                        <Text as="s" color="gray.600">₦{commaInt(data.agreement.listed_price)}</Text>{' '}
+                        <Text as="span" fontWeight="700">₦{commaInt(data.agreement.amount)}</Text>
+                        {data.agreement.unit ? ` ${data.agreement.unit}` : ''}
+                      </Text>
+                      {validForWords(data.agreement.expires_at) && (
+                        <Text fontSize="sm" color="gray.700">Valid {validForWords(data.agreement.expires_at)}. It can be used for one order.</Text>
+                      )}
+                    </Box>
+                  )}
                   {isRental ? (
                     <SummaryRow
                       label={`₦${commaInt(pricing.price)} × ${pricing.units} ${pricing.unit_label || 'period'}${Number(pricing.units) === 1 ? '' : 's'}${pricing.days && pricing.unit_label !== 'day' ? ` (${pricing.days} day${pricing.days === 1 ? '' : 's'})` : ''}`}

@@ -25,9 +25,11 @@ import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { CHAT_REFRESH_MS, announceChatChanged, useVisibleInterval } from '../../../hooks/useChatUnread';
 import { ErrorState } from '../../../components/states';
 import { ListingChatCard } from '../../../components/chat';
+import { OfferCard, useOfferCheckout } from '../../../components/offers';
 import { asList } from '../../../utils';
 import { profilePicture } from '../../../utils';
 import { assignmentActions, assignmentLabel } from '../../../utils/team';
+import { latestOfferSteps } from '../../../utils/offers';
 import { AssignmentTag } from './Layout';
 
 const MAX_LENGTH = 4000;
@@ -255,11 +257,24 @@ function ChatRoom() {
     onRoomActivityRef.current?.(room, msg);
   }, [room]);
 
+  // A live copy of an offer step is the same for everyone in the room: it has no buttons for the
+  // person looking at it. Show the step, then load the room so the buttons and states are theirs.
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const onLiveMessage = useCallback((msg) => {
+    if (!msg?.offer) { addMessage(msg); return; }
+    const known = messagesRef.current.some((item) => messageKey(item) === messageKey(msg));
+    if (known) onRoomActivityRef.current?.(room, msg);
+    else addMessage(msg);
+    query.reload();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, addMessage, query.reload]);
+
   const socketStatus = useRoomSocket({
     room,
     token: authUser?.token,
     enabled: Boolean(roomData),
-    onMessage: addMessage,
+    onMessage: onLiveMessage,
     onReconnected: query.reload,
   });
 
@@ -282,6 +297,36 @@ function ChatRoom() {
       },
     }
   );
+
+  // Accept, counter, decline or withdraw an offer. The owner and every team member can answer for the business.
+  const [offerBusy, setOfferBusy] = useState(null); // uuid of the offer being answered
+  const [offerError, setOfferError] = useState(null); // { uuid, message }: the server's refusal
+  const answering = useRef(null);
+  useEffect(() => { setOfferBusy(null); setOfferError(null); }, [room]);
+  const offerAction = useApiMutation(
+    (api, offer, action, amount) => api.post(`/chat/offers/${encodeURIComponent(offer.uuid)}/`, action === 'counter' ? { action, amount } : { action }),
+    {
+      notifyOnError: false, // shown on the offer card
+      onSuccess: (body) => {
+        if (body?.data?.message) addMessage(body.data.message);
+        if (body?.data && 'assigned_to' in body.data) {
+          query.setData((current) => (current ? { ...current, assigned_to: body.data.assigned_to ?? null } : current));
+        }
+      },
+      onError: (error) => setOfferError({ uuid: answering.current, message: error.message }),
+    }
+  );
+  async function respondToOffer(offer, action, amount) {
+    if (offerBusy) return false;
+    answering.current = offer.uuid;
+    setOfferBusy(offer.uuid);
+    setOfferError(null);
+    const body = await offerAction.mutate(offer, action, amount);
+    setOfferBusy(null);
+    reloadRoom(); // every step of this negotiation now has a new state (and a refusal usually means it moved on)
+    return Boolean(body);
+  }
+  const offerCheckout = useOfferCheckout();
 
   // keep the tag in the conversation list in step with this conversation
   const onRoomAssigned = outlet.onRoomAssigned;
@@ -337,6 +382,9 @@ function ChatRoom() {
     }
     return groups;
   }, [messages, naturalDate]);
+
+  // only the newest step of a negotiation has buttons
+  const latestSteps = useMemo(() => latestOfferSteps(messages, messageKey), [messages]);
 
   if (query.loading && roomData === undefined) return <RoomSkeleton />;
   // a 404 is final even with an earlier copy on screen (e.g. the conversation was given to someone else)
@@ -395,9 +443,22 @@ function ChatRoom() {
           grouped.map((group) => (
             <VStack key={group.label} spacing={3} align="stretch" mb={4}>
               <Text alignSelf="center" fontSize="xs" color="gray.500" bg="gray.50" px={3} py={1} rounded="full">{group.label}</Text>
-              {group.items.map((msg) => (
+              {group.items.map((msg) => (msg?.offer ? (
+                <OfferCard
+                  key={messageKey(msg)}
+                  msg={msg}
+                  mine={isMine(msg)}
+                  latest={Boolean(msg.offer_latest) && latestSteps[msg.offer.uuid] === messageKey(msg)}
+                  naturalTime={naturalTime}
+                  onAction={respondToOffer}
+                  isBusy={offerBusy === msg.offer.uuid}
+                  error={offerError?.uuid === msg.offer.uuid ? offerError.message : ''}
+                  onCheckout={offerCheckout.go}
+                  isCheckingOut={offerCheckout.loading}
+                />
+              ) : (
                 <MessageBubble key={messageKey(msg)} msg={msg} mine={isMine(msg)} naturalTime={naturalTime} />
-              ))}
+              )))}
             </VStack>
           ))
         )}
