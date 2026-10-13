@@ -16,13 +16,14 @@ import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuChartLine } from 'react-icons/lu';
-import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck } from 'lucide-react';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users } from 'lucide-react';
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';
 import { CustomerSearchBar } from '.';
 import { usePartsCartCount } from './parts';
 import { useChatUnread } from '../hooks/useChatUnread';
+import { canChangeSettings, canUseWallet, isOwner, roleLine, visibleLinks } from '../utils/team';
 
 // Public contact/social details (same as the Privacy Policy / Terms contact sections).
 export const MOTAA_CONTACT = {
@@ -295,32 +296,45 @@ export const CustomerNavbar = () => {
 const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
   const { authUser, logout } = useContext(GlobalStore);
   const fullName = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');
+  // the wallet is the owner's; team members see who they are working for instead
+  const showWallet = canUseWallet(authUser);
+  const role = roleLine(authUser);
 
   return (
     <NavbarShell>
       <Brand to="/dashboard" />
 
       <HStack spacing={{ base: 1, md: 3 }}>
-        <Button
-         as={RLink}
-         to="/wallet"
-         display={{ base: 'none', md: 'inline-flex' }}
-         borderRadius="30px"
-         leftIcon={<Image boxSize="22px" src="/assets/icons/WalletIcon.svg" alt="" />}
-         variant="outline"
-         bgColor="#d9ebf5"
-         fontWeight="600"
-         colorScheme="blue"
-         color="primary"
-        >Wallet</Button>
-        <IconButton
-         as={RLink}
-         to="/wallet"
-         display={{ base: 'inline-flex', md: 'none' }}
-         aria-label="Wallet"
-         variant="ghost"
-         icon={<Image boxSize="24px" src="/assets/icons/WalletIcon.svg" alt="" />}
-        />
+        {!isOwner(authUser) && role && (
+          <Box display={{ base: 'none', md: 'block' }} textAlign="right" maxW="260px" lineHeight="1.2" data-testid="team-role">
+            <Text fontSize="sm" fontWeight="600" noOfLines={1}>{authUser?.first_name || fullName}</Text>
+            <Text fontSize="xs" color="gray.600" noOfLines={1}>{role}</Text>
+          </Box>
+        )}
+        {showWallet && (
+          <>
+            <Button
+             as={RLink}
+             to="/wallet"
+             display={{ base: 'none', md: 'inline-flex' }}
+             borderRadius="30px"
+             leftIcon={<Image boxSize="22px" src="/assets/icons/WalletIcon.svg" alt="" />}
+             variant="outline"
+             bgColor="#d9ebf5"
+             fontWeight="600"
+             colorScheme="blue"
+             color="primary"
+            >Wallet</Button>
+            <IconButton
+             as={RLink}
+             to="/wallet"
+             display={{ base: 'inline-flex', md: 'none' }}
+             aria-label="Wallet"
+             variant="ghost"
+             icon={<Image boxSize="24px" src="/assets/icons/WalletIcon.svg" alt="" />}
+            />
+          </>
+        )}
         <ChatLink />
         <NavIconLink to="/notifications" label="Notifications" icon={<FiBell />} />
 
@@ -331,9 +345,11 @@ const BusinessNavbar = ({ sidebarOpen, setSidebarState, hideSidebar }) => {
               <Avatar size="lg" name={fullName || undefined} />
               {fullName && <Heading as="p" size="sm">{fullName}</Heading>}
               {authUser?.email && <Text fontSize="sm" color="gray.600">{authUser.email}</Text>}
+              {role && <Tag size="sm" colorScheme="blue" borderRadius="full" mt={1} maxW="240px"><Text as="span" noOfLines={1}>{role}</Text></Tag>}
             </VStack>
             <Divider my={2} />
-            <MenuItem as={RLink} to="/settings" icon={<User size="18" />}>Profile</MenuItem>
+            {canChangeSettings(authUser) && <MenuItem as={RLink} to="/settings" icon={<User size="18" />}>{isOwner(authUser) ? 'Profile' : 'Business profile'}</MenuItem>}
+            {isOwner(authUser) && <MenuItem as={RLink} to="/team" icon={<Users size={18} />}>Team</MenuItem>}
             <MenuItem as={RLink} to="/support" icon={<RiHeadphoneLine size={18} />}>Contact Support</MenuItem>
             <MenuItem onClick={logout} icon={<RiLogoutBoxRLine size={18} />}>Logout</MenuItem>
           </MenuList>
@@ -364,8 +380,9 @@ const DEALER_LINKS = [
   { icon: Shop, label: 'Inventory', path: '/inventory' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
+  { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Settings, label: 'Settings', path: '/settings', settings: true },
 ];
 
 const MECHANIC_LINKS = [
@@ -374,8 +391,9 @@ const MECHANIC_LINKS = [
   { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
+  { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Settings, label: 'Settings', path: '/settings', settings: true },
 ];
 
 // `end`: only the overview itself, not every /parts-store page, marks "Overview" as current.
@@ -383,24 +401,36 @@ const PARTS_DEALER_LINKS = [
   { icon: Home3, label: 'Overview', path: '/parts-store', end: true },
   { icon: Package, label: 'Parts', path: '/parts-store/parts' },
   { icon: Coin, label: 'Orders', path: '/parts-store/orders' },
-  { icon: Truck, label: 'Shop settings', path: '/parts-store/settings' },
+  { icon: Truck, label: 'Shop settings', path: '/parts-store/settings', settings: true },
+  { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },
-  { icon: Settings, label: 'Business profile', path: '/settings' },
+  { icon: Settings, label: 'Business profile', path: '/settings', settings: true },
 ];
 
 // Business header + links; NavLink marks the current section (incl. nested pages like /inventory/add).
-const SidebarNavLinks = ({ business, links }) => (
+// Team members only get the links their role can use (the server enforces the same rules).
+const SidebarNavLinks = ({ business, links }) => {
+  const { authUser } = useContext(GlobalStore);
+  const businessName = business?.business_name || authUser?.business_name;
+  const member = !isOwner(authUser);
+  const memberName = [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ');
+  return (
   <VStack align="stretch" spacing={6}>
     <HStack spacing={3}>
-      <Avatar size="md" src={business?.logo || undefined} name={business?.business_name || undefined} />
+      <Avatar size="md" src={business?.logo || undefined} name={businessName || undefined} />
       <Box flex={1} minW={0}>
-        <Text fontWeight="600" noOfLines={1}>{business?.business_name || 'Your business'}</Text>
+        <Text fontWeight="600" noOfLines={1}>{businessName || 'Your business'}</Text>
         {business?.slug && <Text fontSize="sm" color="gray.500" noOfLines={1}>@{business.slug}</Text>}
+        {member && (
+          <Text fontSize="sm" color="gray.600" noOfLines={2} data-testid="sidebar-role">
+            {[memberName, authUser?.team_role_label].filter(Boolean).join(' · ')}
+          </Text>
+        )}
       </Box>
     </HStack>
 
     <VStack as="nav" aria-label="Dashboard" align="stretch" spacing={2}>
-      {links.map((item) => (
+      {visibleLinks(links, authUser).map((item) => (
         <Button
          key={item.path}
          as={NavLink}
@@ -419,7 +449,8 @@ const SidebarNavLinks = ({ business, links }) => (
       ))}
     </VStack>
   </VStack>
-)
+  );
+}
 
 const BusinessSideBar = ({ business, links, sidebarOpen, setSidebarState, mode, ...props }) => {
   // desktop: fixed 280px column; phones/tablets (and pages without a sidebar): drawer opened from the navbar

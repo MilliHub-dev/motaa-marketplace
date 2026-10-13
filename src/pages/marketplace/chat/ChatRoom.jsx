@@ -7,11 +7,16 @@ import {
   Flex,
   HStack,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuDivider,
+  MenuItem,
+  MenuList,
   Text,
   Textarea,
   VStack,
 } from '@chakra-ui/react';
-import { ArrowLeft, Send, WifiOff } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Send, WifiOff } from 'lucide-react';
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link as RLink, useOutletContext, useParams } from 'react-router-dom';
 import { GlobalStore } from '../../../App';
@@ -22,6 +27,8 @@ import { ErrorState } from '../../../components/states';
 import { ListingChatCard } from '../../../components/chat';
 import { asList } from '../../../utils';
 import { profilePicture } from '../../../utils';
+import { assignmentActions, assignmentLabel } from '../../../utils/team';
+import { AssignmentTag } from './Layout';
 
 const MAX_LENGTH = 4000;
 const MAX_BACKOFF = 30000;
@@ -141,12 +148,60 @@ function MessageBubble({ msg, mine, naturalTime }) {
       >
         {msg?.text}
       </Box>
-      {date && (
+      {(date || (mine && msg?.sent_by_name)) && (
         <Text fontSize="xs" color="gray.500" mt={1} textAlign={mine ? 'right' : 'left'}>
-          <time dateTime={date.toISOString()}>{naturalTime(date)}</time>
+          {/* only a business sees which of its team members wrote a message */}
+          {mine && msg?.sent_by_name && <>Sent by {msg.sent_by_name}{date ? ' · ' : ''}</>}
+          {date && <time dateTime={date.toISOString()}>{naturalTime(date)}</time>}
         </Text>
       )}
     </Box>
+  );
+}
+
+/**
+ * Who in the business's team has this conversation, and the ways to change it: sales staff pick up
+ * an unassigned conversation or hand back their own; the owner and managers give it to anyone.
+ * Customers (room.team is null) see nothing.
+ */
+function RoomAssignment({ room, onAssign, isLoading }) {
+  const actions = assignmentActions(room);
+  if (!actions.show) return null;
+  const assigned = room?.assigned_to || null;
+  return (
+    <HStack spacing={2} ml="auto" flexShrink={0} data-testid="room-assignment">
+      {actions.canReassign ? (
+        <Menu placement="bottom-end">
+          <MenuButton as={Button} size="sm" variant="outline" rightIcon={<ChevronDown size={14} />} isLoading={isLoading} maxW="220px"
+            aria-label={`Handled by ${assignmentLabel(assigned)}. Change who has this conversation`}>
+            <Text as="span" noOfLines={1} display="block">{assignmentLabel(assigned)}</Text>
+          </MenuButton>
+          <MenuList zIndex={30} maxH="320px" overflowY="auto">
+            <Text px={3} pb={1} fontSize="xs" color="gray.600">Give this conversation to</Text>
+            {actions.members.map((member) => {
+              const current = Boolean(assigned?.uuid) && assigned.uuid === member.uuid;
+              return (
+                <MenuItem key={member.uuid} onClick={() => { if (!current) onAssign(member.uuid); }}
+                  icon={current ? <Check size={14} aria-label="Current" /> : <Box w="14px" />}>
+                  <Text as="span">{member.name}</Text>
+                  <Text as="span" fontSize="xs" color="gray.600" ml={2}>{member.role_label}</Text>
+                </MenuItem>
+              );
+            })}
+            {actions.members.length > 0 && <MenuDivider />}
+            <MenuItem onClick={() => { if (assigned) onAssign(null); }} icon={!assigned ? <Check size={14} aria-label="Current" /> : <Box w="14px" />}>
+              Unassigned
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      ) : (
+        <>
+          <AssignmentTag assignedTo={assigned} />
+          {actions.canPickUp && <Button size="sm" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={isLoading} onClick={() => onAssign('me')}>Pick up</Button>}
+          {actions.canHandBack && <Button size="sm" variant="outline" isLoading={isLoading} onClick={() => onAssign(null)}>Hand back to team</Button>}
+        </>
+      )}
+    </HStack>
   );
 }
 
@@ -168,7 +223,7 @@ function RoomSkeleton() {
 
 function ChatRoom() {
   const { room } = useParams();
-  const { authUser, naturalTime, naturalDate } = useContext(GlobalStore);
+  const { authUser, naturalTime, naturalDate, notify } = useContext(GlobalStore);
   const outlet = useOutletContext() || {};
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
@@ -220,6 +275,32 @@ function ChatRoom() {
       errorTitle: "Couldn't send your message",
       onSuccess: (body) => {
         if (body?.data?.message) addMessage(body.data.message);
+        // the first team member to reply picks an unassigned conversation up
+        if (body?.data && 'assigned_to' in body.data) {
+          query.setData((current) => (current ? { ...current, assigned_to: body.data.assigned_to ?? null } : current));
+        }
+      },
+    }
+  );
+
+  // keep the tag in the conversation list in step with this conversation
+  const onRoomAssigned = outlet.onRoomAssigned;
+  const inTeam = Boolean(roomData?.team);
+  const assignedId = roomData?.assigned_to ? (roomData.assigned_to.uuid || roomData.assigned_to.name) : null;
+  useEffect(() => {
+    if (inTeam) onRoomAssigned?.(room, roomData?.assigned_to || null, roomData?.team);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, inTeam, assignedId, onRoomAssigned]);
+
+  const assign = useApiMutation(
+    (api, member) => api.post(`/chat/chats/${encodeURIComponent(room)}/assign/`, { member }),
+    {
+      errorTitle: "Couldn't change who has this conversation",
+      onSuccess: (body) => {
+        const updated = body?.data;
+        if (updated) query.setData((current) => ({ ...current, assigned_to: updated.assigned_to ?? null, team: updated.team ?? current?.team }));
+        else reloadRoom();
+        if (body?.message) notify({ title: 'Done', body: body.message });
       },
     }
   );
@@ -258,7 +339,8 @@ function ChatRoom() {
   }, [messages, naturalDate]);
 
   if (query.loading && roomData === undefined) return <RoomSkeleton />;
-  if (query.error && roomData === undefined) {
+  // a 404 is final even with an earlier copy on screen (e.g. the conversation was given to someone else)
+  if (query.error && (roomData === undefined || query.error.isNotFound)) {
     return (
       <Flex direction="column" h="100%" align="center" justify="center" p={4}>
         <ErrorState
@@ -277,7 +359,7 @@ function ChatRoom() {
   return (
     <Flex direction="column" h="100%" minH={0} bg="white">
       {/* Header */}
-      <HStack as="header" w="full" px={{ base: 2, md: 5 }} py={3} borderBottomWidth={1} spacing={3} flexShrink={0}>
+      <HStack as="header" w="full" px={{ base: 2, md: 5 }} py={3} borderBottomWidth={1} spacing={3} flexShrink={0} flexWrap="wrap" rowGap={2}>
         <IconButton
           as={RLink}
           to="/chat"
@@ -293,6 +375,7 @@ function ChatRoom() {
             <Text fontSize="xs" color="gray.500" textTransform="capitalize">{{ dealer: 'Dealership', parts_dealer: 'Parts dealer' }[recipient.user_type] || recipient.user_type}</Text>
           )}
         </Box>
+        <RoomAssignment room={roomData} onAssign={(member) => assign.mutate(member)} isLoading={assign.loading} />
       </HStack>
 
       {statusText && (

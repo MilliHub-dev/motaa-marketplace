@@ -11,6 +11,7 @@ import { ActionDialog, PartPhoto } from '../../../components/parts';
 import { AsyncState, EmptyState } from '../../../components/states';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
+import { canDelete } from '../../../utils/team';
 import { usePartsShop } from './shop';
 
 const PAGE_SIZE = 25;
@@ -48,7 +49,8 @@ function StockEditor({ part, onSave, isSaving }) {
 }
 
 export default function PartsShopParts() {
-  const { commaInt, notify } = useContext(GlobalStore);
+  const { commaInt, notify, authUser } = useContext(GlobalStore);
+  const mayDelete = canDelete(authUser); // sales staff can add and edit parts, not delete them
   const { shop, reload: reloadShop } = usePartsShop();
   const [params, setParams] = useSearchParams();
   const status = FILTERS.some((filter) => filter.value === params.get('status')) ? params.get('status') : '';
@@ -190,10 +192,12 @@ export default function PartsShopParts() {
                           onClick={() => change(part, { active: !part.active })} aria-label={part.active ? `Hide ${part.name} from customers` : `Show ${part.name} to customers`}>
                           {part.active ? 'Hide' : 'Show'}
                         </Button>
+                        {mayDelete && (
                         <Button size="sm" variant="ghost" colorScheme="red" leftIcon={<Trash2 size={14} />} isDisabled={working}
                           onClick={() => setToDelete(part)} aria-label={`Delete ${part.name}`}>
                           Delete
                         </Button>
+                        )}
                       </HStack>
                     </Flex>
                   </Box>

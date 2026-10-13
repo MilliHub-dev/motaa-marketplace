@@ -10,6 +10,7 @@ import { Package } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
+import { visibleLinks } from '../../../utils/team';
 
 /** { shop, reload, setShop }: `shop` is the body of GET /parts/seller/store/. */
 export const PartsShopContext = createContext(null);
@@ -34,14 +35,15 @@ const TABS = [
   { label: 'Overview', to: '/parts-store', end: true },
   { label: 'Parts', to: '/parts-store/parts' },
   { label: 'Orders', to: '/parts-store/orders' },
-  { label: 'Shop settings', to: '/parts-store/settings' },
+  { label: 'Shop settings', to: '/parts-store/settings', settings: true },
 ];
 
 /** Section links for car dealers and mechanics (parts dealers have these in their sidebar). */
 function ShopTabs() {
+  const { authUser } = useContext(GlobalStore);
   return (
     <HStack as="nav" aria-label="Parts shop" spacing={2} py={3} overflowX="auto" className="hidden-scroll" borderBottomWidth="1px" mb={2}>
-      {TABS.map((tab) => (
+      {visibleLinks(TABS, authUser).map((tab) => (
         <Button key={tab.to} as={NavLink} to={tab.to} end={tab.end} size="sm" variant="ghost" flexShrink={0}
           _activeLink={{ bg: 'primary', color: 'white' }}>
           {tab.label}

@@ -2,6 +2,7 @@ import {
   Avatar,
   Badge,
   Box,
+  Button,
   Flex,
   HStack,
   Input,
@@ -21,6 +22,7 @@ import { CHAT_REFRESH_MS, useVisibleInterval } from '../../../hooks/useChatUnrea
 import { EmptyState, ErrorState } from '../../../components/states';
 import { asList, BUSINESS_USER_TYPES } from '../../../utils';
 import { profilePicture } from '../../../utils';
+import { assignmentLabel, chatFilters, filterConversations, hasTeam, teamRole } from '../../../utils/team';
 
 /** Height from the element's top to the bottom of the viewport (the navbar above varies by user type). */
 function useFillViewport() {
@@ -63,14 +65,26 @@ function ListSkeleton() {
   );
 }
 
-function ConversationList({ query, activeId, search, setSearch, userType }) {
+/** Who in the business's team has the conversation. Customers never get one. */
+export function AssignmentTag({ assignedTo, ...props }) {
+  return (
+    <Badge colorScheme={!assignedTo ? 'orange' : assignedTo.mine ? 'green' : 'gray'} variant="subtle" textTransform="none" fontWeight="600"
+      borderRadius="full" px={2} maxW="160px" display="inline-block" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" verticalAlign="middle" {...props}>
+      {assignmentLabel(assignedTo)}
+    </Badge>
+  );
+}
+
+function ConversationList({ query, activeId, search, setSearch, userType, filters, filter, setFilter }) {
   const { naturalTime, naturalDate } = useContext(GlobalStore);
   const conversations = asList(query.data);
+  const showTeam = filters.length > 0;
   const term = search.trim().toLowerCase();
+  const inFilter = showTeam ? filterConversations(conversations, filter) : conversations;
   const filtered = term
-    ? conversations.filter((c) =>
+    ? inFilter.filter((c) =>
         `${c?.recipient?.name || ''} ${c?.last_message?.message || ''}`.toLowerCase().includes(term))
-    : conversations;
+    : inFilter;
 
   let body;
   if (query.loading && query.data === undefined) {
@@ -91,7 +105,14 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
       />
     );
   } else if (filtered.length === 0) {
-    body = <Text px={4} py={6} fontSize="sm" color="gray.500">No conversations match “{search.trim()}”.</Text>;
+    body = (
+      <Text px={4} py={6} fontSize="sm" color="gray.600">
+        {term ? `No conversations match “${search.trim()}”.`
+          : filter === 'mine' ? "You haven't picked up any conversations yet. Reply to an unassigned one to make it yours."
+          : filter === 'unassigned' ? 'Every conversation has someone looking after it.'
+          : 'No conversations have been picked up yet.'}
+      </Text>
+    );
   } else {
     body = (
       <Box as="ul" listStyleType="none" m={0} p={0}>
@@ -120,6 +141,7 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
                     <Text fontWeight="600" noOfLines={1}>{conversation?.recipient?.name || 'Conversation'}</Text>
                     {time && <Text fontSize="xs" color="gray.500" flexShrink={0}>{time}</Text>}
                   </HStack>
+                  {showTeam && <AssignmentTag assignedTo={conversation?.assigned_to} fontSize="11px" mb={0.5} />}
                   <HStack justify="space-between" spacing={2}>
                     <Text fontSize="sm" color={unread ? 'gray.800' : 'gray.500'} fontWeight={unread ? '600' : 'normal'} noOfLines={1}>
                       {conversation?.last_message?.message || 'No messages yet'}
@@ -161,6 +183,18 @@ function ConversationList({ query, activeId, search, setSearch, userType }) {
             />
           </InputGroup>
         )}
+        {showTeam && conversations.length > 0 && (
+          <HStack spacing={2} role="group" aria-label="Filter conversations by who has them">
+            {filters.map((option) => (
+              <Button key={option.value} size="xs" borderRadius="full" aria-pressed={filter === option.value}
+                variant={filter === option.value ? 'solid' : 'outline'}
+                {...(filter === option.value ? { bg: 'primary', color: 'white', _hover: { bg: 'secondary' } } : {})}
+                onClick={() => setFilter(option.value)}>
+                {option.label}
+              </Button>
+            ))}
+          </HStack>
+        )}
       </VStack>
       <Box flex={1} minH={0} overflowY="auto">{body}</Box>
     </Flex>
@@ -172,6 +206,8 @@ function ChatLayout() {
   const { authUser } = useContext(GlobalStore);
   const [containerRef, height] = useFillViewport();
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const role = teamRole(authUser);
 
   const query = useApiQuery(
     (api, signal) => api.get('/chat/chats/', { signal }),
@@ -179,6 +215,12 @@ function ChatLayout() {
     { select: (body) => asList(body?.data) }
   );
   const { setData, reload } = query;
+
+  // An owner working alone has no use for "Unassigned" tags: the login says whether there is a team
+  // (`has_team`), and so does an open conversation, in case the team started since.
+  const [roomHasTeam, setRoomHasTeam] = useState(false);
+  const showTeam = hasTeam(authUser) || roomHasTeam || asList(query.data).some((c) => c?.assigned_to);
+  const filters = useMemo(() => (showTeam ? chatFilters(role) : []), [showTeam, role]);
 
   // keep the list fresh while the page is open
   const refreshList = useCallback(() => { reload(); }, [reload]);
@@ -208,6 +250,12 @@ function ChatLayout() {
     });
   }, [setData]);
 
+  // the open conversation was picked up, handed back or given to someone
+  const onRoomAssigned = useCallback((roomId, assignedTo, team) => {
+    if (team?.has_team) setRoomHasTeam(true);
+    setData((list) => asList(list).map((c) => (String(c?.uuid) === String(roomId) ? { ...c, assigned_to: assignedTo || null } : c)));
+  }, [setData]);
+
   return (
     <Flex ref={containerRef} h={height} minH="360px" w="100%" overflow="hidden" borderTopWidth={1} bg="white">
       <Box
@@ -219,12 +267,13 @@ function ChatLayout() {
         display={{ base: room ? 'none' : 'block', md: 'block' }}
         h="100%"
       >
-        <ConversationList query={query} activeId={room} search={search} setSearch={setSearch} userType={authUser?.user_type} />
+        <ConversationList query={query} activeId={room} search={search} setSearch={setSearch} userType={authUser?.user_type}
+          filters={filters} filter={filter} setFilter={setFilter} />
       </Box>
 
       <Box flex={1} minW={0} h="100%" display={{ base: room ? 'block' : 'none', md: 'block' }}>
         {room ? (
-          <Outlet context={{ onRoomActivity }} />
+          <Outlet context={{ onRoomActivity, onRoomAssigned }} />
         ) : (
           <Flex h="100%" direction="column" align="center" justify="center" color="gray.500" gap={3} bg="gray.50" px={6} textAlign="center">
             <MessageCircle size={40} aria-hidden="true" />

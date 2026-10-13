@@ -11,6 +11,8 @@ import { ChakraProvider, ToastProvider, useToast, extendTheme } from '@chakra-ui
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
 import { LoadingState } from './components/states';
+import { RoleRedirect, SETTINGS_NOTICE } from './components/team';
+import { canChangeSettings, canUseWallet, isOwner } from './utils/team';
 
 
 // pages — the landing page, site layout and login load up front; everything
@@ -43,6 +45,8 @@ const LoginView = lazyPage(() => import('./pages/auth/Login'));
 const SignupView = lazyPage(() => import('./pages/auth/Signup'));
 const BusinessSignupView = lazyPage(() => import('./pages/auth/BusinessProfile'));
 const ResetPasswordView = lazyPage(() => import('./pages/auth/ResetPassword'));
+const JoinTeamView = lazyPage(() => import('./pages/auth/JoinTeam'));
+const TeamPage = lazyPage(() => import('./pages/dashboard/team/Team'));
 const ChatLayout = lazyPage(() => import('./pages/marketplace/chat/Layout'));
 const ChatRoom = lazyPage(() => import('./pages/marketplace/chat/ChatRoom'));
 const CartPage = lazyPage(() => import('./pages/marketplace/CartPage'));
@@ -145,7 +149,7 @@ let lastServerNotice = 0;
 // The seller's parts shop. The same screens serve parts dealers (their whole dashboard) and car
 // dealers / mechanics ("Parts shop" in their dashboard). Notifications link to these exact paths.
 // Called as a function inside <Routes>, which only accepts <Route> elements as children.
-function partsShopRoutes(){
+function partsShopRoutes(canSettings = true){
   return (
     <Route ErrorBoundary={ErrorBoundary} path='/parts-store' element={<PartsShopGate />}>
       <Route ErrorBoundary={ErrorBoundary} path='parts/add' element={<PartsShopPartForm />} />
@@ -153,7 +157,7 @@ function partsShopRoutes(){
       <Route ErrorBoundary={ErrorBoundary} path='parts' element={<PartsShopParts />} />
       <Route ErrorBoundary={ErrorBoundary} path='orders/:orderId' element={<PartsShopOrderDetail />} />
       <Route ErrorBoundary={ErrorBoundary} path='orders' element={<PartsShopOrders />} />
-      <Route ErrorBoundary={ErrorBoundary} path='settings' element={<PartsShopSettings />} />
+      <Route ErrorBoundary={ErrorBoundary} path='settings' element={canSettings ? <PartsShopSettings /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
       <Route ErrorBoundary={ErrorBoundary} path='' element={<PartsShopOverview />} />
       <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='/parts-store' replace />} />
     </Route>
@@ -250,6 +254,16 @@ function App() {
     setAuthUser({...data})
   }
 
+  /** The owner's team started or ended (Team page): conversations then show, or stop showing, who has them. */
+  const setHasTeam = useCallback((hasTeam) => {
+    setAuthUser((current) => {
+      if (!current || Boolean(current.has_team) === Boolean(hasTeam)) return current;
+      const next = { ...current, has_team: Boolean(hasTeam) };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   /** Log out locally (and say why, when the server ended the session). */
   const endSession = useCallback((message) => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -320,6 +334,7 @@ function App() {
     setCookie,
     getCookie,
     onAuthenticated,
+    setHasTeam,
     isAuthenticated,
     commaInt,
     redirect,
@@ -344,6 +359,34 @@ function App() {
       : [PartsDealerDashboardLayout, PartsShopGate, PartsShopOverview, PartsShopParts, PartsShopOrders];
     return preloadPages(pages);
   }, [visitorType]);
+
+  // A team member's role can be changed by the owner while they are signed in, and an owner's team
+  // can start or end: pick both up when the app opens. (The server enforces the role either way;
+  // this only keeps the menus honest.)
+  const isBusinessLogin = ['dealer', 'mechanic', 'parts_dealer'].includes(authUser?.user_type);
+  useEffect(() => {
+    if (!isBusinessLogin || !sessionToken) return undefined;
+    let active = true;
+    api.get('/accounts/profile/').then((body) => {
+      const fresh = body?.data;
+      if (!active || !fresh?.team_role) return;
+      setAuthUser((current) => {
+        if (!current || current.token !== sessionToken) return current;
+        const fields = ['team_role', 'team_role_label', 'business_name', 'first_name', 'last_name', 'has_team'];
+        if (fields.every((field) => (fresh[field] ?? current[field]) === current[field])) return current;
+        const next = { ...current };
+        fields.forEach((field) => { if (fresh[field] !== undefined) next[field] = fresh[field]; });
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [api, isBusinessLogin, sessionToken]);
+
+  // what this person's role opens (owner: everything; see src/utils/team.js)
+  const walletAllowed = !isBusinessLogin || canUseWallet(authUser);
+  const canSettings = canChangeSettings(authUser);
+  const teamPage = isOwner(authUser) ? <TeamPage /> : <RoleRedirect message='Only the business owner can manage the team.' />;
 
   // keep tabs in sync: logging in/out in one tab applies to the others
   useEffect(() => {
@@ -372,9 +415,10 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='add' element={<CreateListingAdmin />} />
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
-                      {partsShopRoutes()}
+                      {partsShopRoutes(canSettings)}
                       <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
-                      <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<DealershipSettings />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/settings' element={canSettings ? <DealershipSettings /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/team' element={teamPage} />
                       <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
@@ -391,18 +435,20 @@ function App() {
                           <Route ErrorBoundary={ErrorBoundary} path='' element={<ServiceOfferings />} />
                         </Route>
 
-                        {partsShopRoutes()}
-                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<BusinessProfile />} />
+                        {partsShopRoutes(canSettings)}
+                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={canSettings ? <BusinessProfile /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/team' element={teamPage} />
                         <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to={'/dashboard'} />} />
                       </Route>
                     ) : authUser?.user_type === 'parts_dealer' ? (
                       <Route ErrorBoundary={ErrorBoundary} element={<PartsDealerDashboardLayout />}>
-                        {partsShopRoutes()}
+                        {partsShopRoutes(canSettings)}
                         {/* a parts dealer's dashboard is their shop */}
                         <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<Navigate to='/parts-store' replace />} />
-                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={<PartsDealerBusinessProfile />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/settings' element={canSettings ? <PartsDealerBusinessProfile /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/team' element={teamPage} />
                         <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/notifications' element={<NotificationsPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/*' element={<Navigate to='/parts-store' replace />} />
@@ -460,6 +506,9 @@ function App() {
                     : authUser?.user_type === 'parts_dealer' ? <PartsDealerDashboardLayout hideFooter={true} hideSidebar={true} />
                     : <Layout hideFooter={true} />
                   }>
+                    {/* a business's wallet is its owner's: team members are sent back to their dashboard */}
+                    {!walletAllowed && <Route ErrorBoundary={ErrorBoundary} path='/wallet/*' element={<RoleRedirect message='Only the business owner can open the wallet.' />} />}
+                    {walletAllowed &&
                     <Route ErrorBoundary={ErrorBoundary} path={'/wallet'} element={<WalletLayout />}>
                       <Route ErrorBoundary={ErrorBoundary} path='home' element={<WalletHomePage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='transactions' element={<WalletTransactionsPage />} />
@@ -470,10 +519,14 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} path='' element={<Navigate to='home' />} />
                       <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='home' />} />
                     </Route>
+                    }
                     <Route ErrorBoundary={ErrorBoundary} path={'/chat'} element={<ChatLayout />}>
                       <Route ErrorBoundary={ErrorBoundary} path='/chat/:room' element={<ChatRoom />} />
                     </Route>
                   </Route>
+
+                  {/* a team invitation makes a new login: this page asks whoever is signed in to log out first */}
+                  <Route ErrorBoundary={ErrorBoundary} path='/team/join/:token' element={<JoinTeamView />} />
                 </Fragment>
               ):(
                 <Route element={<Layout />}>
@@ -481,6 +534,7 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/signup' element={<SignupView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/signup/business' element={<BusinessSignupView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/reset-password/:uid/:token' element={<ResetPasswordView />} />
+                  <Route ErrorBoundary={ErrorBoundary} path='/team/join/:token' element={<JoinTeamView />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/privacy-policy' element={<PrivacyPolicyPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/terms-of-service' element={<TermsOfServicePage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/about' element={<AboutPage />} />
@@ -512,7 +566,7 @@ function App() {
 /** Unknown/protected path while logged out → /login?next=<path> (landing for junk paths). */
 function LoginRedirect(){
   const path = window.location.pathname + window.location.search
-  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services|parts|parts-store)(\/|$)/
+  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services|parts|parts-store|team)(\/|$)/
   if (!appPaths.test(window.location.pathname)) return <Navigate to='/' replace />
   return <Navigate to={`/login?next=${encodeURIComponent(path)}`} replace />
 }

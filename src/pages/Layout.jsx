@@ -13,7 +13,7 @@ import { isBusinessUser } from "../utils";
 // Pages logged-out visitors can always use, even in maintenance mode.
 export const PUBLIC_PATHS = [
     '/', '/login', '/signup', '/signup/business', '/privacy-policy', '/terms-of-service',
-    '/about', '/features', '/business', '/support', '/reset-password/*',
+    '/about', '/features', '/business', '/support', '/reset-password/*', '/team/join/*',
 ];
 
 // Dealers, mechanics and parts dealers keep their dashboard navbar (and its menu drawer) on shared pages.

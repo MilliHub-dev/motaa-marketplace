@@ -30,6 +30,7 @@ import {
 import { Pencil, Trash2, Plus, Car, ImageOff, Eye, EyeOff, Info } from 'lucide-react';
 import { GlobalStore } from '../../../../App';
 import { asList } from '../../../../utils';
+import { canDelete, isOwner } from '../../../../utils/team';
 import { PageControls } from '../../../../components';
 import { useApiQuery, useApiMutation } from '../../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../../components/states';
@@ -62,6 +63,8 @@ const FILTERS = [
 function ListingsAdmin() {
   const { dealership } = useContext(DealershipContext);
   const verified = Boolean(dealership?.verified_business);
+  const { authUser } = useContext(GlobalStore);
+  const owner = isOwner(authUser);
   const [filter, setFilter] = useState('all');
   const [offset, setOffset] = useState(0);
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -98,7 +101,7 @@ function ListingsAdmin() {
                 Add a listing
               </Button>
               <Text id="add-listing-hint" fontSize="xs" color="gray.600" mt={1} maxW="260px" ml={{ sm: 'auto' }}>
-                Complete your business verification to add listings.
+                {owner ? 'Complete your business verification to add listings.' : 'Ask the owner to complete business verification to add listings.'}
               </Text>
             </>
           )}
@@ -150,7 +153,7 @@ function ListingsAdmin() {
           const visible = asList(data.results);
           return <>
             {visible.length ? (
-              <ListingTable listings={visible} verified={verified} onDelete={setPendingDelete} onChanged={listings.reload} />
+              <ListingTable listings={visible} verified={verified} onDelete={canDelete(authUser) ? setPendingDelete : null} onChanged={listings.reload} />
             ) : (
               <EmptyState icon={Car} title="Nothing here" description="No listings match this filter." action={{ label: 'Show all listings', onClick: () => chooseFilter('all') }} />
             )}
@@ -270,9 +273,12 @@ function ListingTable({ listings, verified, onDelete, onChanged }) {
                         </Tooltip>
                       )
                     )}
+                    {/* sales staff can add and edit listings but not delete them */}
+                    {onDelete && (
                     <Tooltip label="Delete listing" hasArrow>
                       <IconButton aria-label={`Delete ${listing?.title || 'listing'}`} icon={<Trash2 size={16} />} size="sm" variant="outline" colorScheme="red" onClick={() => onDelete(listing)} />
                     </Tooltip>
+                    )}
                   </HStack>
                 </Td>
               </Tr>

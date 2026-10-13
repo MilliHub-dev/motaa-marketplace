@@ -33,11 +33,13 @@ import { GlobalStore } from '../../../../App';
 import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../../components/states';
 import { asList } from '../../../../utils';
+import { canDelete } from '../../../../utils/team';
 
 const RATE_LABELS = { flat: 'Flat rate', hourly: 'Per hour' };
 
 export const ServiceOfferings = () => {
-  const { commaInt } = useContext(GlobalStore);
+  const { commaInt, authUser } = useContext(GlobalStore);
+  const mayDelete = canDelete(authUser); // sales staff can add and edit services, not delete them
   const [toggling, setToggling] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const cancelRef = useRef();
@@ -157,9 +159,11 @@ export const ServiceOfferings = () => {
                           <MenuItem as={RLink} to={`/services/edit/${offering?.uuid}`} icon={<Pencil size={14} />}>
                             Edit
                           </MenuItem>
+                          {mayDelete && (
                           <MenuItem color="red.600" icon={<Trash2 size={14} />} onClick={() => setDeleting(offering)}>
                             Delete
                           </MenuItem>
+                          )}
                         </MenuList>
                       </Menu>
                     </Td>

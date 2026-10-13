@@ -55,7 +55,8 @@ export const LoginView = () => {
 
   function finishLogin(body) {
     if (!isAuthPayload(body)) throw new Error(UNEXPECTED);
-    if (isBusinessUser(body) && body.profile_complete === false) {
+    // (a team member never sets up the business: that is the owner's job)
+    if (isBusinessUser(body) && !body.team_access && body.profile_complete === false) {
       // account exists but the business profile was never finished
       saveOnboarding(body);
       notify({ title: 'Almost there', body: 'Finish setting up your business profile to continue.', color: 'blue' });

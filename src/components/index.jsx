@@ -16,6 +16,7 @@ import Dojah from 'react-dojah';
 
 
 import { DOJAH } from '../config';
+import { isOwner } from '../utils/team';
 export const ComboBox = ({ defaultOptions, onSelect }) => {
   const [inputValue, setInputValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState(defaultOptions);
@@ -122,7 +123,9 @@ export const ComboBox = ({ defaultOptions, onSelect }) => {
  */
 export const VerificationNotice = ({ businessType, user, onVerification, verificationStatus, ...props })=>{
   const [beginVerification, setVerificationState] = useState(false);
-  const { api, notifyError } = useContext(GlobalStore);
+  const { api, notifyError, authUser } = useContext(GlobalStore);
+  // verification is the owner's to do (the server refuses it for team members)
+  const owner = isOwner(authUser);
   const [session, setSession] = useState(null);
   const [starting, setStarting] = useState(false);
   async function startVerification() {
@@ -153,20 +156,21 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
       <AlertIcon as={MdWarning} boxSize={6} />
       <Flex width="100%" alignItems="center" flexWrap="wrap" justify="space-between" gap={3}>
         <AlertTitle fontSize="sm" fontWeight="600" flex="1 1 260px" whiteSpace="normal">
-          You haven't completed your business verification yet. Verify your business to {
+          {owner ? "You haven't completed your business verification yet. Verify your business to " : "This business isn't verified yet. It needs to be verified to "}{
             businessType === 'dealership' ? 'add and publish listings' : businessType === 'parts_dealer' ? 'put your parts on sale' : 'add services'
-          }.
+          }.{!owner && ' Ask the owner to complete verification.'}
           {verificationStatus === 'pending' && (
             <Text as="span" display="block" fontWeight="normal" mt={1}>
               Verification is in progress. This page updates automatically when a result arrives.
             </Text>
           )}
-          {!configured && (
+          {owner && !configured && (
             <Text as="span" display="block" fontWeight="normal" mt={1}>
               Online verification is unavailable right now. Please contact Motaa support to verify your business.
             </Text>
           )}
         </AlertTitle>
+        {owner && (
         <Button
           onClick={startVerification}
           isLoading={beginVerification || starting}
@@ -178,8 +182,9 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
         >
           Complete verification
         </Button>
+        )}
         {
-          beginVerification && configured &&
+          owner && beginVerification && configured &&
           <Dojah
             response={handleResponse}
             publicKey={DOJAH.publicKey}
