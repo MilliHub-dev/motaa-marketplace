@@ -1,15 +1,8 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Link as RLink } from 'react-router-dom';
 import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
   Box,
   Button,
-  Divider,
   Flex,
   FormControl,
   FormErrorMessage,
@@ -24,7 +17,6 @@ import {
   RadioGroup,
   Stack,
   Text,
-  useDisclosure,
   VStack,
 } from '@chakra-ui/react';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
@@ -32,17 +24,10 @@ import { GlobalStore } from '../../../App';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { BankAccountFields, withdrawalFee } from '../../../components/wallet';
+import { useWalletPin } from '../../../components/walletPin';
 import { asList } from '../../../utils';
 
 const NEW_ACCOUNT = 'new';
-
-function Row({ label, value, bold }) {
-  return (
-    <Flex justify="space-between" gap={4} fontWeight={bold ? 700 : 500}>
-      <Text color={bold ? undefined : 'gray.600'}>{label}</Text><Text textAlign="right">{value}</Text>
-    </Flex>
-  );
-}
 
 function WalletWithdrawalPage() {
   const { commaInt } = useContext(GlobalStore);
@@ -54,8 +39,7 @@ function WalletWithdrawalPage() {
   const [bank, setBank] = useState({ bank_code: '', bank_name: '', account_number: '', account_name: '' });
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState(null);
-  const confirm = useDisclosure();
-  const cancelRef = useRef();
+  const { withPin } = useWalletPin();
   const banks = useApiQuery((api, signal) => api.get('/wallet/banks/', { signal }), [], {
     enabled: step === 1 && (choice === NEW_ACCOUNT || accounts.data?.length === 0), select: (b) => asList(b?.data),
   });
@@ -78,10 +62,20 @@ function WalletWithdrawalPage() {
     : { name: bank.account_name, bank: bank.bank_name, number: bank.account_number ? `******${bank.account_number.slice(-4)}` : '' };
   const accountError = selectedChoice === NEW_ACCOUNT && !bank.account_name ? 'Choose your bank and enter an account number we can verify' : '';
 
-  const withdraw = useApiMutation((api, payload) => api.post('/wallet/withdraw/', payload), {
+  // the PIN prompt doubles as the review: it shows where the money goes and the fee
+  const withdraw = useApiMutation((api, payload) => withPin((pin) => api.post('/wallet/withdraw/', { ...payload, pin }), {
+    title: 'Confirm withdrawal',
+    rows: [
+      { label: 'To', value: destination.name },
+      { label: 'Bank', value: `${destination.bank} ${destination.number}` },
+      { label: 'Amount', value: `₦${commaInt(value)}` },
+      { label: 'Transfer fee', value: `₦${commaInt(fee)}` },
+      { label: 'Total from wallet', value: `₦${commaInt(value + fee)}`, bold: true },
+    ],
+    submitLabel: `Withdraw ₦${commaInt(value)}`,
+  }), {
     errorTitle: "Couldn't start the withdrawal",
-    onSuccess: (body) => { confirm.onClose(); setResult(body?.data?.transaction || {}); setResultMessage(body?.message); wallet.reload(); },
-    onError: () => confirm.onClose(),
+    onSuccess: (body) => { setResult(body?.data?.transaction || {}); setResultMessage(body?.message); wallet.reload(); },
   });
   const [resultMessage, setResultMessage] = useState('');
   const refresh = useApiMutation((api, uuid) => api.get(`/wallet/transactions/${uuid}/`), {
@@ -99,7 +93,7 @@ function WalletWithdrawalPage() {
       return;
     }
     if (accountError) return;
-    confirm.onOpen();
+    submit();
   }
 
   function submit() {
@@ -184,33 +178,10 @@ function WalletWithdrawalPage() {
         </VStack>
       )}
 
-      <Button type="submit" mt={8} w="full" size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }}>
+      <Button type="submit" mt={8} w="full" size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }}
+        isLoading={step === 1 && withdraw.loading} loadingText="Sending">
         {step === 0 ? 'Continue' : 'Review withdrawal'}
       </Button>
-
-      <AlertDialog isOpen={confirm.isOpen} leastDestructiveRef={cancelRef} onClose={confirm.onClose} isCentered>
-        <AlertDialogOverlay>
-          <AlertDialogContent mx={4}>
-            <AlertDialogHeader>Confirm withdrawal</AlertDialogHeader>
-            <AlertDialogBody>
-              <VStack align="stretch" spacing={2}>
-                <Row label="To" value={destination.name} />
-                <Row label="Bank" value={`${destination.bank} ${destination.number}`} />
-                <Divider />
-                <Row label="Amount" value={`₦${commaInt(value)}`} />
-                <Row label="Transfer fee" value={`₦${commaInt(fee)}`} />
-                <Row bold label="Total from wallet" value={`₦${commaInt(value + fee)}`} />
-              </VStack>
-            </AlertDialogBody>
-            <AlertDialogFooter gap={3}>
-              <Button ref={cancelRef} variant="ghost" onClick={confirm.onClose} isDisabled={withdraw.loading}>Cancel</Button>
-              <Button bg="primary" color="white" _hover={{ bg: 'secondary' }} onClick={submit} isLoading={withdraw.loading} loadingText="Sending">
-                Withdraw ₦{commaInt(value)}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
     </Box>
   );
 }

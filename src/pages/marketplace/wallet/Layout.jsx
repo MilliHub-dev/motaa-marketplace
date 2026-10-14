@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Avatar, Box, Button, Container, Flex, HStack, Text, VStack } from '@chakra-ui/react';
-import { ArrowDownToLine, ArrowUpFromLine, Landmark, LayoutDashboard, List, PiggyBank } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, LayoutDashboard, List, PiggyBank, Settings } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 
 const NAV_ITEMS = [
@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { icon: ArrowDownToLine, label: 'Deposit', link: 'deposit' },
   { icon: ArrowUpFromLine, label: 'Withdraw', link: 'withdraw' },
   { icon: List, label: 'Transactions', link: 'transactions' },
-  { icon: Landmark, label: 'Payout accounts', link: 'settings' },
+  { icon: Settings, label: 'Settings', link: 'settings' },
   { icon: PiggyBank, label: 'Savings', link: 'savings', badge: 'Soon' },
 ];
 

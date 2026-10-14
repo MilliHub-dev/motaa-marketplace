@@ -24,7 +24,7 @@ import { WS_URL } from '../../../config';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { CHAT_REFRESH_MS, announceChatChanged, useVisibleInterval } from '../../../hooks/useChatUnread';
 import { ErrorState } from '../../../components/states';
-import { ListingChatCard } from '../../../components/chat';
+import { ListingChatCard, ServiceChatCard } from '../../../components/chat';
 import { OfferCard, useOfferCheckout } from '../../../components/offers';
 import { ChatInvoiceButton, TransportJobCard } from '../../../components/transport';
 import { asList } from '../../../utils';
@@ -137,6 +137,9 @@ function MessageBubble({ msg, mine, naturalTime }) {
     <Box alignSelf={mine ? 'flex-end' : 'flex-start'} maxW={{ base: '85%', md: '70%' }}>
       {msg?.listing && (
         <ListingChatCard listing={msg.listing} label={mine ? 'You asked about' : 'Asking about'} compact mb={1} />
+      )}
+      {msg?.service && (
+        <ServiceChatCard service={msg.service} label={mine ? 'You asked about' : 'Asking about'} compact mb={1} />
       )}
       <Box
         bg={mine ? 'secondary' : 'accent'}

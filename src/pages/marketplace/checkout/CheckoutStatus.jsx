@@ -29,7 +29,8 @@ import { Car, CheckCircle2, ClipboardCheck, Clock, FileText, PackageCheck, Recei
 import { GlobalStore } from '../../../App';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../components/states';
-import { newReference, PaymentRecoveryNotice, TRANSACTION_STATUS_COLORS, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { newReference, PaymentRecoveryNotice, TRANSACTION_STATUS_COLORS, usePaystack } from '../../../components/wallet';
+import { useWalletPin } from '../../../components/walletPin';
 import { asList } from '../../../utils';
 
 const STATUS_VIEW = {
@@ -74,7 +75,7 @@ function OrderView({ order, reload, setOrder }) {
   const view = STATUS_VIEW[order.order_status] || STATUS_VIEW.pending;
   const listing = order.listing || {};
   const pay = usePaystack();
-  const walletDialog = useDisclosure();
+  const { withPin } = useWalletPin();
   const confirmDialog = useDisclosure();
   const cancelDialog = useDisclosure();
   const cancelRef = useRef();
@@ -91,10 +92,17 @@ function OrderView({ order, reload, setOrder }) {
     onSuccess: (body) => { setPending(null); if (body?.data) setOrder(body.data); },
     onError: (error) => setPending((p) => p && { ...p, message: error.message }),
   });
-  const payByWallet = useApiMutation((api) => api.post('/wallet/pay/', { order_id: order.uuid }), {
+  // approved with the wallet PIN (the prompt shows the amount and balance)
+  const payByWallet = useApiMutation((api) => withPin((pin) => api.post('/wallet/pay/', { order_id: order.uuid, pin }), {
+    title: 'Pay the balance from your wallet',
+    amount: order.amount_outstanding,
+    balance: balanceQuery.data?.balance,
+    note: 'The money is held in escrow and only released once you confirm.',
+    submitLabel: `Pay ₦${commaInt(order.amount_outstanding)}`,
+  }), {
     successMessage: (body) => body?.message || 'Paid from your wallet.',
     errorTitle: "Couldn't pay from your wallet",
-    onSuccess: () => { walletDialog.onClose(); reload(); balanceQuery.reload(); },
+    onSuccess: () => { reload(); balanceQuery.reload(); },
   });
   const complete = useApiMutation((api) => api.post(`/listings/orders/${order.uuid}/complete/`), {
     successMessage: 'Thanks! The dealer has been paid.',
@@ -221,7 +229,7 @@ function OrderView({ order, reload, setOrder }) {
               isDisabled={Boolean(pending)} loadingText="Processing">
               Pay ₦{commaInt(order.amount_outstanding)} online
             </Button>
-            <Button variant="outline" color="primary" borderColor="primary" onClick={walletDialog.onOpen}>Pay from wallet</Button>
+            <Button variant="outline" color="primary" borderColor="primary" onClick={() => payByWallet.mutate()} isLoading={payByWallet.loading}>Pay from wallet</Button>
           </>
         )}
         {order.can_complete && (
@@ -258,15 +266,6 @@ function OrderView({ order, reload, setOrder }) {
         </AlertDialogOverlay>
       </AlertDialog>
 
-      <WalletPayDialog
-        isOpen={walletDialog.isOpen}
-        onClose={walletDialog.onClose}
-        onConfirm={() => payByWallet.mutate()}
-        isLoading={payByWallet.loading}
-        amount={order.amount_outstanding}
-        balance={balanceQuery.data?.balance}
-        title="Pay the balance from your wallet"
-      />
 
       <AlertDialog isOpen={confirmDialog.isOpen} leastDestructiveRef={cancelRef} onClose={confirmDialog.onClose} isCentered>
         <AlertDialogOverlay>

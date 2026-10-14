@@ -13,7 +13,8 @@ import { toApiError } from '../../../api/client';
 import { PartPhoto, ReturnPolicy, SummaryRow, announcePartsCart } from '../../../components/parts';
 import { AgreedPriceTag } from '../../../components/offers';
 import { EmptyState, ErrorState } from '../../../components/states';
-import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../components/wallet';
+import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { NIGERIAN_STATES } from '../../../data/nigeria';
@@ -66,7 +67,7 @@ export default function PartsCheckout() {
   const navigate = useNavigate();
   const { api, commaInt, notifyError } = useContext(GlobalStore);
   const pay = usePaystack();
-  const walletDialog = useDisclosure();
+  const { withPin } = useWalletPin();
   const policy = useDisclosure();
 
   const [form, setForm] = useState({
@@ -175,7 +176,7 @@ export default function PartsCheckout() {
     setSubmitted(true);
     setNotice('');
     if (!valid || blocked || !quoteReady || waitingForState || pending) return;
-    if (form.payment_option === 'wallet') return walletDialog.onOpen();
+    if (form.payment_option === 'wallet') return payWithWallet();
 
     setPaying(true);
     const reference = newReference('mtprt');
@@ -210,17 +211,23 @@ export default function PartsCheckout() {
     }
   }
 
+  // approved with the wallet PIN (the prompt shows the total and balance)
   async function payWithWallet() {
     try {
-      await submitOrder(payload(undefined));
+      await withPin((pin) => submitOrder({ ...payload(undefined), pin }), {
+        title: 'Pay for these parts from your wallet',
+        amount: data?.total,
+        balance: data?.wallet_balance,
+        note: 'The money is held in escrow and released to the seller once you confirm you have received your order.',
+        submitLabel: `Pay ₦${commaInt(data?.total)}`,
+      });
     } catch (err) {
+      if (isPinCancelled(err)) return;
       const error = toApiError(err);
       const fields = error.fieldErrors;
       if (error.status === 400 && Object.keys(fields).length) setServerErrors(fields);
       if (!error.isNetworkError && !(error.status >= 500)) notifyError(error, "Couldn't place your order");
       if (error.status === 409 || error.status === 402) query.reload();
-    } finally {
-      walletDialog.onClose();
     }
   }
 
@@ -482,17 +489,6 @@ export default function PartsCheckout() {
           </Box>
         </Flex>
       </Container>
-
-      <WalletPayDialog
-        isOpen={walletDialog.isOpen}
-        onClose={walletDialog.onClose}
-        onConfirm={payWithWallet}
-        isLoading={placing}
-        amount={data?.total}
-        balance={data?.wallet_balance}
-        title="Pay for these parts from your wallet"
-        description="The money is held in escrow and released to the seller once you confirm you have received your order."
-      />
     </Box>
   );
 }

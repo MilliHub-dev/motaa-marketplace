@@ -398,15 +398,24 @@ export const CartPage = () => {
                                             return (
                                                 <CartRow
                                                     key={booking?.uuid || `${booking?.mechanic}-${booking?.date_created}-${idx}`}
-                                                    actions={booking?.uuid && booking?.can_cancel ? (
-                                                        <Button variant="outline" colorScheme="red" onClick={() => setBookingToCancel(booking)}
-                                                            isLoading={cancelBooking.loading && bookingToCancel?.uuid === booking.uuid}>
-                                                            Cancel booking
-                                                        </Button>
+                                                    actions={booking?.uuid ? (
+                                                        <Stack direction={{ base: 'column', sm: 'row' }} spacing={2}>
+                                                            <Button as={RLink} to={`/bookings/${booking.uuid}`} bg="primary" color="white" _hover={{ bg: 'secondary' }}>
+                                                                Track booking
+                                                            </Button>
+                                                            {booking?.can_cancel && (
+                                                                <Button variant="outline" colorScheme="red" onClick={() => setBookingToCancel(booking)}
+                                                                    isLoading={cancelBooking.loading && bookingToCancel?.uuid === booking.uuid}>
+                                                                    Cancel booking
+                                                                </Button>
+                                                            )}
+                                                        </Stack>
                                                     ) : null}
                                                 >
                                                     <Wrap spacing={2} mb={1} align="center">
-                                                        <Heading as="h3" size="sm">{booking?.mechanic || 'Mechanic'}</Heading>
+                                                        <Heading as="h3" size="sm">
+                                                            {booking?.uuid ? <RLink to={`/bookings/${booking.uuid}`}>{booking?.mechanic || 'Mechanic'}</RLink> : (booking?.mechanic || 'Mechanic')}
+                                                        </Heading>
                                                         <StatusBadge map={BOOKING_STATUS} value={booking?.booking_status || booking?.status} />
                                                     </Wrap>
                                                     <Text fontWeight="600">₦{commaInt(booking?.sub_total)} <Text as="span" fontSize="sm" fontWeight="400" color="gray.500">quoted</Text></Text>

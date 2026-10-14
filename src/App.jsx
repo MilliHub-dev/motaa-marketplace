@@ -12,6 +12,8 @@ import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
 import { LoadingState } from './components/states';
 import { RoleRedirect, SETTINGS_NOTICE } from './components/team';
+import { WalletPinProvider } from './components/walletPin';
+import { VisitPing } from './hooks/useVisitPing';
 import { canChangeSettings, canUseWallet, isOwner } from './utils/team';
 
 
@@ -40,6 +42,7 @@ const MechanicSearchPage = lazyPage(() => import('./pages/marketplace/search/Mec
 const CarSearchPage = lazyPage(() => import('./pages/marketplace/search/CarSearch'));
 const MechanicListPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicsListing'));
 const ConfirmMechanicBookingPage = lazyPage(() => import('./pages/marketplace/mechanics/ConfirmBooking'));
+const BookingTrackingPage = lazyPage(() => import('./pages/marketplace/mechanics/BookingTracking'));
 const MechanicDetailPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicDetail'));
 const LoginView = lazyPage(() => import('./pages/auth/Login'));
 const SignupView = lazyPage(() => import('./pages/auth/Signup'));
@@ -432,6 +435,8 @@ function App() {
      <ErrorBoundary>
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
+          <VisitPing />
+          <WalletPinProvider>
            <Suspense fallback={<LoadingState minH="70vh" label="Loading…" />}>
            <Routes ErrorBoundary={ErrorBoundary}>
             {authUser ? (
@@ -509,6 +514,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
                         {publicTransportRoutes()}
 
+                        <Route ErrorBoundary={ErrorBoundary} path='/bookings/:bookingId' element={<BookingTrackingPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/docs' element={<DocumentSigningPage />} />
@@ -589,6 +595,7 @@ function App() {
             }
           </Routes>
            </Suspense>
+          </WalletPinProvider>
           <ToastProvider />
         </GlobalStore.Provider>
       </Router>

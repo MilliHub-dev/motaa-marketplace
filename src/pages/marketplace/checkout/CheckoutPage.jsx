@@ -38,7 +38,8 @@ import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { EmptyState, ErrorState } from '../../../components/states';
 import { CustomPlacesAutocomplete } from '../../../components/maps';
-import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../components/wallet';
+import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { AgreedPriceTag } from '../../../components/offers';
 import { validForWords } from '../../../utils/offers';
 
@@ -154,7 +155,7 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const { api, commaInt, authUser, notifyError, naturalDate } = useContext(GlobalStore);
   const pay = usePaystack();
-  const walletDialog = useDisclosure();
+  const { withPin } = useWalletPin();
   const escrowInfo = useDisclosure();
 
   const [dates, setDates] = useState({ from: params.get('from') || '', until: params.get('until') || '' });
@@ -278,7 +279,7 @@ function CheckoutPage() {
     e?.preventDefault();
     setSubmitted(true);
     if (!valid || blocked || !pricing) return;
-    if (payingFromWallet) return walletDialog.onOpen();
+    if (payingFromWallet) return payWithWallet();
 
     setPaying(true);
     const reference = newReference('mtord');
@@ -313,13 +314,19 @@ function CheckoutPage() {
     }
   }
 
+  // paying from the wallet (in full, or the inspection fee): approved with the wallet PIN
   async function payWithWallet() {
     try {
-      await submitOrder(payload(undefined));
+      await withPin((pin) => submitOrder({ ...payload(undefined), pin }), {
+        title: afterInspection ? 'Pay the inspection fee from your wallet' : isRental ? 'Pay for this rental from your wallet' : 'Pay for this car from your wallet',
+        amount: amountDue,
+        balance: data?.wallet_balance,
+        note: 'The money is held in escrow and only released once you confirm.',
+        submitLabel: `Pay ₦${commaInt(amountDue)}`,
+      });
     } catch (error) {
+      if (isPinCancelled(error)) return;
       if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't place your order");
-    } finally {
-      walletDialog.onClose();
     }
   }
 
@@ -600,16 +607,6 @@ function CheckoutPage() {
           </Box>
         </Flex>
       </Container>
-
-      <WalletPayDialog
-        isOpen={walletDialog.isOpen}
-        onClose={walletDialog.onClose}
-        onConfirm={payWithWallet}
-        isLoading={placing}
-        amount={amountDue}
-        balance={data?.wallet_balance}
-        title={afterInspection ? 'Pay the inspection fee from your wallet' : isRental ? 'Pay for this rental from your wallet' : 'Pay for this car from your wallet'}
-      />
     </Box>
   );
 }

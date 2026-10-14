@@ -238,7 +238,7 @@ export default function TransportDetail({ kind }) {
 
       {isCustomer && business.chat_recipient && (
         <ChatPopup isOpen={chat.isOpen} onClose={chat.onClose} recipient={business.chat_recipient} recipient_name={business.name}
-          placeholder={towing ? `Hi, I need a tow. Is "${service.title}" available?` : `Hi, I'd like a quote for "${service.title}".`} />
+          service={service} placeholder={towing ? `Hi, I need a tow. Is "${service.title}" available?` : `Hi, I'd like a quote for "${service.title}".`} />
       )}
     </Container>
   );

@@ -1,13 +1,7 @@
-// Shared payment building blocks: Paystack popup as a promise, wallet confirmation,
+// Shared payment building blocks: Paystack popup as a promise (wallet payments: see walletPin.jsx),
 // a recovery notice for "charged but not recorded", and the transaction list.
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import {
-	AlertDialog,
-	AlertDialogBody,
-	AlertDialogContent,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogOverlay,
 	Alert,
 	AlertDescription,
 	AlertIcon,
@@ -29,7 +23,7 @@ import {
 	Text,
 	VStack,
 } from '@chakra-ui/react';
-import { ArrowDownLeft, ArrowUpRight, Lock } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
 import { GlobalStore } from '../App';
 import { PAYSTACK_PUBLIC_KEY } from '../config';
@@ -71,47 +65,6 @@ export function usePaystack() {
 		}
 	}), [initialize, authUser?.email, notify]);
 }
-
-/**
- * Confirmation before paying from the wallet.
- * Shows the amount, the available balance and what happens to the money.
- */
-export const WalletPayDialog = ({ isOpen, onClose, onConfirm, isLoading, amount, balance, title = 'Pay from wallet', description }) => {
-	const { commaInt } = useContext(GlobalStore);
-	const cancelRef = useRef();
-	const enough = Number(balance) >= Number(amount);
-
-	return (
-		<AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose} isCentered>
-			<AlertDialogOverlay>
-				<AlertDialogContent mx={4}>
-					<AlertDialogHeader fontSize="lg">{title}</AlertDialogHeader>
-					<AlertDialogBody>
-						<VStack align="stretch" spacing={3}>
-							<Flex justify="space-between"><Text color="gray.600">Amount</Text><Text className="bold">₦{commaInt(amount)}</Text></Flex>
-							<Flex justify="space-between"><Text color="gray.600">Wallet balance</Text><Text>₦{commaInt(balance)}</Text></Flex>
-							<Divider />
-							{enough ? (
-								<HStack align="start" spacing={2} color="gray.700">
-									<Icon as={Lock} mt={1} boxSize={4} aria-hidden="true" />
-									<Text fontSize="sm">{description || 'The money is held in escrow and only released once you confirm.'}</Text>
-								</HStack>
-							) : (
-								<Text fontSize="sm" color="red.600">Your wallet balance is too low. Top up your wallet or choose another payment method.</Text>
-							)}
-						</VStack>
-					</AlertDialogBody>
-					<AlertDialogFooter gap={3}>
-						<Button ref={cancelRef} onClick={onClose} variant="ghost" isDisabled={isLoading}>Cancel</Button>
-						<Button bg="primary" color="white" _hover={{ bg: 'secondary' }} onClick={onConfirm} isLoading={isLoading} isDisabled={!enough} loadingText="Paying">
-							Pay ₦{commaInt(amount)}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialogOverlay>
-		</AlertDialog>
-	);
-};
 
 /**
  * Persistent notice for "your card was charged but we couldn't record it".

@@ -4,9 +4,10 @@ import {
 } from "@chakra-ui/react";
 import { useContext, useState } from "react";
 import { Link as RLink } from "react-router-dom";
-import { Car, CheckCircle } from "lucide-react";
+import { Car, CheckCircle, Truck } from "lucide-react";
 import { GlobalStore } from "../App";
 import { useApiMutation } from "../hooks/useApi";
+import { servicePath } from "../utils/transport";
 
 const CYCLE_LABEL = { day: 'day', week: 'week', month: 'month', year: 'year' };
 
@@ -42,6 +43,35 @@ export function ListingChatCard({ listing, label = 'Enquiry about', compact = fa
     );
 }
 
+const SERVICE_KIND_LABEL = { towing: 'Towing van', hauler: 'Car hauler' };
+
+/**
+ * The towing van or car hauler a chat is about: photo, kind, title and price, linking to it.
+ * `service`: { uuid, kind, kind_label, title, price_line, image, path } (the chat API's
+ * message.service) or a service object from the transport API (`image` or `photos`).
+ */
+export function ServiceChatCard({ service, label = 'Enquiry about', compact = false, ...props }) {
+    if (!service) return null;
+    const path = service.path || servicePath(service);
+    const image = service.image ?? service.photos?.[0]?.url ?? null;
+    const kindLabel = service.kind_label || SERVICE_KIND_LABEL[service.kind] || 'Towing van';
+    return (
+        <LinkBox as="article" display="flex" gap={3} alignItems="center" p={2} pr={3} bg="white" color="gray.800"
+            borderWidth="1px" borderColor="gray.200" borderRadius="lg" _hover={{ borderColor: 'primary' }} {...props}>
+            {image
+                ? <Image src={image} alt="" boxSize={compact ? '48px' : '64px'} objectFit="cover" borderRadius="md" flexShrink={0} />
+                : <Flex boxSize={compact ? '48px' : '64px'} bg="gray.100" borderRadius="md" align="center" justify="center" color="gray.400" flexShrink={0}><Truck size={22} aria-hidden="true" /></Flex>}
+            <Box minW={0}>
+                <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wide">{label} · {kindLabel}</Text>
+                <LinkOverlay as={RLink} to={path} fontWeight="600" noOfLines={1} display="block">{service.title || kindLabel}</LinkOverlay>
+                {service.price_line && (
+                    <Text fontSize="sm" color="primary" fontWeight="600" noOfLines={2}>{service.price_line}</Text>
+                )}
+            </Box>
+        </LinkBox>
+    );
+}
+
 const MAX_LENGTH = 4000;
 const PROFILE_ID_FIELD = { dealer: 'dealer_id', mechanic: 'mechanic_id', customer: 'customer_id' };
 
@@ -55,13 +85,14 @@ const PROFILE_ID_FIELD = { dealer: 'dealer_id', mechanic: 'mechanic_id', custome
  * conversation with that business when there is one.
  * `listing`: the car being asked about. It's attached to the message (shown as a card
  * in the chat) the first time that car comes up in the conversation.
+ * `service`: the towing van / car hauler being asked about, sent as `service_id` the same way.
  */
-export const ChatPopup = ({ isOpen, onClose, recipient_type = 'dealer', recipient_id, recipient, recipient_name, placeholder, listing }) => {
+export const ChatPopup = ({ isOpen, onClose, recipient_type = 'dealer', recipient_id, recipient, recipient_name, placeholder, listing, service }) => {
     const [message, setMessage] = useState("");
     const [sentRoom, setSentRoom] = useState(null);
 
     const send = useApiMutation((api, text) => {
-        const about = listing?.uuid ? { listing_id: listing.uuid } : {};
+        const about = listing?.uuid ? { listing_id: listing.uuid } : service?.uuid ? { service_id: service.uuid } : {};
         if (recipient) return api.post('/chat/new/', { recipient, message: text, ...about });
         const type = PROFILE_ID_FIELD[recipient_type] ? recipient_type : 'dealer';
         return api.post('/chat/message/', { message: text, other_member: type, [PROFILE_ID_FIELD[type]]: recipient_id, ...about });
@@ -125,6 +156,7 @@ export const ChatPopup = ({ isOpen, onClose, recipient_type = 'dealer', recipien
                     <form onSubmit={handleSubmit} noValidate>
                         <ModalBody>
                             {listing && <ListingChatCard listing={listing} label="Asking about" mb={4} />}
+                            {!listing && service && <ServiceChatCard service={service} label="Asking about" mb={4} />}
                             <FormControl isInvalid={trimmed.length > MAX_LENGTH}>
                                 <FormLabel srOnly>Message</FormLabel>
                                 <Textarea

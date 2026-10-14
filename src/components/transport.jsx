@@ -21,6 +21,7 @@ import { PageControls } from '.';
 import { CustomPlacesAutocomplete } from './maps';
 import { ActionDialog } from './parts';
 import { PaymentRecoveryNotice, newReference, usePaystack } from './wallet';
+import { isPinCancelled, useWalletPin } from './walletPin';
 
 // ---------------------------------------------------------------- small pieces
 
@@ -275,6 +276,7 @@ function writePending(uuid, value) {
 function PayJobModal({ job, isOpen, onClose, onPaid }) {
   const { api, commaInt } = useContext(GlobalStore);
   const pay = usePaystack();
+  const { withPin } = useWalletPin();
   const [method, setMethod] = useState('card');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -298,12 +300,19 @@ function PayJobModal({ job, isOpen, onClose, onPaid }) {
     setBusy(true);
     setError('');
     try {
-      const result = await api.post(`/transport/jobs/${encodeURIComponent(job.uuid)}/`, { action: 'pay', ...body });
+      const url = `/transport/jobs/${encodeURIComponent(job.uuid)}/`;
+      // from the wallet: approved with the wallet PIN; by card: no PIN
+      const result = body.payment_option === 'wallet'
+        ? await withPin((pin) => api.post(url, { action: 'pay', ...body, pin }), {
+          title: 'Pay this invoice from your wallet', amount: total, balance, submitLabel: `Pay ₦${commaInt(total)}`,
+        })
+        : await api.post(url, { action: 'pay', ...body });
       writePending(job.uuid, null);
       setPending(null);
       onPaid(result);
       onClose();
     } catch (err) {
+      if (isPinCancelled(err)) return;
       const message = err?.message || "That didn't work.";
       if (body.reference && (err?.isNetworkError || err?.status >= 500)) {
         // charged but not recorded: keep the reference so it can be retried (the server is safe to call again)

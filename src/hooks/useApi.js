@@ -128,6 +128,8 @@ export function useApiMutation(action, options = {}) {
       return result;
     } catch (err) {
       const apiError = toApiError(err);
+      // the user closed a prompt (e.g. the wallet PIN): nothing went wrong
+      if (apiError.kind === 'cancelled') return undefined;
       if (mounted.current) setError(apiError);
       // offline/5xx already produced a connection toast from the client
       if (notifyOnError && !apiError.isNetworkError && apiError.status < 500) notifyError(apiError, errorTitle);

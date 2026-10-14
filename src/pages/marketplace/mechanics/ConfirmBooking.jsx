@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { Link as RLink, useParams, useSearchParams } from 'react-router-dom';
+import { Link as RLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   AlertDescription,
@@ -34,7 +34,8 @@ import { BackButton } from '../../../components/nav';
 import { ChatPopup } from '../../../components/chat';
 import { AsyncState } from '../../../components/states';
 import { MechanicListSkeleton } from '../../../components/loaders';
-import { newReference, PaymentRecoveryNotice, usePaystack, WalletPayDialog } from '../../../components/wallet';
+import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../components/wallet';
+import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { asList } from '../../../utils';
 
 /** Toggleable service chips — real buttons, so they work with keyboard and screen readers. */
@@ -66,10 +67,11 @@ const ServicePicker = ({ options, selected, onChange, invalid }) => (
 
 function BookingForm({ mechanic }) {
   const { mechId } = useParams();
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const { api, commaInt, notifyError } = useContext(GlobalStore);
   const pay = usePaystack();
-  const walletDialog = useDisclosure();
+  const { withPin } = useWalletPin();
   const chat = useDisclosure();
 
   const lat = Number(params.get('lat'));
@@ -115,6 +117,11 @@ function BookingForm({ mechanic }) {
     try {
       const result = await api.post(`/mechanics/${mechId}/`, body);
       setPending(null);
+      // paid: follow the booking on its tracking page
+      if (result?.data?.uuid) {
+        navigate(`/bookings/${result.data.uuid}`, { replace: true, state: { justBooked: true } });
+        return true;
+      }
       setBooked(result?.data || {});
       return true;
     } finally {
@@ -126,7 +133,7 @@ function BookingForm({ mechanic }) {
     e.preventDefault();
     setSubmitted(true);
     if (!valid || fee === undefined) return;
-    if (method === 'wallet') return walletDialog.onOpen();
+    if (method === 'wallet') return payFromWallet();
 
     setPaying(true);
     const reference = newReference('mtbk');
@@ -150,13 +157,19 @@ function BookingForm({ mechanic }) {
     }
   }
 
+  // the booking fee from the wallet, approved with the wallet PIN
   async function payFromWallet() {
     try {
-      await send(payload(undefined));
+      await withPin((pin) => send({ ...payload(undefined), pin }), {
+        title: `Book ${name}`,
+        amount: fee,
+        balance: walletBalance,
+        note: 'The booking fee is held in escrow and released to the mechanic when the job is done.',
+        submitLabel: `Pay ₦${commaInt(fee)}`,
+      });
     } catch (error) {
+      if (isPinCancelled(error)) return;
       if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't book this mechanic");
-    } finally {
-      walletDialog.onClose();
     }
   }
 
@@ -278,16 +291,6 @@ function BookingForm({ mechanic }) {
         )}
       </Box>
 
-      <WalletPayDialog
-        isOpen={walletDialog.isOpen}
-        onClose={walletDialog.onClose}
-        onConfirm={payFromWallet}
-        isLoading={sending}
-        amount={fee}
-        balance={walletBalance}
-        title={`Book ${name}`}
-        description="The booking fee is held in escrow and released to the mechanic when the job is done."
-      />
       <ChatPopup isOpen={chat.isOpen} onClose={chat.onClose} recipient_type="mechanic" recipient_id={mechanic?.uuid} />
     </Flex>
   );

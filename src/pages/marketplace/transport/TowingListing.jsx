@@ -235,7 +235,7 @@ export default function TowingListing() {
 
       {chatWith && (
         <ChatPopup isOpen onClose={() => setChatWith(null)} recipient={chatWith.business?.chat_recipient} recipient_name={chatWith.business?.name}
-          placeholder={`Hi, I need a tow. Is "${chatWith.title}" available now?`} />
+          service={chatWith} placeholder={`Hi, I need a tow. Is "${chatWith.title}" available now?`} />
       )}
     </Box>
   );
