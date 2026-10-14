@@ -9,6 +9,7 @@ import { FaCirclePlus, FaCircleMinus } from 'react-icons/fa6';
 import { RxArrowRight } from 'react-icons/rx';
 import { TbSearch } from 'react-icons/tb';
 import faqs from '../data/faqs.json';
+import VinChecker from '../components/VinChecker';
 import '../assets/Home.css';
 
 export const featureList = [
@@ -257,6 +258,8 @@ export const HomePage = () => {
 
         <FeatureCards />
       </Box>
+
+      <VinChecker />
 
       <WhyMotaa />
 
