@@ -168,7 +168,8 @@ export const CartPage = () => {
     const query = useApiQuery(
         (api, signal) => api.get('/accounts/cart/', { signal }),
         [],
-        { select: (body) => body?.data || {} }
+        // show the cart as it was last time straight away, then refresh it
+        { select: (body) => body?.data || {}, keepAs: 'cart' }
     );
     const cart = query.data || {};
     const orders = asList(cart.orders);

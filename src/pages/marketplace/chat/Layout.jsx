@@ -212,7 +212,8 @@ function ChatLayout() {
   const query = useApiQuery(
     (api, signal) => api.get('/chat/chats/', { signal }),
     [],
-    { select: (body) => asList(body?.data) }
+    // the conversations as they were last time show at once, then refresh
+    { select: (body) => asList(body?.data), keepAs: 'chat-list' }
   );
   const { setData, reload } = query;
 

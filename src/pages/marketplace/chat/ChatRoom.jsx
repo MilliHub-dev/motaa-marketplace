@@ -237,7 +237,7 @@ function ChatRoom() {
   const query = useApiQuery(
     (api, signal) => api.get(`/chat/chats/${encodeURIComponent(room)}/`, { signal }),
     [room],
-    { select: (body) => body?.data || {} }
+    { select: (body) => body?.data || {}, keepAs: `chat-room:${room}` }
   );
 
   // new room → start from its own history
