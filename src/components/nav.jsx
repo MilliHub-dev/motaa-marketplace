@@ -41,6 +41,8 @@ const PUBLIC_NAV = [
   { label: 'About', to: '/about' },
   { label: 'Features', to: '/features' },
   { label: 'Spare Parts', to: '/parts' },
+  { label: 'Towing', to: '/towing' },
+  { label: 'Car Haulers', to: '/car-haulers' },
   { label: 'For Businesses', to: '/business' },
 ];
 
@@ -50,6 +52,8 @@ const CUSTOMER_NAV = [
   { label: 'Rent', to: '/rent' },
   { label: 'Find Mechanic', to: '/mechanics' },
   { label: 'Spare Parts', to: '/parts' },
+  { label: 'Towing', to: '/towing' },
+  { label: 'Car Haulers', to: '/car-haulers' },
 ];
 
 
@@ -263,6 +267,7 @@ export const CustomerNavbar = () => {
                   {authUser?.email && <Text fontSize="sm" color="gray.600">{authUser.email}</Text>}
                 </VStack>
                 <MenuItem as={RLink} to="/parts/orders" icon={<Receipt size={18} />}>My parts orders</MenuItem>
+                <MenuItem as={RLink} to="/cart?tab=towing" icon={<Truck size={18} />}>Towing &amp; haulage jobs</MenuItem>
                 <MenuItem as={RLink} to="/support" icon={<RiHeadphoneLine size={18} />}>Contact Support</MenuItem>
                 <MenuItem onClick={logout} icon={<RiLogoutBoxRLine size={18} />}>Sign Out</MenuItem>
               </MenuList>
@@ -379,6 +384,7 @@ const DEALER_LINKS = [
   { icon: Coin, label: 'Orders', path: '/orders' },
   { icon: Shop, label: 'Inventory', path: '/inventory' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
+  { icon: Truck, label: 'Car haulers', path: '/transport' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
   { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },
@@ -390,6 +396,7 @@ const MECHANIC_LINKS = [
   { icon: GrUserWorker, label: 'Bookings', path: '/bookings' },
   { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
+  { icon: Truck, label: 'Towing vans', path: '/transport' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
   { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },
@@ -543,6 +550,7 @@ export const Sidebar = ({ show, onClose }) => {
                 {CUSTOMER_NAV.map((item) => <DrawerLink key={item.to} to={item.to} onClose={onClose}>{item.label}</DrawerLink>)}
                 <DrawerLink to="/parts/cart" onClose={onClose}>Parts cart</DrawerLink>
                 <DrawerLink to="/parts/orders" onClose={onClose}>My parts orders</DrawerLink>
+                <DrawerLink to="/cart?tab=towing" onClose={onClose}>Towing &amp; haulage jobs</DrawerLink>
                 <DrawerLink to="/wallet" onClose={onClose}>Wallet</DrawerLink>
               </>
             ) : (

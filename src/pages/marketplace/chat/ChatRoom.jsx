@@ -26,10 +26,12 @@ import { CHAT_REFRESH_MS, announceChatChanged, useVisibleInterval } from '../../
 import { ErrorState } from '../../../components/states';
 import { ListingChatCard } from '../../../components/chat';
 import { OfferCard, useOfferCheckout } from '../../../components/offers';
+import { ChatInvoiceButton, TransportJobCard } from '../../../components/transport';
 import { asList } from '../../../utils';
 import { profilePicture } from '../../../utils';
 import { assignmentActions, assignmentLabel } from '../../../utils/team';
 import { latestOfferSteps } from '../../../utils/offers';
+import { latestJobSteps } from '../../../utils/transport';
 import { AssignmentTag } from './Layout';
 
 const MAX_LENGTH = 4000;
@@ -257,12 +259,12 @@ function ChatRoom() {
     onRoomActivityRef.current?.(room, msg);
   }, [room]);
 
-  // A live copy of an offer step is the same for everyone in the room: it has no buttons for the
-  // person looking at it. Show the step, then load the room so the buttons and states are theirs.
+  // A live copy of an offer or towing/hauling job step is the same for everyone in the room: it has no
+  // buttons for the person looking at it. Show the step, then load the room so the buttons and states are theirs.
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
   const onLiveMessage = useCallback((msg) => {
-    if (!msg?.offer) { addMessage(msg); return; }
+    if (!msg?.offer && !msg?.transport_job) { addMessage(msg); return; }
     const known = messagesRef.current.some((item) => messageKey(item) === messageKey(msg));
     if (known) onRoomActivityRef.current?.(room, msg);
     else addMessage(msg);
@@ -328,6 +330,17 @@ function ChatRoom() {
   }
   const offerCheckout = useOfferCheckout();
 
+  // After any step of a towing / hauling job (or a refusal), load the room again: every step of that
+  // job now has a new state, and only the newest one has this viewer's buttons.
+  const onJobChanged = useCallback((body) => {
+    if (body?.data?.message) addMessage(body.data.message);
+    if (body?.data && 'assigned_to' in body.data) {
+      query.setData((current) => (current ? { ...current, assigned_to: body.data.assigned_to ?? null } : current));
+    }
+    reloadRoom();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addMessage, reloadRoom]);
+
   // keep the tag in the conversation list in step with this conversation
   const onRoomAssigned = outlet.onRoomAssigned;
   const inTeam = Boolean(roomData?.team);
@@ -385,6 +398,7 @@ function ChatRoom() {
 
   // only the newest step of a negotiation has buttons
   const latestSteps = useMemo(() => latestOfferSteps(messages, messageKey), [messages]);
+  const latestJobs = useMemo(() => latestJobSteps(messages, messageKey), [messages]);
 
   if (query.loading && roomData === undefined) return <RoomSkeleton />;
   // a 404 is final even with an earlier copy on screen (e.g. the conversation was given to someone else)
@@ -423,6 +437,7 @@ function ChatRoom() {
             <Text fontSize="xs" color="gray.500" textTransform="capitalize">{{ dealer: 'Dealership', parts_dealer: 'Parts dealer' }[recipient.user_type] || recipient.user_type}</Text>
           )}
         </Box>
+        <ChatInvoiceButton room={room} recipient={recipient} onSent={onJobChanged} />
         <RoomAssignment room={roomData} onAssign={(member) => assign.mutate(member)} isLoading={assign.loading} />
       </HStack>
 
@@ -443,7 +458,16 @@ function ChatRoom() {
           grouped.map((group) => (
             <VStack key={group.label} spacing={3} align="stretch" mb={4}>
               <Text alignSelf="center" fontSize="xs" color="gray.500" bg="gray.50" px={3} py={1} rounded="full">{group.label}</Text>
-              {group.items.map((msg) => (msg?.offer ? (
+              {group.items.map((msg) => (msg?.transport_job ? (
+                <TransportJobCard
+                  key={messageKey(msg)}
+                  msg={msg}
+                  mine={isMine(msg)}
+                  latest={Boolean(msg.transport_latest) && latestJobs[msg.transport_job.uuid] === messageKey(msg)}
+                  naturalTime={naturalTime}
+                  onChanged={onJobChanged}
+                />
+              ) : msg?.offer ? (
                 <OfferCard
                   key={messageKey(msg)}
                   msg={msg}

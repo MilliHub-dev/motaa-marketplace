@@ -75,6 +75,13 @@ const OrderListAdmin = lazyPage(() => import('./pages/dashboard/dealer/orders/Or
 const AnalyticsDashboard = lazyPage(() => import('./pages/dashboard/dealer/analytics/AnalyticsOverview'));
 const DealershipSettings = lazyPage(() => import('./pages/dashboard/dealer/settings/Settings'));
 
+// Towing vans and car haulers: customer pages, and the business's own listings
+const TowingListing = lazyPage(() => import('./pages/marketplace/transport/TowingListing'));
+const HaulerListing = lazyPage(() => import('./pages/marketplace/transport/HaulerListing'));
+const TransportDetail = lazyPage(() => import('./pages/marketplace/transport/TransportDetail'));
+const MyTransport = lazyPage(() => import('./pages/dashboard/transport/MyTransport'));
+const TransportForm = lazyPage(() => import('./pages/dashboard/transport/TransportForm'));
+
 // Spare parts: customer pages
 const PartsListing = lazyPage(() => import('./pages/marketplace/parts/PartsListing'));
 const PartDetail = lazyPage(() => import('./pages/marketplace/parts/PartDetail'));
@@ -160,6 +167,29 @@ function partsShopRoutes(canSettings = true){
       <Route ErrorBoundary={ErrorBoundary} path='settings' element={canSettings ? <PartsShopSettings /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
       <Route ErrorBoundary={ErrorBoundary} path='' element={<PartsShopOverview />} />
       <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='/parts-store' replace />} />
+    </Route>
+  );
+}
+
+// Towing vans and car haulers can be browsed without logging in (requesting one needs an account).
+function publicTransportRoutes(){
+  return (
+    <Fragment>
+      <Route ErrorBoundary={ErrorBoundary} path='/towing' element={<TowingListing />} />
+      <Route ErrorBoundary={ErrorBoundary} path='/towing/:serviceId' element={<TransportDetail kind='towing' />} />
+      <Route ErrorBoundary={ErrorBoundary} path='/car-haulers' element={<HaulerListing />} />
+      <Route ErrorBoundary={ErrorBoundary} path='/car-haulers/:serviceId' element={<TransportDetail kind='hauler' />} />
+    </Fragment>
+  );
+}
+
+// A mechanic's towing vans or a dealer's car haulers (the API knows which from the account).
+function businessTransportRoutes(){
+  return (
+    <Route ErrorBoundary={ErrorBoundary} path='/transport' element={<Outlet />}>
+      <Route ErrorBoundary={ErrorBoundary} path='add' element={<TransportForm />} />
+      <Route ErrorBoundary={ErrorBoundary} path=':serviceId' element={<TransportForm />} />
+      <Route ErrorBoundary={ErrorBoundary} path='' element={<MyTransport />} />
     </Route>
   );
 }
@@ -353,9 +383,9 @@ function App() {
   const visitorType = authUser?.user_type;
   useEffect(() => {
     const pages = !visitorType ? [LoginView, SignupView, PartsListing]
-      : visitorType === 'customer' ? [HomePage, BuyListing, RentListing, MechanicListPage, PartsListing, BuyDetail, RentDetail, MechanicDetailPage, PartDetail, CartPage, WalletLayout, WalletHomePage]
-      : visitorType === 'dealer' ? [DealerDashboardLayout, DealerDashboard, ListingsAdmin, OrderListAdmin]
-      : visitorType === 'mechanic' ? [MechanicDashboardLayout, MechanicDashboard, BookingsAdmin, ServiceOfferings]
+      : visitorType === 'customer' ? [HomePage, BuyListing, RentListing, MechanicListPage, PartsListing, TowingListing, HaulerListing, BuyDetail, RentDetail, MechanicDetailPage, PartDetail, TransportDetail, CartPage, WalletLayout, WalletHomePage]
+      : visitorType === 'dealer' ? [DealerDashboardLayout, DealerDashboard, ListingsAdmin, OrderListAdmin, MyTransport]
+      : visitorType === 'mechanic' ? [MechanicDashboardLayout, MechanicDashboard, BookingsAdmin, ServiceOfferings, MyTransport]
       : [PartsDealerDashboardLayout, PartsShopGate, PartsShopOverview, PartsShopParts, PartsShopOrders];
     return preloadPages(pages);
   }, [visitorType]);
@@ -416,6 +446,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='' element={<ListingsAdmin />} />
                       </Route>
                       {partsShopRoutes(canSettings)}
+                      {businessTransportRoutes()}
                       <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<AnalyticsDashboard />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/settings' element={canSettings ? <DealershipSettings /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
                       <Route ErrorBoundary={ErrorBoundary} path='/team' element={teamPage} />
@@ -436,6 +467,7 @@ function App() {
                         </Route>
 
                         {partsShopRoutes(canSettings)}
+                        {businessTransportRoutes()}
                         <Route ErrorBoundary={ErrorBoundary} path='/settings' element={canSettings ? <BusinessProfile /> : <RoleRedirect message={SETTINGS_NOTICE} />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/team' element={teamPage} />
                         <Route ErrorBoundary={ErrorBoundary} path='/support' element={<SupportPage />} />
@@ -475,6 +507,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/parts/orders/:orderId' element={<PartsOrderDetail />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/parts/orders' element={<PartsOrders />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
+                        {publicTransportRoutes()}
 
                         <Route ErrorBoundary={ErrorBoundary} path='/cart' element={<CartPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/checkout/pay' element={<CheckoutPage />} />
@@ -547,6 +580,7 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/parts/checkout/*' element={<LoginRedirect />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/parts/orders/*' element={<LoginRedirect />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
+                  {publicTransportRoutes()}
                   <Route ErrorBoundary={ErrorBoundary} path='/' element={<LandingPage />} />
                   {/* deep links need an account: send them to login and come back afterwards */}
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LoginRedirect />} />
@@ -566,7 +600,7 @@ function App() {
 /** Unknown/protected path while logged out → /login?next=<path> (landing for junk paths). */
 function LoginRedirect(){
   const path = window.location.pathname + window.location.search
-  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services|parts|parts-store|team)(\/|$)/
+  const appPaths = /^\/(home|buy|rent|mechanics|dealership|cart|checkout|search|notifications|wallet|chat|dashboard|orders|inventory|analytics|settings|bookings|services|parts|parts-store|team|transport)(\/|$)/
   if (!appPaths.test(window.location.pathname)) return <Navigate to='/' replace />
   return <Navigate to={`/login?next=${encodeURIComponent(path)}`} replace />
 }

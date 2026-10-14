@@ -25,13 +25,14 @@ import {
 } from "@chakra-ui/react";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Link as RLink, useSearchParams } from "react-router-dom";
-import { CalendarClock, Car, KeyRound, Package, Receipt, Wrench } from "lucide-react";
+import { CalendarClock, Car, KeyRound, Package, Receipt, Truck, Wrench } from "lucide-react";
 import { GlobalStore } from "../../App";
 import { useApiMutation, useApiQuery } from "../../hooks/useApi";
 import { EmptyState, ErrorState } from "../../components/states";
+import { TransportJobList } from "../../components/transport";
 import { asList } from "../../utils";
 
-const TABS = ['orders', 'cars', 'rentals', 'mechanics'];
+const TABS = ['orders', 'cars', 'rentals', 'mechanics', 'towing'];
 
 const ORDER_STATUS = {
     'awaiting-inspection': { label: 'Awaiting inspection', color: 'yellow' },
@@ -239,6 +240,7 @@ export const CartPage = () => {
         { label: 'Cars', count: cars.length },
         { label: 'Rentals', count: rentals.length },
         { label: 'Mechanics', count: bookings.length },
+        { label: 'Towing & haulage' },
     ];
 
     const removeButton = (item) => (
@@ -271,7 +273,7 @@ export const CartPage = () => {
         <Box py={{ base: 4, md: 8 }}>
             <Container maxW="container.lg">
                 <Heading as="h1" fontSize={{ base: '2xl', md: '3xl' }} mb={1}>Your cart</Heading>
-                <Text color="gray.600" mb={4}>Cars you've saved, your orders and mechanic bookings.</Text>
+                <Text color="gray.600" mb={4}>Cars you've saved, your orders, mechanic bookings and towing or haulage jobs.</Text>
 
                 <Flex as="nav" aria-label="Spare parts" align="center" gap={3} flexWrap="wrap" p={3} mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="gray.50">
                     <Flex align="center" gap={2} flex={1} minW="200px" color="gray.700">
@@ -292,7 +294,7 @@ export const CartPage = () => {
                             {tabs.map((tab) => (
                                 <Tab key={tab.label} gap={2} px={{ base: 3, md: 4 }} fontWeight="600" _selected={{ color: 'primary', borderColor: 'primary' }}>
                                     {tab.label}
-                                    <Badge borderRadius="full" px={2} colorScheme={tab.count ? 'blue' : 'gray'}>{tab.count}</Badge>
+                                    {tab.count !== undefined && <Badge borderRadius="full" px={2} colorScheme={tab.count ? 'blue' : 'gray'}>{tab.count}</Badge>}
                                 </Tab>
                             ))}
                         </TabList>
@@ -426,6 +428,21 @@ export const CartPage = () => {
                                         })}
                                     </Stack>
                                 )}
+                            </TabPanel>
+
+                            {/* Towing vans and car haulers: each job lives in its conversation with the business */}
+                            <TabPanel px={0}>
+                                <TransportJobList
+                                    empty={
+                                        <EmptyState icon={Truck} title="No towing or haulage jobs yet"
+                                            description="Request a tow or a car hauler and follow the job, the invoice and the payment in your chat with the business."
+                                            action={{ label: 'Find a towing van', to: '/towing' }} />
+                                    }
+                                />
+                                <Flex gap={3} mt={4} flexWrap="wrap">
+                                    <Button as={RLink} to="/towing" size="sm" variant="outline" borderColor="primary" color="primary">Find a towing van</Button>
+                                    <Button as={RLink} to="/car-haulers" size="sm" variant="outline" borderColor="primary" color="primary">Get a car hauler</Button>
+                                </Flex>
                             </TabPanel>
                         </TabPanels>
                     </Tabs>
