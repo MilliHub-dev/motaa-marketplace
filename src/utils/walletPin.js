@@ -83,3 +83,41 @@ export function lockedUntilText(lockedUntil, locale) {
   if (Number.isNaN(date.getTime())) return '';
   return `until ${date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}`;
 }
+
+/** "3:45 pm" — when a locked PIN unlocks, or '' when unknown. */
+export function unlockTime(lockedUntil, locale) {
+  if (!lockedUntil) return '';
+  const date = new Date(lockedUntil);
+  if (Number.isNaN(date.getTime())) return '';
+  // always a 12-hour clock ("3:45 pm"), like the app
+  return date.toLocaleTimeString(locale || 'en-NG', { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?(AM|PM)$/i, (m) => m.toLowerCase());
+}
+
+// ---- the step-by-step PIN screens in Wallet settings -------------------------------------------------
+
+/** The entry steps of each flow (a success screen follows the last one). */
+export const PIN_FLOW_STEPS = {
+  set: ['new', 'confirm'],
+  change: ['current', 'new', 'confirm'],
+  reset: ['email', 'new', 'confirm'],
+};
+
+/**
+ * Where a flow goes after its final request fails:
+ *   { step: 'current' | 'new' | 'email' | 'confirm', message }  — back to that step with the message
+ *   { step: 'locked', message }                                  — offer to reset the PIN
+ *   { step: 'switch-set', message }                              — a reset without a PIN: set one instead
+ */
+export function pinFlowErrorStep(flow, error) {
+  const message = error?.message || 'Something went wrong. Please try again.';
+  const pinStep = pinErrorStep(error); // only Change sends a PIN to check
+  if (pinStep) return pinStep.step === 'locked' ? { step: 'locked', message: pinStep.message } : { step: flow === 'change' ? 'current' : 'new', message: pinStep.message };
+  if (flow === 'reset' && error?.status === 409) return { step: 'switch-set', message };
+  const details = error?.data?.details || {};
+  const fieldMessage = (name) => (Array.isArray(details[name]) ? details[name][0] : details[name]);
+  if (details.pin || details.new_pin || details.confirm_pin) {
+    return { step: 'new', message: fieldMessage('pin') || fieldMessage('new_pin') || fieldMessage('confirm_pin') || message };
+  }
+  if (flow === 'reset' && error?.status === 400) return { step: /code/i.test(message) ? 'email' : 'new', message };
+  return { step: 'confirm', message };
+}

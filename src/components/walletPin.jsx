@@ -35,6 +35,7 @@ import {
   Stack,
   Text,
   VStack,
+  VisuallyHidden,
 } from '@chakra-ui/react';
 import { GlobalStore } from '../App';
 import { ApiError, toApiError } from '../api/client';
@@ -52,23 +53,32 @@ const cancelled = () => new ApiError('Cancelled.', { kind: 'cancelled' });
 // ---- the PIN boxes ---------------------------------------------------------------------------------
 
 /**
- * Four masked boxes over one numeric input (one field for screen readers, the numeric keypad on phones,
+ * Masked digit boxes over one numeric input (one field for screen readers, the numeric keypad on phones,
  * paste works). The input is plain text with autocomplete off so browsers don't offer to save the PIN.
+ * `length`/`masked={false}`/`autoComplete="one-time-code"` make it the 6-digit email code too.
+ * `size="lg"` and `centered` for the step-by-step PIN screens; `hideLabel` when a heading already says it.
  */
 export const PinField = forwardRef(function PinField(
-  { label, value, onChange, onComplete, error, helper, isDisabled, autoFocus },
+  {
+    label, value, onChange, onComplete, error, helper, isDisabled, autoFocus,
+    length = PIN_LENGTH, masked = true, size = 'md', centered = false, hideLabel = false, autoComplete = 'off',
+  },
   ref,
 ) {
   const id = `pin-${useId().replace(/:/g, '')}`;
   const [focused, setFocused] = useState(false);
-  const active = Math.min(value.length, PIN_LENGTH - 1);
+  const active = Math.min(value.length, length - 1);
+  const large = size === 'lg';
+  const box = length > PIN_LENGTH
+    ? { w: { base: '42px', sm: '48px' }, h: { base: '52px', sm: '56px' } }
+    : large ? { w: { base: '60px', sm: '64px' }, h: { base: '64px', sm: '68px' } } : { w: { base: '52px', sm: '56px' }, h: '56px' };
 
   function change(e) {
     const typed = String(e.target.value).replace(/\D/g, '');
     // typing into full boxes starts again with the new digit (e.g. after "too easy to guess")
-    const next = value.length === PIN_LENGTH && typed.length > PIN_LENGTH ? cleanPin(typed.slice(PIN_LENGTH)) : cleanPin(typed);
+    const next = value.length === length && typed.length > length ? cleanPin(typed.slice(length), length) : cleanPin(typed, length);
     onChange(next);
-    if (next.length === PIN_LENGTH && next !== value) onComplete?.(next);
+    if (next.length === length && next !== value) onComplete?.(next);
   }
 
   // keep the caret at the end so typing always fills the next box
@@ -80,26 +90,28 @@ export const PinField = forwardRef(function PinField(
     }
   }
 
+  const labelEl = <FormLabel mb={2} textAlign={centered ? 'center' : undefined} mr={centered ? 0 : undefined}>{label}</FormLabel>;
   return (
     <FormControl id={id} isInvalid={Boolean(error)} isDisabled={isDisabled}>
-      <FormLabel mb={2}>{label}</FormLabel>
-      <Box position="relative" w="fit-content">
-        <HStack spacing={3} aria-hidden="true">
-          {Array.from({ length: PIN_LENGTH }, (_, i) => (
+      {hideLabel ? <VisuallyHidden>{labelEl}</VisuallyHidden> : labelEl}
+      <Box position="relative" w="fit-content" mx={centered ? 'auto' : undefined}>
+        <HStack spacing={length > PIN_LENGTH ? { base: 2, sm: 2.5 } : 3} aria-hidden="true">
+          {Array.from({ length }, (_, i) => (
             <Flex
               key={i}
-              w={{ base: '52px', sm: '56px' }}
-              h="56px"
+              {...box}
               align="center"
               justify="center"
               borderWidth="2px"
-              borderRadius="md"
-              bg={isDisabled ? 'gray.50' : 'white'}
-              borderColor={error ? 'red.500' : focused && i === active ? 'primary' : 'gray.300'}
-              boxShadow={focused && i === active ? '0 0 0 1px var(--chakra-colors-primary)' : undefined}
-              transition="border-color 0.15s"
+              borderRadius={large ? 'xl' : 'md'}
+              bg={isDisabled ? 'gray.50' : value[i] ? 'blue.50' : 'white'}
+              borderColor={error ? 'red.500' : focused && i === active ? 'primary' : value[i] ? 'blue.200' : 'gray.300'}
+              boxShadow={focused && i === active ? '0 0 0 3px rgba(0, 101, 181, 0.18)' : undefined}
+              fontSize={large ? '2xl' : 'xl'}
+              fontWeight="600"
+              transition="border-color 0.15s, background-color 0.15s"
             >
-              {value[i] && <Box w="12px" h="12px" borderRadius="full" bg="gray.800" />}
+              {value[i] && (masked ? <Box w={large ? '14px' : '12px'} h={large ? '14px' : '12px'} borderRadius="full" bg="gray.800" /> : value[i])}
             </Flex>
           ))}
         </HStack>
@@ -109,7 +121,7 @@ export const PinField = forwardRef(function PinField(
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          autoComplete="off"
+          autoComplete={autoComplete}
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -131,11 +143,12 @@ export const PinField = forwardRef(function PinField(
           opacity={0}
           fontSize="16px" // below 16px iOS zooms in on focus
           cursor="pointer"
-          sx={{ WebkitTextSecurity: 'disc', caretColor: 'transparent' }}
+          sx={masked ? { WebkitTextSecurity: 'disc', caretColor: 'transparent' } : { caretColor: 'transparent' }}
           _focusVisible={{ outline: 'none' }}
         />
       </Box>
-      {error ? <FormErrorMessage>{error}</FormErrorMessage> : helper ? <FormHelperText>{helper}</FormHelperText> : null}
+      {error ? <FormErrorMessage justifyContent={centered ? 'center' : undefined} textAlign={centered ? 'center' : undefined}>{error}</FormErrorMessage>
+        : helper ? <FormHelperText textAlign={centered ? 'center' : undefined}>{helper}</FormHelperText> : null}
     </FormControl>
   );
 });
