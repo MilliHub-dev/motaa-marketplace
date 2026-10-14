@@ -138,6 +138,8 @@ export const MechanicListPage = () => {
                         ? (searchPoint ? `Looking for mechanics near ${locationName}…` : 'Looking for mechanics…')
                         : !searchPoint
                         ? `${Number.isFinite(count) ? count : shown} mechanic${(Number.isFinite(count) ? count : shown) === 1 ? '' : 's'} on Motaa`
+                        : mechanics.data?.nearby === false
+                        ? `No mechanics within 30 km of ${locationName} yet. Showing all ${Number.isFinite(count) ? count : shown} mechanic${(Number.isFinite(count) ? count : shown) === 1 ? '' : 's'} on Motaa`
                         : Number.isFinite(count)
                         ? `${count} mechanic${count === 1 ? '' : 's'} within 30 km of ${locationName}`
                         : `${shown} mechanic${shown === 1 ? '' : 's'} near ${locationName}`}
