@@ -38,10 +38,11 @@ import {
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import { Eye, MapPin } from 'lucide-react';
+import { Eye, MapPin, Star } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiMutation } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
+import { bookingDeadline, cleanStars, payoutNote } from '../../../utils/bookings';
 
 export const STATUS_COLORS = {
   requested: 'cyan',
@@ -121,11 +122,11 @@ const ACTIONS = {
   },
   start: { label: 'Start job', colorScheme: 'blue', done: 'Job started' },
   complete: {
-    label: 'Finish job', colorScheme: 'green', done: 'Job marked as completed',
+    label: 'Mark as done', colorScheme: 'green', done: 'Job marked as done',
     confirm: {
-      title: 'Mark this job as completed?',
-      body: (name) => `${name} will be notified that the work is done.`,
-      cta: 'Mark completed',
+      title: 'Mark this job as done?',
+      body: (name) => `${name} will be asked to confirm the work is done. You're paid the booking fee when they confirm, or automatically after 48 hours unless they report a problem.`,
+      cta: 'Mark as done',
       colorScheme: 'green',
     },
   },
@@ -158,6 +159,7 @@ export function useBookingActions({ onDone } = {}) {
   const mutation = useApiMutation(
     (api, uuid, action) => api.post(`/admin/mechanics/bookings/${uuid}/`, { action }),
     {
+      // e.g. after "Mark as done" the server says when the fee is paid
       successMessage: (body) => body?.message || 'Booking updated',
       errorTitle: "Couldn't update the booking",
       onSuccess: (body) => onDone?.(body?.data),
@@ -243,6 +245,34 @@ export function BookingActionButtons({ booking, actions, onDetails }) {
   );
 }
 
+const PAYOUT_COLORS = { info: 'blue.700', warning: 'orange.700', success: 'green.700', gray: 'gray.600' };
+
+/** One line about a completed booking's fee: when it's paid, paid, refunded, or held over a problem. */
+export function PayoutNote({ booking, ...props }) {
+  const note = payoutNote(booking, bookingDeadline);
+  if (!note) return null;
+  if (note.tone === 'warning') {
+    return (
+      <Box bg="orange.50" borderLeftWidth="3px" borderColor="orange.400" px={2} py={1.5} borderRadius="sm" fontSize="xs" color="orange.800" maxW="360px" whiteSpace="normal" {...props}>
+        {note.text}
+      </Box>
+    );
+  }
+  return <Text fontSize="xs" color={PAYOUT_COLORS[note.tone]} whiteSpace="normal" maxW="320px" {...props}>{note.text}</Text>;
+}
+
+export function ReviewStars({ stars, size = 14 }) {
+  const value = cleanStars(stars);
+  if (!value) return null;
+  return (
+    <HStack spacing={0.5} role="img" aria-label={`Rated ${value} out of 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} size={size} aria-hidden="true" fill={n <= value ? '#ECC94B' : 'none'} color={n <= value ? '#D69E2E' : '#A0AEC0'} />
+      ))}
+    </HStack>
+  );
+}
+
 function DetailRow({ label, children }) {
   return (
     <Flex justify="space-between" gap={4} fontSize="sm">
@@ -291,10 +321,17 @@ export function BookingDetailsModal({ booking, onClose, actions }) {
                   <Text fontSize="sm" whiteSpace="pre-wrap">{booking.problem_description}</Text>
                 </Box>
               )}
-              {booking.rating != null && (
+              {booking.payout && booking.status === 'completed' && (
                 <Box>
-                  <Text color="gray.500" fontSize="sm" mb={1}>Customer review ({booking.rating}/5)</Text>
-                  <Text fontSize="sm">{booking.review}</Text>
+                  <Text color="gray.500" fontSize="sm" mb={1}>Booking fee (₦{commaInt(booking.payout.fee)})</Text>
+                  <PayoutNote booking={booking} fontSize="sm" maxW="none" />
+                </Box>
+              )}
+              {booking.review && cleanStars(booking.review.stars) > 0 && (
+                <Box>
+                  <Text color="gray.500" fontSize="sm" mb={1}>Customer review</Text>
+                  <ReviewStars stars={booking.review.stars} size={16} />
+                  {booking.review.comment && <Text fontSize="sm" mt={1} whiteSpace="pre-wrap">“{booking.review.comment}”</Text>}
                 </Box>
               )}
             </VStack>
@@ -329,6 +366,12 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
               <Text>{formatDate(booking?.date_created)}</Text>
               <Text fontWeight="semibold" color="gray.800">₦{commaInt(booking?.sub_total)}</Text>
             </Flex>
+            {(payoutNote(booking) || booking?.review) && (
+              <VStack align="start" spacing={1} mt={2}>
+                <PayoutNote booking={booking} />
+                {booking?.review && <ReviewStars stars={booking.review.stars} />}
+              </VStack>
+            )}
             <Box mt={3}><BookingActionButtons booking={booking} actions={actions} onDetails={onDetails} /></Box>
           </Box>
         ))}
@@ -356,7 +399,15 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
               <Td>{servicesSummary(booking)}</Td>
               <Td isNumeric>₦{commaInt(booking?.sub_total)}</Td>
               <Td>{formatDate(booking?.date_created)}</Td>
-              {showStatus && <Td><StatusBadge status={booking?.status} /></Td>}
+              {showStatus && (
+                <Td>
+                  <VStack align="start" spacing={1}>
+                    <StatusBadge status={booking?.status} />
+                    <PayoutNote booking={booking} />
+                    {booking?.review && <ReviewStars stars={booking.review.stars} />}
+                  </VStack>
+                </Td>
+              )}
               <Td><BookingActionButtons booking={booking} actions={actions} onDetails={onDetails} /></Td>
             </Tr>
           ))}

@@ -141,6 +141,13 @@ export default function PartsShopOrderDetail() {
       </HStack>
       <Text color="gray.600" mt={1} mb={4}>Placed {format(order.date)}</Text>
 
+      {order.deadline_note && (
+        <Alert status="warning" borderRadius="md" mb={4} role="status">
+          <AlertIcon />
+          <AlertDescription>{order.deadline_note}</AlertDescription>
+        </Alert>
+      )}
+
       {(releaseDue || order.cancel_reason) && (
         <Stack spacing={3} mb={4}>
           {releaseDue && (

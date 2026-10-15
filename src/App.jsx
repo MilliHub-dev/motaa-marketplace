@@ -7,7 +7,7 @@ import { forgetShownData } from './hooks/useApi';
 import { API_URL, MAINTENANCE_MODE } from './config';
 import { createApiClient, toApiError } from './api/client';
 import { glassTheme } from './theme/glass';
-import { ChakraProvider, ToastProvider, useToast, extendTheme } from '@chakra-ui/react';
+import { ChakraProvider, useToast, extendTheme } from '@chakra-ui/react';
 import Layout from './pages/Layout';
 import ErrorBoundary from './components/error';
 import { LoadingState } from './components/states';
@@ -596,7 +596,6 @@ function App() {
           </Routes>
            </Suspense>
           </WalletPinProvider>
-          <ToastProvider />
         </GlobalStore.Provider>
       </Router>
     </ErrorBoundary>                

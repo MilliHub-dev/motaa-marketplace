@@ -1,13 +1,15 @@
 // /bookings/:bookingId — follow a paid mechanic booking: where it is up to, who is coming and how to reach
 // them, the map, and what happened to the booking fee. Refreshes itself while the booking is still moving.
+// Once the mechanic marks it done: confirm (pays them now) or report a problem by `confirm_by`, and rate them.
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Link as RLink, useLocation, useParams } from 'react-router-dom';
 import {
   Alert, AlertDescription, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogOverlay, AlertIcon, Avatar, Badge, Box, Button, Container, Flex, Heading, HStack, SimpleGrid, Skeleton,
-  Stack, Tag, Text, Wrap, useDisclosure,
+  AlertDialogOverlay, AlertIcon, Avatar, Badge, Box, Button, Container, Flex, FormControl, FormErrorMessage, FormHelperText,
+  FormLabel, Heading, HStack, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay,
+  SimpleGrid, Skeleton, Stack, Tag, Text, Textarea, Wrap, useDisclosure,
 } from '@chakra-ui/react';
-import { Check, MapPin, MessageCircle, Phone, Star, X } from 'lucide-react';
+import { Check, CircleAlert, Clock, MapPin, MessageCircle, Phone, Star, ThumbsUp, X } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ChatPopup } from '../../../components/chat';
 import { MapComponent } from '../../../components/maps';
@@ -16,11 +18,12 @@ import { useDateTime } from '../../../components/parts';
 import { ErrorState } from '../../../components/states';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
+import { PROBLEM_MIN_LENGTH, bookingDeadline, cleanStars, nextStar, problemError } from '../../../utils/bookings';
 
 const REFRESH_MS = 20000;
 const STATUS_COLORS = {
   requested: 'yellow', pending: 'yellow', accepted: 'blue', working: 'blue', completed: 'green',
-  declined: 'red', canceled: 'gray', expired: 'gray',
+  declined: 'red', canceled: 'gray', expired: 'orange',
 };
 
 function Section({ title, children, ...props }) {
@@ -79,6 +82,247 @@ export function BookingSteps({ steps }) {
   );
 }
 
+const STAR_WORDS = ['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
+
+/** Five stars as a radio group: click or use the arrow keys. */
+export function StarPicker({ value, onChange, label, isDisabled }) {
+  const refs = useRef([]);
+  const current = cleanStars(value);
+  function onKeyDown(e) {
+    // move from the focused star (the first one is focused before anything is chosen)
+    const from = Number(e.target?.dataset?.stars) || current;
+    const next = nextStar(from, e.key);
+    if (next === from && !['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    onChange(next);
+    refs.current[next - 1]?.focus();
+  }
+  return (
+    <HStack role="radiogroup" aria-label={label} spacing={1} onKeyDown={onKeyDown}>
+      {[1, 2, 3, 4, 5].map((stars) => {
+        const on = stars <= current;
+        return (
+          <Box
+            as="button"
+            type="button"
+            key={stars}
+            ref={(el) => { refs.current[stars - 1] = el; }}
+            role="radio"
+            data-stars={stars}
+            aria-checked={stars === current}
+            aria-label={`${stars} star${stars === 1 ? '' : 's'}${STAR_WORDS[stars] ? ` (${STAR_WORDS[stars]})` : ''}`}
+            tabIndex={stars === (current || 1) ? 0 : -1}
+            disabled={isDisabled}
+            onClick={() => onChange(stars)}
+            p={1}
+            borderRadius="md"
+            lineHeight={0}
+            _hover={{ transform: 'scale(1.1)' }}
+            _focusVisible={{ outline: '2px solid', outlineColor: 'primary', outlineOffset: '1px' }}
+            transition="transform 0.1s"
+          >
+            <Star size={30} aria-hidden="true" fill={on ? '#ECC94B' : 'none'} color={on ? '#D69E2E' : '#A0AEC0'} strokeWidth={1.5} />
+          </Box>
+        );
+      })}
+      <Text ml={2} fontSize="sm" color="gray.600" aria-hidden="true">{STAR_WORDS[current]}</Text>
+    </HStack>
+  );
+}
+
+function StarsShown({ stars }) {
+  const value = cleanStars(stars);
+  return (
+    <HStack spacing={0.5} aria-label={`${value} out of 5 stars`} role="img">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} size={18} aria-hidden="true" fill={n <= value ? '#ECC94B' : 'none'} color={n <= value ? '#D69E2E' : '#A0AEC0'} strokeWidth={1.5} />
+      ))}
+    </HStack>
+  );
+}
+
+/** "Is the job done?": confirm (pays the mechanic now) or report a problem, by the deadline. */
+function ConfirmJobCard({ data, bookingId, onUpdated }) {
+  const { commaInt, notify } = useContext(GlobalStore);
+  const confirmDialog = useDisclosure();
+  const problemModal = useDisclosure();
+  const keepRef = useRef(null);
+  const [details, setDetails] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const name = data.mechanic?.name || 'your mechanic';
+  const fee = `₦${commaInt(data.payment?.fee)}`;
+  const deadline = bookingDeadline(data.confirm_by);
+
+  const confirm = useApiMutation((api) => api.post(`/mechanics/bookings/${bookingId}/confirm/`), {
+    errorTitle: "Couldn't confirm the job",
+    onSuccess: (body) => {
+      notify({ title: 'Thanks!', body: body?.message || `${fee} was paid to ${name}.` });
+      confirmDialog.onClose();
+      onUpdated(body?.data);
+    },
+  });
+  const report = useApiMutation((api, text) => api.post(`/mechanics/bookings/${bookingId}/problem/`, { details: text }), {
+    errorTitle: "Couldn't send your report",
+    onSuccess: (body) => {
+      notify({ title: 'Problem reported', body: body?.message || 'Motaa will contact you.', color: 'blue', duration: 6000 });
+      problemModal.onClose();
+      setDetails('');
+      setSubmitted(false);
+      onUpdated(body?.data);
+    },
+  });
+  const error = submitted ? problemError(details) : '';
+
+  function sendReport(e) {
+    e.preventDefault();
+    setSubmitted(true);
+    if (problemError(details)) return;
+    report.mutate(details.trim());
+  }
+
+  return (
+    <Section as="section" borderColor="blue.200" borderWidth="2px" aria-labelledby="confirm-heading">
+      <Flex gap={4} direction={{ base: 'column', md: 'row' }} align={{ base: 'stretch', md: 'center' }}>
+        <Box flex={1}>
+          <Heading as="h2" size="md" id="confirm-heading" mb={1}>Is the job done?</Heading>
+          <Text color="gray.700">{name} marked the job as done. Confirm it if you're happy, or tell us if something isn't right.</Text>
+          {deadline && (
+            <HStack align="start" spacing={2} mt={2} fontSize="sm" color="gray.600">
+              <Clock size={16} aria-hidden="true" style={{ marginTop: 2, flexShrink: 0 }} />
+              <Text>Confirm or report a problem by <b>{deadline}</b>. If you do neither, the fee is paid to them then.</Text>
+            </HStack>
+          )}
+        </Box>
+        <Stack direction={{ base: 'column', sm: 'row', md: 'column', lg: 'row' }} spacing={3} flexShrink={0}>
+          {data.can_confirm && (
+            <Button leftIcon={<Check size={18} />} bg="primary" color="white" _hover={{ bg: 'secondary' }} onClick={confirmDialog.onOpen}>
+              Confirm job done
+            </Button>
+          )}
+          {data.can_report_problem && (
+            <Button leftIcon={<CircleAlert size={18} />} variant="outline" colorScheme="orange" onClick={problemModal.onOpen}>
+              Report a problem
+            </Button>
+          )}
+        </Stack>
+      </Flex>
+
+      <AlertDialog isOpen={confirmDialog.isOpen} leastDestructiveRef={keepRef} onClose={confirmDialog.onClose} isCentered>
+        <AlertDialogOverlay>
+          <AlertDialogContent mx={4}>
+            <AlertDialogHeader fontSize="lg">Confirm the job is done?</AlertDialogHeader>
+            <AlertDialogBody>{fee} is paid to {name} now. Only confirm if you're happy with the work.</AlertDialogBody>
+            <AlertDialogFooter gap={3}>
+              <Button ref={keepRef} variant="ghost" onClick={confirmDialog.onClose} isDisabled={confirm.loading}>Not yet</Button>
+              <Button bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={confirm.loading} loadingText="Confirming"
+                onClick={() => confirm.mutate()}>Confirm job done</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      <Modal isOpen={problemModal.isOpen} onClose={() => { if (!report.loading) problemModal.onClose(); }} isCentered size={{ base: 'full', sm: 'md' }}>
+        <ModalOverlay />
+        <ModalContent as="form" onSubmit={sendReport} noValidate mx={{ base: 0, sm: 4 }} borderRadius={{ base: 0, sm: 'lg' }}>
+          <ModalHeader pr={12}>Report a problem</ModalHeader>
+          <ModalCloseButton isDisabled={report.loading} />
+          <ModalBody>
+            <Text color="gray.700" mb={4}>
+              The {fee} booking fee stays held while Motaa looks into it. We'll contact you.
+            </Text>
+            <FormControl isInvalid={Boolean(error)} isRequired>
+              <FormLabel>What went wrong?</FormLabel>
+              <Textarea value={details} onChange={(e) => setDetails(e.target.value.slice(0, 2000))} rows={5}
+                placeholder="e.g. The engine light came back on the same day." autoFocus />
+              {error ? <FormErrorMessage>{error}</FormErrorMessage>
+                : <FormHelperText>At least {PROBLEM_MIN_LENGTH} characters.</FormHelperText>}
+            </FormControl>
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button variant="ghost" onClick={problemModal.onClose} isDisabled={report.loading}>Cancel</Button>
+            <Button type="submit" colorScheme="orange" isLoading={report.loading} loadingText="Sending">Send report</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Section>
+  );
+}
+
+/** "Rate <mechanic>": stars + optional comment; shows their review with "Edit" once given. */
+function ReviewCard({ data, bookingId, onUpdated }) {
+  const { notify } = useContext(GlobalStore);
+  const mine = data.my_review;
+  const name = data.mechanic?.name || 'your mechanic';
+  const [editing, setEditing] = useState(!mine);
+  const [stars, setStars] = useState(cleanStars(mine?.stars));
+  const [comment, setComment] = useState(mine?.comment || '');
+  const [submitted, setSubmitted] = useState(false);
+  const save = useApiMutation((api) => api.post(`/mechanics/bookings/${bookingId}/review/`, { stars, comment: comment.trim() }), {
+    errorTitle: "Couldn't save your review",
+    onSuccess: (body) => {
+      notify({ title: 'Thanks for your review', body: body?.message || `Your rating helps others choose ${name}.` });
+      setEditing(false);
+      setSubmitted(false);
+      onUpdated(body?.data);
+    },
+  });
+
+  function startEdit() {
+    setStars(cleanStars(mine?.stars));
+    setComment(mine?.comment || '');
+    setEditing(true);
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    setSubmitted(true);
+    if (!stars) return;
+    save.mutate();
+  }
+
+  if (mine && !editing) {
+    return (
+      <Section as="section" aria-labelledby="review-heading">
+        <Flex justify="space-between" align="start" gap={3}>
+          <Box>
+            <Heading as="h2" size="sm" id="review-heading" mb={2}>Your review of {name}</Heading>
+            <StarsShown stars={mine.stars} />
+            {mine.comment && <Text mt={2} color="gray.700" whiteSpace="pre-wrap">“{mine.comment}”</Text>}
+          </Box>
+          <Button size="sm" variant="ghost" color="primary" onClick={startEdit}>Edit</Button>
+        </Flex>
+      </Section>
+    );
+  }
+
+  return (
+    <Section as="section" aria-labelledby="review-heading">
+      <Box as="form" onSubmit={submit} noValidate>
+        <HStack spacing={2} mb={1}>
+          <ThumbsUp size={18} aria-hidden="true" />
+          <Heading as="h2" size="sm" id="review-heading">Rate {name}</Heading>
+        </HStack>
+        <Text fontSize="sm" color="gray.600" mb={3}>How did it go? Your rating helps other drivers.</Text>
+        <FormControl isInvalid={submitted && !stars} mb={4}>
+          <StarPicker value={stars} onChange={setStars} label={`Rate ${name} from 1 to 5 stars`} isDisabled={save.loading} />
+          <FormErrorMessage>Choose from 1 to 5 stars.</FormErrorMessage>
+        </FormControl>
+        <FormControl mb={4}>
+          <FormLabel fontSize="sm">Comment (optional)</FormLabel>
+          <Textarea value={comment} onChange={(e) => setComment(e.target.value.slice(0, 1000))} rows={3}
+            placeholder="What went well? What could be better?" isDisabled={save.loading} />
+        </FormControl>
+        <HStack spacing={3}>
+          <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving">
+            {mine ? 'Save review' : 'Submit'}
+          </Button>
+          {mine && <Button variant="ghost" onClick={() => setEditing(false)} isDisabled={save.loading}>Cancel</Button>}
+        </HStack>
+      </Box>
+    </Section>
+  );
+}
+
 export default function BookingTracking() {
   const { bookingId } = useParams();
   const { state: routeState } = useLocation();
@@ -98,16 +342,19 @@ export default function BookingTracking() {
   useEffect(() => { document.title = data?.title ? `${data.title} | Motaa` : 'Track your booking | Motaa'; }, [data?.title]);
   useEffect(() => { if (data) setRefreshedAt(new Date()); }, [data]);
 
-  // keep it current while the mechanic can still change it (only when the tab is visible)
-  const { reload } = query;
+  // keep it current while the mechanic can still change it, or while the job waits for the customer's
+  // confirmation (it is paid automatically at the deadline) — only when the tab is visible
+  const { reload, setData } = query;
   const live = Boolean(data?.is_live);
+  const refreshing = live || Boolean(data?.can_confirm);
+  const updated = (payload) => { if (payload) setData(payload); else reload(); };
   useEffect(() => {
-    if (!live) return undefined;
+    if (!refreshing) return undefined;
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') reload(); }, REFRESH_MS);
     const onShow = () => { if (document.visibilityState === 'visible') reload(); };
     document.addEventListener('visibilitychange', onShow);
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onShow); };
-  }, [live, reload]);
+  }, [refreshing, reload]);
 
   const cancel = useApiMutation((api) => api.post(`/mechanics/bookings/${bookingId}/cancel/`), {
     errorTitle: "Couldn't cancel the booking",
@@ -144,7 +391,8 @@ export default function BookingTracking() {
   const pins = workshop ? [{ id: 'workshop', ...workshop, title: mechanic.name, subtitle: mechanic.address || 'Workshop' }] : [];
   const services = asList(booking.services);
   const rating = Number(mechanic.rating);
-  const tone = data.status === 'completed' ? 'success' : ['declined', 'canceled', 'expired'].includes(data.status) ? 'warning' : 'info';
+  // done but not settled yet: waiting for the customer (info) or held over a problem (warning)
+  const tone = data.problem ? 'warning' : data.can_confirm ? 'info' : data.status === 'completed' ? 'success' : ['declined', 'canceled', 'expired'].includes(data.status) ? 'warning' : 'info';
 
   return (
     <Box bg="gray.50" minH="100vh">
@@ -170,11 +418,35 @@ export default function BookingTracking() {
           <Box>
             <Heading as="h2" size="md" mb={1}>{data.title}</Heading>
             <Text>{data.message}</Text>
-            {live && refreshedAt && (
+            {data.expires_at && ['requested', 'pending'].includes(data.status) && bookingDeadline(data.expires_at) && (
+              <Text fontSize="sm" mt={2}>
+                If {mechanic.name || 'the mechanic'} doesn't reply by <b>{bookingDeadline(data.expires_at)}</b>, the request is cancelled and you're refunded.
+              </Text>
+            )}
+            {refreshing && refreshedAt && (
               <Text fontSize="xs" color="gray.600" mt={2}>This page updates by itself. Last checked {format(refreshedAt.toISOString())}.</Text>
             )}
           </Box>
         </Alert>
+
+        {(data.can_confirm || data.can_report_problem) && (
+          <Box mb={6}><ConfirmJobCard data={data} bookingId={bookingId} onUpdated={updated} /></Box>
+        )}
+
+        {data.problem && (
+          <Alert status="warning" variant="subtle" borderRadius="xl" mb={6} alignItems="flex-start">
+            <AlertIcon mt={1} />
+            <Box>
+              <Heading as="h2" size="sm" mb={1}>What you reported{data.problem.reported_on ? ` on ${format(data.problem.reported_on)}` : ''}</Heading>
+              {data.problem.details && <Text whiteSpace="pre-wrap" color="gray.800" mb={1}>“{data.problem.details}”</Text>}
+              <Text fontSize="sm" color="gray.700">Motaa will contact you. Your booking fee stays held until it's sorted out.</Text>
+            </Box>
+          </Alert>
+        )}
+
+        {data.can_review && (
+          <Box mb={6}><ReviewCard key={data.my_review ? 'reviewed' : 'new'} data={data} bookingId={bookingId} onUpdated={updated} /></Box>
+        )}
 
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} alignItems="start">
           <Stack spacing={6}>

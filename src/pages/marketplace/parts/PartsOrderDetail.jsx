@@ -268,6 +268,13 @@ export default function PartsOrderDetail() {
         </Box>
       </Flex>
 
+      {order.deadline_note && (
+        <Alert status="info" borderRadius="md" mb={4} role="status">
+          <AlertIcon />
+          <AlertDescription>{order.deadline_note}</AlertDescription>
+        </Alert>
+      )}
+
       {(releaseDue || returnBy || order.cancel_reason) && (
         <Stack spacing={3} mb={4}>
           {releaseDue && (

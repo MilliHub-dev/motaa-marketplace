@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   TRANSPORT_STATES, capacityLabel, distanceLabel, emptyServiceForm, haulerApiQuery, invoicePayload, invoiceProblems, jobDateText,
-  jobEventLabel, latestJobSteps, matchState, requestPayload, requestProblems, serviceFormData, servicePath, serviceToForm,
+  jobEventLabel, jobProblemNotice, latestJobSteps, matchState, requestPayload, requestProblems, serviceFormData, servicePath, serviceToForm,
   statesLine, towingApiQuery, tripFacts, validateServiceForm,
 } from './transport';
 
@@ -148,5 +148,20 @@ describe('the business form', () => {
     expect(hauler.get('states')).toBe('["Lagos","Abuja"]');
     expect(hauler.get('base_lat')).toBe('');
     expect(hauler.has('callout_fee')).toBe(false);
+  });
+});
+
+describe('reported problems', () => {
+  it('labels the chat step', () => {
+    expect(jobEventLabel('problem', 'towing')).toBe('Problem reported');
+  });
+
+  it('words the notice for the customer and for the business', () => {
+    const problem = { details: 'The car was dropped at the wrong address', reported_on: '2026-10-15T10:00:00Z' };
+    expect(jobProblemNotice({ side: 'customer', problem })).toBe('You reported a problem: “The car was dropped at the wrong address”. Motaa is looking into it.');
+    expect(jobProblemNotice({ side: 'business', problem })).toBe('The customer reported a problem: “The car was dropped at the wrong address”. Motaa will contact you.');
+    expect(jobProblemNotice({ side: 'customer', problem: { details: '' } })).toBe('You reported a problem. Motaa is looking into it.');
+    expect(jobProblemNotice({ side: 'customer', problem: null })).toBe('');
+    expect(jobProblemNotice(undefined)).toBe('');
   });
 });

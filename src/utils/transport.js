@@ -180,8 +180,24 @@ export function jobEventLabel(event, kind) {
     case 'done': return 'Marked as done';
     case 'completed': return 'Completed';
     case 'cancelled': return 'Cancelled';
+    case 'problem': return 'Problem reported';
     default: return kind === 'hauler' ? 'Car hauler job' : 'Towing job';
   }
+}
+
+export const JOB_PROBLEM_MIN_LENGTH = 10;
+
+/**
+ * The notice for a job whose customer reported a problem (`job.problem`), worded for whoever is looking:
+ * the customer sees their own words, the business is told Motaa will contact them. '' when there is none.
+ */
+export function jobProblemNotice(job) {
+  const details = String(job?.problem?.details || '').trim();
+  if (!job?.problem) return '';
+  const quoted = details ? `: “${details}”` : '';
+  return job.side === 'business'
+    ? `The customer reported a problem${quoted}. Motaa will contact you.`
+    : `You reported a problem${quoted}. Motaa is looking into it.`;
 }
 
 /** Badge colour for a job's status. */

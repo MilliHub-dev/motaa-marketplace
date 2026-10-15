@@ -8,13 +8,13 @@ import {
   FormLabel, HStack, Icon, Image, Input, InputGroup, InputLeftAddon, Modal, ModalBody, ModalCloseButton, ModalContent,
   ModalFooter, ModalHeader, ModalOverlay, Radio, RadioGroup, Select, SimpleGrid, Skeleton, Stack, Text, Textarea, VStack,
 } from '@chakra-ui/react';
-import { ArrowRight, CircleCheck, Fuel, MapPin, MessageCircle, Phone, Receipt, Truck, Wallet } from 'lucide-react';
+import { ArrowRight, CircleAlert, CircleCheck, Clock, Fuel, MapPin, MessageCircle, Phone, Receipt, Truck, Wallet } from 'lucide-react';
 import { GlobalStore } from '../App';
 import { useApiQuery } from '../hooks/useApi';
 import { asList } from '../utils';
 import { formatOfferAmount } from '../utils/offers';
 import {
-  emptyRequestForm, hasFuel, hasInvoice, invoicePayload, invoiceProblems, jobEventLabel, jobStatusColor, requestPayload,
+  JOB_PROBLEM_MIN_LENGTH, emptyRequestForm, hasFuel, hasInvoice, invoicePayload, invoiceProblems, jobEventLabel, jobProblemNotice, jobStatusColor, requestPayload,
   requestProblems, servicePath, todayInput, tripFacts,
 } from '../utils/transport';
 import { PageControls } from '.';
@@ -407,6 +407,32 @@ function PayJobModal({ job, isOpen, onClose, onPaid }) {
 
 // ---------------------------------------------------------------- the card in the chat
 
+/** The server's ready-made deadline line (e.g. when the payment is released, or when "It didn't come" opens). */
+function JobDeadline({ job, ...props }) {
+  const note = String(job?.deadline_note || '').trim();
+  // with a reported problem the orange notice already says the payment is held: don't say it twice
+  if (!note || job?.problem) return null;
+  return (
+    <HStack spacing={1.5} align="start" fontSize="sm" color="gray.600" {...props}>
+      <Icon as={Clock} boxSize={3.5} mt={1} flexShrink={0} aria-hidden="true" />
+      <Text overflowWrap="anywhere">{note}</Text>
+    </HStack>
+  );
+}
+
+/** A calm orange notice once the customer has reported a problem (the payment is held; Motaa settles it). */
+function JobProblem({ job, ...props }) {
+  const text = jobProblemNotice(job);
+  if (!text) return null;
+  return (
+    <HStack spacing={2} align="start" bg="orange.50" borderLeftWidth="3px" borderColor="orange.400" borderRadius="md" px={3} py={2}
+      fontSize="sm" color="orange.900" role="status" {...props}>
+      <Icon as={CircleAlert} boxSize={4} mt={0.5} flexShrink={0} color="orange.500" aria-hidden="true" />
+      <Text overflowWrap="anywhere">{text}</Text>
+    </HStack>
+  );
+}
+
 const CONFIRM = {
   confirm: {
     title: 'Is the job done?',
@@ -434,6 +460,23 @@ const CONFIRM = {
     title: 'Mark the job as done?',
     body: 'The customer is asked to confirm. If they don’t, the payment is released to you automatically after a few days.',
     confirmLabel: 'Mark as done', cancelLabel: 'Not yet', tone: 'primary',
+  },
+  'not-arrived': {
+    title: "It didn't come?",
+    body: 'Cancel this job and get back what’s still held? Fuel money already released to the driver isn’t refunded.',
+    confirmLabel: 'Cancel and refund', cancelLabel: 'Keep waiting', tone: 'danger',
+    field: { label: 'What happened? (optional)', placeholder: 'e.g. Nobody came and the phone was off', maxLength: 300, multiline: true },
+  },
+  'report-problem': {
+    title: 'Report a problem',
+    body: 'The payment stays held and Motaa will contact you.',
+    confirmLabel: 'Send report', cancelLabel: 'Not now', tone: 'danger',
+    field: {
+      label: 'What went wrong?', placeholder: 'e.g. My car was dropped at the wrong address', maxLength: 1000, multiline: true,
+      required: true, minLength: JOB_PROBLEM_MIN_LENGTH,
+      helper: `At least ${JOB_PROBLEM_MIN_LENGTH} characters.`,
+      requiredMessage: `Tell us what went wrong in at least ${JOB_PROBLEM_MIN_LENGTH} characters.`,
+    },
   },
   businessCancel: {
     title: 'Cancel this job?',
@@ -517,7 +560,7 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
         borderColor={job.status === 'completed' ? 'green.300' : 'gray.200'} boxShadow="sm">
         <Flex justify="space-between" align="center" gap={2} px={3} py={2} bg={job.status === 'completed' ? 'green.50' : 'gray.50'} borderBottomWidth="1px" borderColor="gray.200">
           <HStack spacing={1.5} minW={0}>
-            <Icon as={job.status === 'completed' ? CircleCheck : msg?.transport_event === 'fuel' ? Fuel : msg?.transport_event === 'invoiced' ? Receipt : Truck}
+            <Icon as={job.status === 'completed' ? CircleCheck : msg?.transport_event === 'problem' ? CircleAlert : msg?.transport_event === 'fuel' ? Fuel : msg?.transport_event === 'invoiced' ? Receipt : Truck}
               boxSize={4} color={job.status === 'completed' ? 'green.600' : 'primary'} aria-hidden="true" />
             <Text fontSize="sm" fontWeight="700" noOfLines={1}>{label}</Text>
           </HStack>
@@ -544,12 +587,15 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
 
           <JobAmounts job={job} />
           {job.invoice_note && <Text fontSize="sm" color="gray.600" overflowWrap="anywhere">Note: {job.invoice_note}</Text>}
-          {job.status === 'done' && job.release_due && (
+          {/* older servers without `deadline_note` */}
+          {job.status === 'done' && job.release_due && !job.deadline_note && !job.problem && (
             <Text fontSize="sm" color="gray.600">
               {customer ? 'If you don’t confirm, the payment is released to the business automatically' : 'If the customer doesn’t confirm, you are paid automatically'} on {new Date(job.release_due).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}.
             </Text>
           )}
           {job.cancel_reason && <Text fontSize="sm" color="gray.600">Reason: {job.cancel_reason}</Text>}
+          <JobProblem job={job} />
+          <JobDeadline job={job} />
 
           {actions.length > 0 && !finished && (
             <Flex gap={2} flexWrap="wrap">
@@ -558,6 +604,8 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
               {actions.includes('release-fuel') && <Button {...outline} borderColor="primary" color="primary" onClick={() => setDialog('release-fuel')}>Release fuel money</Button>}
               {actions.includes('done') && <Button {...primary} onClick={() => setDialog('done')}>Mark done</Button>}
               {actions.includes('confirm') && <Button {...primary} onClick={() => setDialog('confirm')}>Confirm job done</Button>}
+              {actions.includes('report-problem') && <Button {...outline} colorScheme="orange" onClick={() => setDialog('report-problem')}>Report a problem</Button>}
+              {actions.includes('not-arrived') && <Button {...outline} colorScheme="red" onClick={() => setDialog('not-arrived')}>It didn't come</Button>}
               {actions.includes('decline') && <Button {...outline} colorScheme="red" onClick={() => setDialog('decline')}>Decline</Button>}
               {actions.includes('cancel') && <Button {...outline} variant="ghost" colorScheme="red" onClick={() => setDialog(cancelKey)}>Cancel</Button>}
             </Flex>
@@ -573,7 +621,10 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
         isLoading={busy}
         config={CONFIRM[dialog]}
         error={CONFIRM[dialog]?.field ? error : undefined}
-        onConfirm={(reason) => run(dialog === 'customerCancel' || dialog === 'businessCancel' ? 'cancel' : dialog, reason ? { reason } : {})}
+        onConfirm={(text) => {
+          if (dialog === 'report-problem') return run('report-problem', { details: text });
+          return run(dialog === 'customerCancel' || dialog === 'businessCancel' ? 'cancel' : dialog, text ? { reason: text } : {});
+        }}
       />
       {dialog === 'invoice' && (
         <InvoiceModal job={job} isOpen onClose={() => { setDialog(null); setError(''); }} isLoading={busy} error={error}
@@ -760,6 +811,8 @@ export function TransportJobRow({ job }) {
           </HStack>
           <Text fontWeight="600" noOfLines={1}>{job?.service?.title}</Text>
           <JobTrip job={job} compact />
+          <JobProblem job={job} mt={2} />
+          <JobDeadline job={job} mt={1} />
           {hasInvoice(job) && (
             <Text fontSize="sm" fontWeight="600" mt={1}>
               ₦{commaInt(job.total)}

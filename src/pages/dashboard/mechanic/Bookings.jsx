@@ -12,19 +12,20 @@ import {
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import { CalendarCheck, Inbox, Search } from 'lucide-react';
+import { CalendarCheck, Inbox, Search, Wrench } from 'lucide-react';
 import { useApiQuery } from '../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../components/states';
 import { asList } from '../../../utils';
+import { splitBookingHistory } from '../../../utils/bookings';
 import { BookingDetailsModal, BookingTable, useBookingActions } from './bookingParts';
 
+// history only holds finished bookings; accepted / in-progress jobs have their own "Active jobs" section
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'accepted', label: 'Accepted' },
-  { key: 'working', label: 'In progress' },
   { key: 'completed', label: 'Completed' },
   { key: 'canceled', label: 'Cancelled' },
   { key: 'declined', label: 'Declined' },
+  { key: 'expired', label: 'Expired' },
 ];
 
 function matchesSearch(booking, term) {
@@ -53,11 +54,13 @@ const Bookings = () => {
   });
 
   const term = search.trim().toLowerCase();
+  const split = useMemo(() => splitBookingHistory(bookings.data?.history), [bookings.data]);
+  const active = useMemo(() => split.active.filter((b) => matchesSearch(b, term)), [split, term]);
   const history = useMemo(
-    () => asList(bookings.data?.history)
+    () => split.finished
       .filter((b) => activeFilter === 'all' || String(b?.status).toLowerCase() === activeFilter)
       .filter((b) => matchesSearch(b, term)),
-    [bookings.data, activeFilter, term]
+    [split, activeFilter, term]
   );
   const requests = useMemo(() => asList(bookings.data?.requests).filter((b) => matchesSearch(b, term)), [bookings.data, term]);
 
@@ -106,6 +109,26 @@ const Bookings = () => {
               )}
             </Box>
 
+            <Box as="section" mb={10} aria-labelledby="active-heading">
+              <Heading as="h2" id="active-heading" size="md" mb={1}>
+                Active jobs {split.active.length > 0 && `(${split.active.length})`}
+              </Heading>
+              <Text color="gray.600" fontSize="sm" mb={4}>Jobs you've accepted or are working on.</Text>
+              {active.length ? (
+                <BookingTable bookings={active} actions={actions} onDetails={setDetails} showStatus />
+              ) : (
+                <EmptyState
+                  icon={Wrench}
+                  minH="140px"
+                  title={term ? 'No matching jobs' : 'No active jobs'}
+                  description={term ? 'Try a different name or service.' : 'Requests you accept show here until you finish them.'}
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  borderRadius="lg"
+                />
+              )}
+            </Box>
+
             <Box as="section" aria-labelledby="history-heading">
               <Heading as="h2" id="history-heading" size="md" mb={4}>Booking history</Heading>
               <Wrap spacing={2} mb={4} role="group" aria-label="Filter bookings by status">
@@ -134,7 +157,7 @@ const Bookings = () => {
                   description={
                     term || activeFilter !== 'all'
                       ? 'Try another status or search term.'
-                      : 'Bookings you accept, complete or decline will be listed here.'
+                      : 'Finished, cancelled, declined and expired bookings will be listed here.'
                   }
                   action={term || activeFilter !== 'all' ? { label: 'Clear filters', onClick: () => { setSearch(''); chooseFilter('all'); } } : undefined}
                   borderWidth="1px"
