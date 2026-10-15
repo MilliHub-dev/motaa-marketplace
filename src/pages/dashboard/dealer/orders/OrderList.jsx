@@ -133,7 +133,7 @@ export function OrderDate({ value }) {
 }
 
 const OrderListAdmin = () => {
-  const { commaInt } = useContext(GlobalStore);
+  const { commaInt, naturalDate } = useContext(GlobalStore);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
@@ -233,7 +233,12 @@ const OrderListAdmin = () => {
                       <Text fontWeight="600" color="green.600">₦{commaInt(order?.sub_total ?? order?.order_item?.price)}</Text>
                     </Td>
                     <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
-                    <Td><OrderStatusBadge status={order?.order_status} /></Td>
+                    <Td>
+                      <OrderStatusBadge status={order?.order_status} />
+                      {inspectionText(order, naturalDate) && (
+                        <Text fontSize="xs" color="gray.600" mt={1} whiteSpace="nowrap">{inspectionText(order, naturalDate)}</Text>
+                      )}
+                    </Td>
                     <Td>
                       <HStack spacing={2}>
                         <Avatar size="xs" name={customerName(order)} />
@@ -264,6 +269,18 @@ const OrderListAdmin = () => {
     </Box>
   );
 };
+
+/** "Inspection Thu 16 Oct, 2:00 pm" for pay-after-inspection orders, or that the buyer hasn't booked one yet. */
+export function inspectionText(order, naturalDate) {
+  const inspection = order?.inspection;
+  if (!inspection?.date) {
+    return ['awaiting-inspection', 'inspecting'].includes(order?.order_status) ? 'Inspection not booked yet' : '';
+  }
+  const at = new Date(`${inspection.date}T${inspection.time || '00:00'}`);
+  if (Number.isNaN(at.getTime())) return '';
+  const time = inspection.time ? at.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : '';
+  return `${inspection.completed ? 'Inspected' : 'Inspection'} ${naturalDate(at)}${time ? `, ${time}` : ''}`;
+}
 
 function DetailRow({ label, children }) {
   return (
@@ -299,6 +316,11 @@ export function OrderDetailsDrawer({ order, onClose, onContact }) {
               </Box>
               <Box>
                 <DetailRow label="Status"><OrderStatusBadge status={order.order_status} /></DetailRow>
+                {inspectionText(order, naturalDate) && (
+                  <DetailRow label="Inspection">
+                    {inspectionText(order, naturalDate).replace(/^Inspection(ed)? /, '').replace(/^not booked yet$/, '') || 'Not booked yet'}
+                  </DetailRow>
+                )}
                 <DetailRow label={isRental ? 'Rental amount' : 'Sale amount'}>₦{commaInt(order.sub_total ?? order.order_item?.price)}</DetailRow>
                 <DetailRow label="Listing price">
                   ₦{commaInt(order.order_item?.price)}
