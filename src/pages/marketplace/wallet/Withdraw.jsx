@@ -46,7 +46,7 @@ function WalletWithdrawalPage() {
 
   const limits = wallet.data?.limits;
   const available = Number(wallet.data?.balance) || 0;
-  const min = Number(limits?.min_withdrawal) || 1000;
+  const min = Number(limits?.min_withdrawal) || 500;
   const value = Number(amount) || 0;
   const fee = withdrawalFee(value, limits?.withdrawal_fee_tiers);
   const amountError = !value ? 'Enter an amount'
