@@ -1,4 +1,4 @@
-import { Box, Flex, Input, List, ListItem, Spinner, Text } from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, Flex, Input, List, ListItem, Spinner, Text } from "@chakra-ui/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { MAPBOX_TOKEN } from "../config";
@@ -8,7 +8,19 @@ import {
 
 // Abuja city centre: used when we don't know where the user is yet.
 export const DEFAULT_MAP_CENTER = { lat: 9.0765, lng: 7.3986 };
-const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
+const MAP_STYLES = {
+  map: "mapbox://styles/mapbox/streets-v12",
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12", // photos with road and place names on top
+};
+const MAP_VIEW_KEY = 'motaa:map-view';
+
+// the last view the user chose (map or satellite), remembered in this browser
+function savedMapView() {
+  try { return localStorage.getItem(MAP_VIEW_KEY) === 'satellite' ? 'satellite' : 'map'; } catch { return 'map'; }
+}
+function saveMapView(view) {
+  try { localStorage.setItem(MAP_VIEW_KEY, view); } catch { /* private window: just don't remember */ }
+}
 
 function validPoint(point) {
   const lat = Number(point?.lat);
@@ -83,6 +95,8 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
   const clickHandler = useRef(onMapClick);
   clickHandler.current = onMapClick;
   const [status, setStatus] = useState(MAPBOX_TOKEN ? 'loading' : 'error');
+  const [view, setView] = useState(savedMapView);
+  const shownView = useRef(view);
   const validPins = (Array.isArray(pins) ? pins : []).map((pin) => ({ ...pin, ...(validPoint(pin) || {}), ok: Boolean(validPoint(pin)) })).filter((pin) => pin.ok);
   // re-draw pins only when the places themselves change, not on every render
   const pinsKey = validPins.map((pin) => `${pin.id ?? ''}:${pin.lat.toFixed(5)},${pin.lng.toFixed(5)}:${pin.title ?? ''}:${pin.subtitle ?? ''}`).join('|');
@@ -98,7 +112,7 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
       if (mapboxgl.supported && !mapboxgl.supported()) return setStatus('error');
       const instance = new mapboxgl.Map({
         container: container.current,
-        style: MAP_STYLE,
+        style: MAP_STYLES[shownView.current],
         center: lat !== undefined ? [lng, lat] : [DEFAULT_MAP_CENTER.lng, DEFAULT_MAP_CENTER.lat],
         zoom,
         attributionControl: true,
@@ -129,6 +143,20 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
     // the map is created once; later changes are handled below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // switch between the street map and satellite photos (markers stay where they are)
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || status !== 'ready' || shownView.current === view) return;
+    shownView.current = view;
+    instance.setStyle(MAP_STYLES[view]);
+  }, [view, status]);
+
+  const chooseView = (next) => (event) => {
+    event.stopPropagation();
+    setView(next);
+    saveMapView(next);
+  };
 
   // follow `location`
   useEffect(() => {
@@ -180,6 +208,18 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
       <Box position="absolute" inset={0} visibility={status === 'error' ? 'hidden' : 'visible'}>
         <div ref={container} style={{ width: '100%', height: '100%' }} />
       </Box>
+      {status === 'ready' && (
+        <ButtonGroup size="xs" isAttached position="absolute" top={2} left={2} zIndex={1} boxShadow="md" borderRadius="md"
+          role="group" aria-label="Map view">
+          {[['map', 'Map'], ['satellite', 'Satellite']].map(([value, text]) => (
+            <Button key={value} onClick={chooseView(value)} aria-pressed={view === value}
+              bg={view === value ? 'primary' : 'white'} color={view === value ? 'white' : 'gray.700'}
+              _hover={{ bg: view === value ? 'primary' : 'gray.100' }} fontWeight="600">
+              {text}
+            </Button>
+          ))}
+        </ButtonGroup>
+      )}
       {status !== 'ready' && (
         <Flex position="absolute" inset={0} align="center" justify="center" direction="column" gap={2} color="gray.600" textAlign="center" px={4} pointerEvents="none">
           {status === 'error' ? (
