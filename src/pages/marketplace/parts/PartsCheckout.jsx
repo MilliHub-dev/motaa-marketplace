@@ -18,6 +18,7 @@ import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { NIGERIAN_STATES } from '../../../data/nigeria';
+import { CustomPlacesAutocomplete } from '../../../components/maps';
 import { PLACED_ORDERS_KEY, validateDelivery } from '../../../utils/parts';
 
 const PENDING_KEY = 'motaa:pending-parts-checkout';
@@ -30,6 +31,12 @@ const METHODS = [
   { value: 'delivery', icon: Truck, title: 'Delivery', hint: 'The seller sends it to your address' },
   { value: 'pickup', icon: MapPin, title: 'Pickup', hint: "Collect it from the seller's address" },
 ];
+
+// a picked place's state as one of the delivery states ("Abuja" comes back for the FCT)
+function stateFromPlace(name) {
+  const wanted = /^(abuja|fct|federal capital territory)$/i.test(name || '') ? 'FCT' : String(name || '');
+  return NIGERIAN_STATES.find((state) => state.toLowerCase() === wanted.toLowerCase()) || '';
+}
 
 function readPending() {
   try {
@@ -398,8 +405,18 @@ export default function PartsCheckout() {
                 <>
                   <FormControl isRequired isInvalid={Boolean(errorFor('delivery_address'))}>
                     <FormLabel>Delivery address</FormLabel>
-                    <Input autoComplete="street-address" placeholder="House number, street and area" maxLength={300}
-                      value={form.delivery_address} onChange={(e) => setField('delivery_address', e.target.value)} />
+                    <CustomPlacesAutocomplete
+                      aria-label="Delivery address"
+                      placeholder="Search your street or area"
+                      value={form.delivery_address}
+                      onPlaceChange={(p) => {
+                        setField('delivery_address', (p.formatted_address || '').slice(0, 300));
+                        const state = stateFromPlace(p.state);
+                        if (state) setField('state', state);
+                        if (p.city) setField('city', p.city.slice(0, 100));
+                      }}
+                      inputProps={{ maxLength: 300, onInput: (e) => setField('delivery_address', e.target.value) }}
+                    />
                     <FormErrorMessage>{errorFor('delivery_address')}</FormErrorMessage>
                   </FormControl>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>

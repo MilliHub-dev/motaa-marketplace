@@ -15,7 +15,6 @@ import {
   Heading,
   HStack,
   Icon,
-  Input,
   Radio,
   RadioGroup,
   Stack,
@@ -29,7 +28,7 @@ import {
 import { Check, CheckCircle2, CreditCard, Info, MapPin, Send, Star, Wallet as WalletIcon } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
-import { MapComponent } from '../../../components/maps';
+import { CustomPlacesAutocomplete, MapComponent } from '../../../components/maps';
 import { BackButton } from '../../../components/nav';
 import { ChatPopup } from '../../../components/chat';
 import { AsyncState } from '../../../components/states';
@@ -74,9 +73,13 @@ function BookingForm({ mechanic }) {
   const { withPin } = useWalletPin();
   const chat = useDisclosure();
 
-  const lat = Number(params.get('lat'));
-  const lng = Number(params.get('lng'));
-  const hasPoint = Number.isFinite(lat) && Number.isFinite(lng) && params.get('lat') !== null && params.get('lng') !== null;
+  const [point, setPoint] = useState(() => {
+    const lat = Number(params.get('lat'));
+    const lng = Number(params.get('lng'));
+    return params.get('lat') !== null && params.get('lng') !== null && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  });
+  const hasPoint = Boolean(point);
+  const { lat, lng } = point || {};
   const [address, setAddress] = useState(params.get('address') || '');
   const [description, setDescription] = useState('');
   const [services, setServices] = useState([]);
@@ -216,7 +219,14 @@ function BookingForm({ mechanic }) {
 
           <FormControl isRequired isInvalid={submitted && Boolean(errors.address)}>
             <FormLabel htmlFor="booking-address">Where should they meet you?</FormLabel>
-            <Input id="booking-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address and area" autoComplete="street-address" />
+            <CustomPlacesAutocomplete
+              id="booking-address"
+              aria-label="Where should they meet you?"
+              placeholder="Search a street, area or landmark"
+              value={address}
+              onPlaceChange={(p) => { setAddress(p.formatted_address || ''); if (p.lat != null && p.lng != null) setPoint({ lat: p.lat, lng: p.lng }); }}
+              inputProps={{ onInput: (e) => setAddress(e.target.value) }}
+            />
             <FormErrorMessage>{errors.address}</FormErrorMessage>
           </FormControl>
 
