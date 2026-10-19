@@ -2,7 +2,9 @@ import { Box, Flex, Input, List, ListItem, Spinner, Text } from "@chakra-ui/reac
 import { useEffect, useId, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { MAPBOX_TOKEN } from "../config";
-import { searchPlaces } from "../api/geocode";
+import {
+  SEARCH_DEBOUNCE_MS, newPlacesSession, placeDetails, placesErrorMessage, searchPlaces, shouldSearch,
+} from "../api/geocode";
 
 // Abuja city centre: used when we don't know where the user is yet.
 export const DEFAULT_MAP_CENTER = { lat: 9.0765, lng: 7.3986 };
@@ -195,16 +197,20 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
 };
 
 /**
- * Address search backed by Photon (OpenStreetMap).
+ * Address search through the Motaa backend (Google Places, OpenStreetMap as a fallback).
  * onPlaceChange({ place_id, country, state, city, formatted_address, zip_code, lat, lng, name })
  * fires when a suggestion is chosen.
+ *
+ * Google bills per session, so this box keeps one session id while the user types (searches only from
+ * 3 characters, ~400 ms after they stop, never the same text twice in a row), fetches details only for
+ * the suggestion picked, with that session, and then starts a new session.
  */
 export const CustomPlacesAutocomplete = ({
   value,
   onPlaceChange,
   inputProps,
   placeholder = "Search a place",
-  country = 'ng',
+  country = 'ng', // eslint-disable-line no-unused-vars -- kept for callers; the server searches Nigeria
   id,
   'aria-label': ariaLabel = 'Search for an address',
   ...props
@@ -213,10 +219,20 @@ export const CustomPlacesAutocomplete = ({
   const [predictions, setPredictions] = useState([]);
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const [picking, setPicking] = useState(null); // place_id whose details are loading
   const [message, setMessage] = useState('');
   const debounce = useRef(null);
   const request = useRef(null);
+  const detailsRequest = useRef(null);
+  const session = useRef(null);
+  const last = useRef({ text: '', results: [] }); // the last search sent, and what it found
   const listId = useId();
+
+  const currentSession = () => {
+    if (!session.current) session.current = newPlacesSession();
+    return session.current;
+  };
+  const endSession = () => { session.current = null; };
 
   // keep the text in sync when the parent sets a new value (e.g. reverse-geocoded location)
   useEffect(() => {
@@ -226,42 +242,82 @@ export const CustomPlacesAutocomplete = ({
   useEffect(() => () => {
     clearTimeout(debounce.current);
     request.current?.abort();
+    detailsRequest.current?.abort();
   }, []);
 
   const fetchPredictions = (input) => {
     clearTimeout(debounce.current);
-    request.current?.abort();
     setMessage('');
-    if (input.trim().length < 2) {
+    const text = input.trim();
+    if (!text) endSession(); // cleared: the next search is a new session
+    if (!shouldSearch(text, '')) {
+      request.current?.abort();
       setPredictions([]);
       setLoading(false);
       return;
     }
     debounce.current = setTimeout(async () => {
+      if (!shouldSearch(text, last.current.text)) {
+        // same text as the last search (e.g. typed a letter and deleted it): show what it found again
+        setPredictions(last.current.results);
+        setActive(-1);
+        return;
+      }
+      request.current?.abort();
       const controller = new AbortController();
       request.current = controller;
+      last.current = { text, results: [] };
       setLoading(true);
       try {
-        const results = await searchPlaces(input, { country, signal: controller.signal });
+        const results = await searchPlaces(text, { session: currentSession(), signal: controller.signal });
+        last.current = { text, results };
         setPredictions(results);
         setActive(-1);
         if (!results.length) setMessage('No suggestions found. You can type the full address instead.');
       } catch (error) {
         if (error?.name === 'AbortError') return; // a newer search replaced this one
+        if (!error?.status) last.current = { text: '', results: [] }; // offline: the same text can be tried again
         setPredictions([]);
-        setMessage('Address search is unavailable right now. You can type the full address instead.');
+        setMessage(placesErrorMessage(error));
       } finally {
         if (request.current === controller) setLoading(false);
       }
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
   };
 
-  const handleSelect = (place) => {
-    if (!place) return;
+  const finish = (place) => {
     setInputValue(place.formatted_address);
     setPredictions([]);
     setActive(-1);
+    setPicking(null);
+    setMessage('');
+    last.current = { text: String(place.formatted_address || '').trim(), results: [] };
+    endSession(); // a pick ends the session
     onPlaceChange?.(place);
+  };
+
+  const handleSelect = async (suggestion) => {
+    if (!suggestion || picking) return;
+    clearTimeout(debounce.current);
+    request.current?.abort();
+    setLoading(false);
+    if (suggestion.place) {
+      finish(suggestion.place);
+      return;
+    }
+    detailsRequest.current?.abort();
+    const controller = new AbortController();
+    detailsRequest.current = controller;
+    setPicking(suggestion.place_id);
+    try {
+      const place = await placeDetails(suggestion.place_id, { session: currentSession(), name: suggestion.main, signal: controller.signal });
+      if (detailsRequest.current === controller) finish(place);
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      setPicking(null);
+      setPredictions([]);
+      setMessage(placesErrorMessage(error));
+    }
   };
 
   function onKeyDown(e) {
@@ -295,9 +351,10 @@ export const CustomPlacesAutocomplete = ({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-busy={Boolean(picking) || loading}
         aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         onKeyDown={onKeyDown}
-        onBlur={() => setPredictions([])}
+        onBlur={() => { if (!picking) setPredictions([]); }}
         onChange={(e) => {
           setInputValue(e.target.value);
           fetchPredictions(e.target.value);
@@ -305,7 +362,7 @@ export const CustomPlacesAutocomplete = ({
         {...inputProps}
       />
 
-      {loading && <Spinner size="sm" position="absolute" right={2} top="50%" mt="-8px" aria-label="Searching" />}
+      {(loading || picking) && <Spinner size="sm" position="absolute" right={2} top="50%" mt="-8px" aria-label={picking ? 'Loading the address' : 'Searching'} />}
       {message && !open && <Text fontSize="xs" color="gray.600" mt={1} role="status">{message}</Text>}
 
       {open && (
@@ -323,22 +380,36 @@ export const CustomPlacesAutocomplete = ({
           maxH="260px"
           overflowY="auto"
         >
-          {predictions.map((place, idx) => (
-            <ListItem
-              key={place.place_id}
-              id={`${listId}-${idx}`}
-              role="option"
-              aria-selected={idx === active}
-              px={4}
-              py={2}
-              bg={idx === active ? 'gray.100' : undefined}
-              _hover={{ bg: "gray.100", cursor: "pointer" }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelect(place)}
-            >
-              {place.formatted_address}
-            </ListItem>
-          ))}
+          {predictions.map((suggestion, idx) => {
+            const loadingRow = picking === suggestion.place_id;
+            return (
+              <ListItem
+                key={suggestion.place_id}
+                id={`${listId}-${idx}`}
+                role="option"
+                aria-selected={idx === active}
+                aria-busy={loadingRow || undefined}
+                px={4}
+                py={2}
+                display="flex"
+                alignItems="center"
+                gap={3}
+                bg={idx === active || loadingRow ? 'gray.100' : undefined}
+                opacity={picking && !loadingRow ? 0.6 : 1}
+                _hover={{ bg: "gray.100", cursor: picking ? 'progress' : "pointer" }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(suggestion)}
+              >
+                <Box as="span" color="gray.400" flexShrink={0} lineHeight={0} aria-hidden="true">
+                  {loadingRow ? <Spinner size="xs" /> : <MapPin size={16} />}
+                </Box>
+                <Box as="span" display="block" minW={0}>
+                  <Text as="span" display="block" fontWeight="600" fontSize="sm" noOfLines={1}>{suggestion.main}</Text>
+                  {suggestion.secondary && <Text as="span" display="block" fontSize="xs" color="gray.600" noOfLines={1}>{suggestion.secondary}</Text>}
+                </Box>
+              </ListItem>
+            );
+          })}
         </List>
       )}
     </Box>
