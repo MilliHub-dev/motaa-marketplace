@@ -31,11 +31,26 @@ export function matchState(text, states = TRANSPORT_STATES) {
   return (Array.isArray(states) ? states : []).find((state) => String(state).toLowerCase() === wanted) || '';
 }
 
-/** "3.3 km away" from the API's distance_km, or null. */
-export function distanceLabel(distance) {
+/** "33 min", "1 h 5 min", "2 h" for a drive time in minutes, or '' when unknown. */
+export function driveTime(minutes) {
+  const value = Math.round(Number(minutes));
+  if (minutes === null || minutes === undefined || minutes === '' || !Number.isFinite(value) || value <= 0) return '';
+  if (value < 60) return `${value} min`;
+  const hours = Math.floor(value / 60);
+  const rest = value % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+/**
+ * "28.5 km away · 33 min drive" from the API's road distance (distance_km / "28.5km") and drive_minutes,
+ * or null without a distance. The minutes are left out when the server doesn't know them.
+ */
+export function distanceLabel(distance, minutes) {
   const km = parseFloat(String(distance ?? ''));
   if (!Number.isFinite(km)) return null;
-  return km < 1 ? 'Less than 1 km away' : `${km.toFixed(1)} km away`;
+  const away = km < 1 ? 'Less than 1 km away' : `${km.toFixed(1)} km away`;
+  const drive = driveTime(minutes);
+  return drive ? `${away} · ${drive} drive` : away;
 }
 
 /** "Carries 3 cars" */

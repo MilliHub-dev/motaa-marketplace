@@ -76,6 +76,20 @@ export function ContactButtons({ business, loginPath, onMessage, size = 'sm', ..
 }
 
 /**
+ * Towing vans keep their phone number private until the customer has paid for a tow with them
+ * (`business.phone` is null and `phone_after_booking` true then): say how to reach them instead.
+ */
+export function PhoneAfterBookingHint({ business, ...props }) {
+  if (business?.phone || !business?.phone_after_booking) return null;
+  return (
+    <HStack spacing={1.5} align="start" fontSize="xs" color="gray.600" {...props}>
+      <Icon as={Phone} boxSize={3.5} mt={0.5} flexShrink={0} aria-hidden="true" />
+      <Text>Phone number shows after you book. Message them in chat to request a tow.</Text>
+    </HStack>
+  );
+}
+
+/**
  * An address field: suggestions as you type (Photon), or the typed address as it is.
  * `value`: { formatted_address, lat, lng, state } or null.
  */
@@ -597,6 +611,14 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
           <JobProblem job={job} />
           <JobDeadline job={job} />
 
+          {/* the business's number, for the customer, once the job is paid */}
+          {customer && job.business_phone && !finished && (
+            <Button as="a" href={`tel:${String(job.business_phone).replace(/\s+/g, '')}`} size="sm" variant="outline" leftIcon={<Phone size={14} />}
+              borderColor="primary" color="primary" aria-label={`Call the business on ${job.business_phone}`}>
+              Call {job.business_phone}
+            </Button>
+          )}
+
           {actions.length > 0 && !finished && (
             <Flex gap={2} flexWrap="wrap">
               {actions.includes('pay') && <Button {...primary} onClick={() => setDialog('pay')}>Pay</Button>}
@@ -821,11 +843,19 @@ export function TransportJobRow({ job }) {
           )}
         </Box>
       </Flex>
-      {job?.room && (
-        <Button as={RLink} to={`/chat/${job.room}`} size="sm" variant="outline" borderColor="primary" color="primary" leftIcon={<MessageCircle size={14} />} flexShrink={0}>
-          Open chat
-        </Button>
-      )}
+      <Flex gap={2} flexShrink={0} direction={{ base: 'row', sm: 'column' }} flexWrap="wrap">
+        {!business && job?.business_phone && !['completed', 'declined', 'cancelled'].includes(job?.status) && (
+          <Button as="a" href={`tel:${String(job.business_phone).replace(/\s+/g, '')}`} size="sm" variant="outline" leftIcon={<Phone size={14} />}
+            aria-label={`Call the business on ${job.business_phone}`}>
+            Call
+          </Button>
+        )}
+        {job?.room && (
+          <Button as={RLink} to={`/chat/${job.room}`} size="sm" variant="outline" borderColor="primary" color="primary" leftIcon={<MessageCircle size={14} />}>
+            Open chat
+          </Button>
+        )}
+      </Flex>
     </Flex>
   );
 }

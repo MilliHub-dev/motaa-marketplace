@@ -18,7 +18,8 @@ import { useDateTime } from '../../../components/parts';
 import { ErrorState } from '../../../components/states';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
-import { PROBLEM_MIN_LENGTH, bookingDeadline, cleanStars, nextStar, problemError } from '../../../utils/bookings';
+import { PROBLEM_MIN_LENGTH, bookingDeadline, cleanStars, hasServiceCharge, nextStar, problemError } from '../../../utils/bookings';
+import { distanceLabel } from '../../../utils/transport';
 
 const REFRESH_MS = 20000;
 const STATUS_COLORS = {
@@ -495,7 +496,11 @@ export default function BookingTracking() {
               <Stack spacing={1} mt={job || workshop ? 3 : 0} fontSize="sm">
                 {data.job?.address && <Text><Text as="span" color="gray.600">You: </Text>{data.job.address}</Text>}
                 {mechanic.address && <Text><Text as="span" color="gray.600">Workshop: </Text>{mechanic.address}</Text>}
-                {data.distance_km != null && <Text color="gray.600">About {data.distance_km} km apart</Text>}
+                {data.distance_km != null && (
+                  <Text color="gray.600">
+                    {distanceLabel(data.distance_km, data.drive_minutes)?.replace(' away', data.distance_by_road === false ? ' apart (approx.)' : ' by road')}
+                  </Text>
+                )}
               </Stack>
             </Section>
 
@@ -504,6 +509,14 @@ export default function BookingTracking() {
               <Row label="Type">{booking.type === 'emergency' ? 'Emergency' : 'Routine'}</Row>
               <Row label="Booked">{format(booking.date_created)}</Row>
               <Row label="Booking fee">₦{commaInt(data.payment?.fee)}</Row>
+              {hasServiceCharge(data.payment?.service_charge) && (
+                <>
+                  <Row label={Number(data.payment?.service_charge_km) > 0 ? `Service charge (${Number(data.payment.service_charge_km).toFixed(1)} km)` : 'Service charge'}>
+                    ₦{commaInt(data.payment.service_charge)}
+                  </Row>
+                  <Row label="Total paid"><Text as="span" fontWeight="700">₦{commaInt(data.payment?.total ?? Number(data.payment?.fee) + Number(data.payment?.service_charge))}</Text></Row>
+                </>
+              )}
               <Row label="Fee status">{data.payment?.label}</Row>
               {booking.payment_method && <Row label="Paid with">{booking.payment_method === 'wallet' ? 'Motaa wallet' : 'Card / bank'}</Row>}
               {Number(booking.quoted_total) > 0 && <Row label="Services quote (paid to the mechanic)">from ₦{commaInt(booking.quoted_total)}</Row>}
@@ -524,7 +537,12 @@ export default function BookingTracking() {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg">Cancel this booking?</AlertDialogHeader>
-            <AlertDialogBody>Your request to {mechanic.name} will be cancelled and the ₦{commaInt(data.payment?.fee)} booking fee returned to your Motaa wallet.</AlertDialogBody>
+            <AlertDialogBody>
+              Your request to {mechanic.name} will be cancelled.{' '}
+              {hasServiceCharge(data.payment?.service_charge)
+                ? <>Your ₦{commaInt(data.payment?.fee)} booking fee comes back to your wallet. <b>The ₦{commaInt(data.payment.service_charge)} service charge isn't refundable.</b></>
+                : <>The ₦{commaInt(data.payment?.fee)} booking fee is returned to your Motaa wallet.</>}
+            </AlertDialogBody>
             <AlertDialogFooter gap={3}>
               <Button ref={cancelRef} onClick={cancelDialog.onClose} isDisabled={cancel.loading}>Keep booking</Button>
               <Button colorScheme="red" isLoading={cancel.loading} loadingText="Cancelling"

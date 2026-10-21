@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bookingDeadline, cleanStars, nextStar, payoutNote, problemError, splitBookingHistory,
+  bookingAmountDue, bookingDeadline, bookingErrorCode, cleanStars, hasServiceCharge, mechanicReceives, nextStar, payoutNote,
+  problemError, serviceChargeLabel, splitBookingHistory,
 } from './bookings';
 
 describe('bookingDeadline', () => {
@@ -78,5 +79,43 @@ describe('mechanic dashboard', () => {
     expect(payoutNote({ status: 'working', payout: { state: 'held' } })).toBeNull();
     expect(payoutNote({ status: 'completed' })).toBeNull();
     expect(payoutNote(completed({ state: 'unpaid' }))).toBeNull();
+  });
+});
+
+describe('service charge', () => {
+  const quote = { booking_fee: '5000.00', service_charge: '4275.00', total: '9275.00', distance_km: 28.5, drive_minutes: 33,
+    distance_by_road: true, per_km: '150.00', enabled: true, needs_location: false, quote_token: 't' };
+
+  it('labels the charge by road, approximately, or as the minimum', () => {
+    expect(serviceChargeLabel(quote)).toBe('Service charge (28.5 km × ₦150/km)');
+    expect(serviceChargeLabel({ ...quote, distance_by_road: false })).toBe('Service charge (28.5 km (approx.) × ₦150/km)');
+    expect(serviceChargeLabel({ ...quote, per_km: '1500.50', distance_km: 3 })).toBe('Service charge (3.0 km × ₦1,500.50/km)');
+    expect(serviceChargeLabel({ ...quote, distance_km: null })).toBe('Service charge (minimum)');
+  });
+
+  it('hides a switched-off charge', () => {
+    expect(hasServiceCharge('4275.00')).toBe(true);
+    expect(hasServiceCharge('0.00')).toBe(false);
+    expect(hasServiceCharge(null)).toBe(false);
+  });
+
+  it('charges the quote total, waits for an address, and falls back to the fee without a quote', () => {
+    expect(bookingAmountDue(quote, { fee: '5000.00' })).toEqual({ amount: '9275.00', ready: true, needsLocation: false });
+    expect(bookingAmountDue({ ...quote, needs_location: true, total: null, service_charge: null })).toEqual({ amount: null, ready: false, needsLocation: true });
+    expect(bookingAmountDue(undefined, { fee: '5000.00' })).toEqual({ amount: null, ready: false, needsLocation: false });
+    expect(bookingAmountDue(undefined, { fee: '5000.00', quoteFailed: true })).toEqual({ amount: '5000.00', ready: true, needsLocation: false });
+  });
+
+  it('reads the refusal codes', () => {
+    expect(bookingErrorCode({ data: { code: 'quote_changed', quote } })).toBe('quote_changed');
+    expect(bookingErrorCode({ data: { code: 'needs_location' } })).toBe('needs_location');
+    expect(bookingErrorCode({ data: { code: 'pin_incorrect' } })).toBe('');
+  });
+
+  it("words what the mechanic receives", () => {
+    expect(mechanicReceives({ fee: '5000.00', service_charge: '4275.00', total: '9275.00' }))
+      .toBe('You receive ₦9,275 (booking fee ₦5,000 + service charge ₦4,275)');
+    expect(mechanicReceives({ fee: '5000.00', service_charge: '0.00' })).toBe('You receive ₦5,000 (booking fee)');
+    expect(mechanicReceives(null)).toBe('');
   });
 });

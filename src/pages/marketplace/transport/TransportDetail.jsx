@@ -14,10 +14,10 @@ import { ChatPopup } from '../../../components/chat';
 import { MapComponent } from '../../../components/maps';
 import { BackButton } from '../../../components/nav';
 import { ErrorState } from '../../../components/states';
-import { AvailableBadge, ContactButtons, TripFields, mapTripErrors } from '../../../components/transport';
+import { AvailableBadge, ContactButtons, PhoneAfterBookingHint, TripFields, mapTripErrors } from '../../../components/transport';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList, profilePicture } from '../../../utils';
-import { TRANSPORT_PATHS, capacityLabel, emptyRequestForm, requestPayload, requestProblems, servicePath } from '../../../utils/transport';
+import { TRANSPORT_PATHS, capacityLabel, distanceLabel, emptyRequestForm, requestPayload, requestProblems, servicePath } from '../../../utils/transport';
 
 function DetailSkeleton() {
   return (
@@ -60,7 +60,7 @@ function RequestForm({ service }) {
         });
       },
       () => {},
-      { timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
     return () => controller.abort();
   }, []);
@@ -110,9 +110,21 @@ export default function TransportDetail({ kind }) {
   const chat = useDisclosure();
   const loginPath = `/login?next=${encodeURIComponent(location.pathname)}`;
 
+  // how far it is by road: the server works it out from the customer's position
+  const [device, setDevice] = useState(null);
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => setDevice({ lat: position.coords.latitude, lng: position.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, []);
+  const fromQs = device ? `?lat=${device.lat.toFixed(5)}&lng=${device.lng.toFixed(5)}` : '';
+
   const query = useApiQuery(
-    (api, signal) => api.get(`/transport/${encodeURIComponent(serviceId)}/`, { signal }),
-    [serviceId, authUser?.token],
+    (api, signal) => api.get(`/transport/${encodeURIComponent(serviceId)}/${fromQs}`, { signal }),
+    [serviceId, authUser?.token, fromQs],
     { select: (body) => body?.data, keepAs: `transport:${serviceId}` }
   );
   const service = query.data?.service;
@@ -185,6 +197,10 @@ export default function TransportDetail({ kind }) {
             {!towing && <Fact label="Truck">{service.truck_type_label}</Fact>}
             {!towing && <Fact label="Capacity">{capacityLabel(service.capacity)}</Fact>}
             {!towing && service.fuel_included !== null && <Fact label="Fuel">{service.fuel_included ? 'Included' : 'Not included'}</Fact>}
+            <Fact label="Distance" gridColumn={towing ? '1 / -1' : undefined}>
+              {distanceLabel(service.distance_km, service.drive_minutes)
+                ? `${distanceLabel(service.distance_km, service.drive_minutes)}${service.distance_by_road === false ? ' (approx.)' : ''}` : null}
+            </Fact>
             <Fact label="Based in" gridColumn={towing ? '1 / -1' : undefined}>{[service.base_address, service.base_state].filter(Boolean).join(', ') || null}</Fact>
           </SimpleGrid>
           {!towing && asList(service.states).length > 0 && (
@@ -223,6 +239,7 @@ export default function TransportDetail({ kind }) {
               </Box>
             </Flex>
             <ContactButtons business={business} loginPath={loginPath} onMessage={chat.onOpen} size="md" mt={4} sx={{ '& > *': { flex: 1 } }} />
+            <PhoneAfterBookingHint business={business} mt={3} />
           </Box>
 
           <Box borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 4, md: 5 }}>

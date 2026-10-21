@@ -17,6 +17,7 @@ import {
   Icon,
   Radio,
   RadioGroup,
+  Skeleton,
   Stack,
   Text,
   Textarea,
@@ -25,7 +26,7 @@ import {
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import { Check, CheckCircle2, CreditCard, Info, MapPin, Send, Star, Wallet as WalletIcon } from 'lucide-react';
+import { Check, CheckCircle2, CreditCard, Info, Send, Star, Wallet as WalletIcon } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { CustomPlacesAutocomplete, MapComponent } from '../../../components/maps';
@@ -36,6 +37,8 @@ import { MechanicListSkeleton } from '../../../components/loaders';
 import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../components/wallet';
 import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { asList } from '../../../utils';
+import { bookingAmountDue, bookingErrorCode, hasServiceCharge, serviceChargeLabel } from '../../../utils/bookings';
+import { distanceLabel } from '../../../utils/transport';
 
 /** Toggleable service chips — real buttons, so they work with keyboard and screen readers. */
 const ServicePicker = ({ options, selected, onChange, invalid }) => (
@@ -68,7 +71,7 @@ function BookingForm({ mechanic }) {
   const { mechId } = useParams();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { api, commaInt, notifyError } = useContext(GlobalStore);
+  const { api, commaInt, notify, notifyError } = useContext(GlobalStore);
   const pay = usePaystack();
   const { withPin } = useWalletPin();
   const chat = useDisclosure();
@@ -89,8 +92,20 @@ function BookingForm({ mechanic }) {
   const [sending, setSending] = useState(false);
   const [pending, setPending] = useState(null); // { reference, payload, message }
   const [booked, setBooked] = useState(null);
+  const [addressProblem, setAddressProblem] = useState(''); // the server needs a picked address (needs_location)
 
-  const fee = mechanic?.booking?.fee ?? mechanic?.booking_fee;
+  // the price for this address: booking fee + service charge (the mechanic's transport), fetched again
+  // whenever the picked point changes; older requests are cancelled by useApiQuery
+  const pointKey = point ? `${point.lat.toFixed(6)},${point.lng.toFixed(6)}` : '';
+  const quoteQuery = useApiQuery((a, signal) => {
+    const qs = new URLSearchParams(point ? { lat: point.lat.toFixed(6), lng: point.lng.toFixed(6) } : {});
+    return a.get(`/mechanics/${mechId}/quote/${qs.toString() ? `?${qs}` : ''}`, { signal });
+  }, [mechId, pointKey], { select: (b) => b?.data });
+  const quote = quoteQuery.data;
+  const fee = quote?.booking_fee ?? mechanic?.booking?.fee ?? mechanic?.booking_fee;
+  const due = bookingAmountDue(quote, { fee, quoteFailed: Boolean(quoteQuery.error) && !quoteQuery.loading });
+  const amount = due.amount;
+  const showCharge = Boolean(quote?.enabled) || hasServiceCharge(quote?.service_charge);
   const name = mechanic?.business_name || mechanic?.user?.name || 'this mechanic';
   const serviceOptions = asList(mechanic?.services).map((s) => s?.service).filter(Boolean);
   const wallet = useApiQuery((a, signal) => a.get('/wallet/balance/', { signal }), [], { select: (b) => b?.data });
@@ -99,7 +114,9 @@ function BookingForm({ mechanic }) {
   const errors = {
     services: services.length === 0 ? 'Choose at least one service' : '',
     description: description.trim().length < 10 ? 'Describe the problem in a few words (at least 10 characters)' : '',
-    address: !address.trim() ? 'Enter where the mechanic should meet you' : '',
+    address: !address.trim() ? 'Enter where the mechanic should meet you'
+      : due.needsLocation ? 'Pick your address from the suggestions so we can work out the service charge.'
+        : addressProblem,
   };
   const valid = !errors.services && !errors.description && !errors.address;
 
@@ -112,7 +129,27 @@ function BookingForm({ mechanic }) {
       address: address.trim(),
       lat: hasPoint ? lat : undefined,
       lng: hasPoint ? lng : undefined,
+      // the signed price the customer was shown (the server charges exactly this, or says it changed)
+      quote_token: quote?.quote_token || undefined,
+      service_charge: quote?.service_charge ?? undefined,
     };
+  }
+
+  /** The server refused the price (409 quote_changed) or needs a picked address (400 needs_location). */
+  function handleBookingRefusal(error) {
+    const code = bookingErrorCode(error);
+    if (code === 'quote_changed') {
+      if (error.data?.quote) quoteQuery.setData(error.data.quote);
+      else quoteQuery.reload();
+      notify({ title: 'The price changed', body: error.message, color: 'orange', duration: 9000 });
+      return true;
+    }
+    if (code === 'needs_location') {
+      setSubmitted(true);
+      setAddressProblem(error.data?.details?.address || 'Pick your address from the suggestions so we can work out the service charge.');
+      return true;
+    }
+    return false;
   }
 
   async function send(body) {
@@ -135,12 +172,13 @@ function BookingForm({ mechanic }) {
   async function confirm(e) {
     e.preventDefault();
     setSubmitted(true);
-    if (!valid || fee === undefined) return;
+    if (!valid || !due.ready) return;
     if (method === 'wallet') return payFromWallet();
 
     setPaying(true);
     const reference = newReference('mtbk');
-    const response = await pay({ amount: fee, reference, metadata: { purpose: 'booking', mechanic_id: mechId } });
+    // the whole total: booking fee + service charge
+    const response = await pay({ amount, reference, metadata: { purpose: 'booking', mechanic_id: mechId } });
     setPaying(false);
     if (!response) return;
     const body = payload(response.reference || reference);
@@ -148,6 +186,8 @@ function BookingForm({ mechanic }) {
     try {
       await send(body);
     } catch (error) {
+      // a different price: the card payment was put in their wallet, nothing to retry
+      if (handleBookingRefusal(error)) { setPending(null); return; }
       setPending({ reference: body.reference, payload: body, message: error?.message });
     }
   }
@@ -156,22 +196,26 @@ function BookingForm({ mechanic }) {
     try {
       await send(pending.payload);
     } catch (error) {
+      if (handleBookingRefusal(error)) { setPending(null); return; }
       setPending((p) => ({ ...p, message: error?.message }));
     }
   }
 
-  // the booking fee from the wallet, approved with the wallet PIN
+  // the total from the wallet, approved with the wallet PIN
   async function payFromWallet() {
     try {
       await withPin((pin) => send({ ...payload(undefined), pin }), {
         title: `Book ${name}`,
-        amount: fee,
+        amount,
         balance: walletBalance,
-        note: 'The booking fee is held in escrow and released to the mechanic when the job is done.',
-        submitLabel: `Pay ₦${commaInt(fee)}`,
+        note: hasServiceCharge(quote?.service_charge)
+          ? 'Held in escrow and paid to the mechanic when the job is done. The service charge isn’t refunded if you cancel.'
+          : 'The booking fee is held in escrow and released to the mechanic when the job is done.',
+        submitLabel: `Pay ₦${commaInt(amount)}`,
       });
     } catch (error) {
       if (isPinCancelled(error)) return;
+      if (handleBookingRefusal(error)) return;
       if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't book this mechanic");
     }
   }
@@ -182,7 +226,7 @@ function BookingForm({ mechanic }) {
         <Icon as={CheckCircle2} boxSize={14} color="green.500" aria-hidden="true" />
         <Heading as="h1" size="lg">Booking request sent</Heading>
         <Text maxW="440px" color="gray.700">
-          We've told {name} you need help with {services.join(', ')}. Your ₦{commaInt(fee)} booking fee is held in escrow until the job is done.
+          We've told {name} you need help with {services.join(', ')}. Your ₦{commaInt(amount ?? fee)} payment is held in escrow until the job is done.
           You'll get a notification when they respond.
         </Text>
         <Stack direction={{ base: 'column', sm: 'row' }} spacing={3}>
@@ -224,9 +268,17 @@ function BookingForm({ mechanic }) {
               aria-label="Where should they meet you?"
               placeholder="Search a street, area or landmark"
               value={address}
-              onPlaceChange={(p) => { setAddress(p.formatted_address || ''); if (p.lat != null && p.lng != null) setPoint({ lat: p.lat, lng: p.lng }); }}
-              inputProps={{ onInput: (e) => setAddress(e.target.value) }}
+              onPlaceChange={(p) => {
+                setAddress(p.formatted_address || '');
+                setAddressProblem('');
+                if (p.lat != null && p.lng != null) setPoint({ lat: Number(p.lat), lng: Number(p.lng) });
+              }}
+              // typing a different address drops the picked point: the price is for a picked address
+              inputProps={{ onInput: (e) => { setAddress(e.target.value); setPoint(null); } }}
             />
+            {quote?.distance_km != null && !due.needsLocation && (
+              <FormHelperText>{name} is {distanceLabel(quote.distance_km, quote.drive_minutes)}{quote.distance_by_road === false ? ' (approx.)' : ''}.</FormHelperText>
+            )}
             <FormErrorMessage>{errors.address}</FormErrorMessage>
           </FormControl>
 
@@ -245,15 +297,37 @@ function BookingForm({ mechanic }) {
             <FormErrorMessage>{errors.description}</FormErrorMessage>
           </FormControl>
 
-          <Box borderWidth={1} borderRadius="lg" p={4}>
-            <Flex justify="space-between" align="center">
-              <Text className="bold">Booking fee</Text>
-              <Text className="bold" fontSize="lg">{fee !== undefined ? `₦${commaInt(fee)}` : '—'}</Text>
-            </Flex>
-            <HStack align="start" spacing={2} mt={2} color="gray.600" fontSize="sm">
+          <Box as="section" aria-labelledby="price-heading" borderWidth={1} borderRadius="lg" p={4} aria-busy={quoteQuery.loading}>
+            <Heading as="h2" id="price-heading" size="sm" mb={3}>What you pay now</Heading>
+            <VStack align="stretch" spacing={2} fontSize="sm">
+              <Flex justify="space-between" gap={3}>
+                <Text color="gray.700">Booking fee</Text>
+                <Text>{fee !== undefined && fee !== null ? `₦${commaInt(fee)}` : '—'}</Text>
+              </Flex>
+              {showCharge && (
+                <Flex justify="space-between" gap={3}>
+                  <Text color="gray.700">{due.needsLocation ? 'Service charge' : serviceChargeLabel(quote)}</Text>
+                  <Text textAlign="right">
+                    {due.needsLocation ? <Text as="span" color="gray.500">Pick your address to see it</Text> : `₦${commaInt(quote?.service_charge)}`}
+                  </Text>
+                </Flex>
+              )}
+              <Flex justify="space-between" align="center" gap={3} borderTopWidth={1} pt={2} mt={1}>
+                <Text className="bold" fontSize="md">Total</Text>
+                {quoteQuery.loading && !quote ? <Skeleton h="20px" w="90px" />
+                  : <Text className="bold" fontSize="lg">{amount !== null && amount !== undefined ? `₦${commaInt(amount)}` : '—'}</Text>}
+              </Flex>
+            </VStack>
+            {quote?.note && (hasServiceCharge(quote?.service_charge) || due.needsLocation) && (
+              <Text fontSize="sm" color="orange.800" bg="orange.50" borderRadius="md" px={3} py={2} mt={3}>{quote.note}</Text>
+            )}
+            <HStack align="start" spacing={2} mt={3} color="gray.600" fontSize="sm">
               <Icon as={Info} mt={0.5} aria-hidden="true" />
-              <Text>This consultation fee is held in escrow and paid to the mechanic when the job is done. It doesn't cover repairs — you agree those with the mechanic.</Text>
+              <Text>This is held in escrow and paid to the mechanic when the job is done. It doesn't cover repairs — you agree those with the mechanic.</Text>
             </HStack>
+            {quoteQuery.error && !quote && (
+              <Text fontSize="sm" color="gray.600" mt={2} role="status">We couldn't work out the service charge just now, so only the booking fee is shown.</Text>
+            )}
           </Box>
 
           <FormControl>
@@ -268,7 +342,7 @@ function BookingForm({ mechanic }) {
                 </Radio>
               </Stack>
             </RadioGroup>
-            {method === 'wallet' && walletBalance !== undefined && Number(walletBalance) < Number(fee) && (
+            {method === 'wallet' && walletBalance !== undefined && amount != null && Number(walletBalance) < Number(amount) && (
               <FormHelperText color="red.600">Your wallet balance is too low. <Button as={RLink} to="/wallet/deposit" variant="link" size="sm" color="primary">Top up</Button></FormHelperText>
             )}
           </FormControl>
@@ -281,8 +355,8 @@ function BookingForm({ mechanic }) {
             )}
             <Button type="submit" w="full" size="lg" bg="primary" color="white" _hover={{ bg: 'secondary' }}
               isLoading={paying || sending} loadingText={paying ? 'Opening Paystack' : 'Sending request'}
-              isDisabled={fee === undefined || Boolean(pending) || serviceOptions.length === 0 || mechanic?.available === false}>
-              {fee !== undefined ? `Pay ₦${commaInt(fee)} & book` : 'Book'}
+              isDisabled={!due.ready || quoteQuery.loading || Boolean(pending) || serviceOptions.length === 0 || mechanic?.available === false}>
+              {due.ready ? `Pay ₦${commaInt(amount)} & book` : due.needsLocation ? 'Pick your address to continue' : 'Book'}
             </Button>
             <Button w="full" variant="outline" size="lg" color="gray.700" leftIcon={<Send size={16} />} onClick={chat.onOpen}>
               Message {name}

@@ -31,6 +31,7 @@ import { useApiMutation, useApiQuery } from "../../hooks/useApi";
 import { EmptyState, ErrorState } from "../../components/states";
 import { TransportJobList } from "../../components/transport";
 import { asList } from "../../utils";
+import { hasServiceCharge } from "../../utils/bookings";
 
 const TABS = ['orders', 'cars', 'rentals', 'mechanics', 'towing'];
 
@@ -117,6 +118,7 @@ function CartSkeleton() {
 }
 
 function ConfirmCancelBooking({ booking, onCancel, onConfirm, isLoading }) {
+    const { commaInt } = useContext(GlobalStore);
     const cancelRef = useRef(null);
     return (
         <AlertDialog isOpen={Boolean(booking)} leastDestructiveRef={cancelRef} onClose={onCancel} isCentered>
@@ -124,7 +126,10 @@ function ConfirmCancelBooking({ booking, onCancel, onConfirm, isLoading }) {
                 <AlertDialogContent mx={4}>
                     <AlertDialogHeader fontSize="lg">Cancel this booking?</AlertDialogHeader>
                     <AlertDialogBody>
-                        Your request to {booking?.mechanic || 'the mechanic'} will be cancelled and the booking fee returned to your Motaa wallet.
+                        Your request to {booking?.mechanic || 'the mechanic'} will be cancelled.{' '}
+                        {hasServiceCharge(booking?.service_charge)
+                            ? <>Your ₦{commaInt(booking?.booking_fee)} booking fee comes back to your wallet. <b>The ₦{commaInt(booking.service_charge)} service charge isn't refundable.</b></>
+                            : 'The booking fee is returned to your Motaa wallet.'}
                     </AlertDialogBody>
                     <AlertDialogFooter gap={3}>
                         <Button ref={cancelRef} onClick={onCancel} isDisabled={isLoading}>Keep booking</Button>
@@ -204,7 +209,7 @@ export const CartPage = () => {
                         ? { ...b, booking_status: 'canceled', can_cancel: false }
                         : b)),
                 }));
-                notify({ title: 'Booking cancelled', body: 'The booking fee has been returned to your Motaa wallet.' });
+                notify({ title: 'Booking cancelled', body: body?.message || 'The booking fee has been returned to your Motaa wallet.' });
             },
         }
     );
@@ -420,7 +425,10 @@ export const CartPage = () => {
                                                     </Wrap>
                                                     <Text fontWeight="600">₦{commaInt(booking?.sub_total)} <Text as="span" fontSize="sm" fontWeight="400" color="gray.500">quoted</Text></Text>
                                                     {Number(booking?.booking_fee) > 0 && (
-                                                        <Text fontSize="sm" color="gray.600">Booking fee paid: ₦{commaInt(booking.booking_fee)}</Text>
+                                                        <Text fontSize="sm" color="gray.600">
+                                                            Booking fee paid: ₦{commaInt(booking.booking_fee)}
+                                                            {hasServiceCharge(booking?.service_charge) && <> · service charge ₦{commaInt(booking.service_charge)}{Number(booking?.service_charge_km) > 0 ? ` (${Number(booking.service_charge_km).toFixed(1)} km)` : ''} · total ₦{commaInt(Number(booking.booking_fee) + Number(booking.service_charge))}</>}
+                                                        </Text>
                                                     )}
                                                     {asList(booking?.services).length > 0 && (
                                                         <Wrap spacing={2} mt={2}>

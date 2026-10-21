@@ -15,6 +15,7 @@ import { AsyncState } from "../../../components/states";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
+import { distanceLabel } from "../../../utils/transport";
 
 
 const ServiceAccordion = ({ service }) => {
@@ -72,12 +73,6 @@ export const MechanicDetailPage = () => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const navigate = useNavigate();
 
-  const query = useApiQuery(
-    (api, signal) => api.get(`/mechanics/${mechId}/`, { signal }),
-    [mechId],
-    { select: (body) => body?.data, keepAs: `mechanic:${mechId}` }
-  );
-
   // start from the device location (reverse-geocoded) when the user allows it
   const [device, setDevice] = useState(null);
   useEffect(() => {
@@ -85,9 +80,18 @@ export const MechanicDetailPage = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => setDevice({ lat: position.coords.latitude, lng: position.coords.longitude }),
       () => {},
-      { timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
+
+  // the profile, with how far it is by road from the picked area (else the device)
+  const from = place?.lat != null && place?.lng != null ? { lat: Number(place.lat), lng: Number(place.lng) } : device;
+  const fromQs = from && Number.isFinite(from.lat) && Number.isFinite(from.lng) ? `?lat=${from.lat.toFixed(5)}&lng=${from.lng.toFixed(5)}` : '';
+  const query = useApiQuery(
+    (api, signal) => api.get(`/mechanics/${mechId}/${fromQs}`, { signal }),
+    [mechId, fromQs],
+    { select: (body) => body?.data, keepAs: `mechanic:${mechId}` }
+  );
   useEffect(() => {
     if (!device || place) return undefined;
     const controller = new AbortController();
@@ -123,7 +127,7 @@ export const MechanicDetailPage = () => {
         const reviews = asList(mechanic?.reviews);
         const services = asList(mechanic?.services);
         const rating = Number(mechanic?.rating);
-        const distance = parseFloat(String(mechanic?.distance ?? ''));
+        const distance = distanceLabel(mechanic?.distance, mechanic?.drive_minutes);
 
         return (
           <Box minH="100vh" pb={8}>
@@ -167,11 +171,11 @@ export const MechanicDetailPage = () => {
                           <Badge colorScheme={mechanic?.available ? 'green' : 'gray'}>{mechanic?.available ? 'Available' : 'Not available'}</Badge>
                         </Flex>
 
-                        {(mechanic?.location || Number.isFinite(distance)) && (
+                        {(mechanic?.location || distance) && (
                           <Flex align="center" gap={2} mt={2} color="gray.600" flexWrap="wrap">
                             <MapPinIcon size="18px" aria-hidden="true" />
                             {mechanic?.location && <Text>{mechanic.location}</Text>}
-                            {Number.isFinite(distance) && <Text color="gray.700">• {distance.toFixed(1)} km away</Text>}
+                            {distance && <Text color="gray.700">• {distance}{mechanic?.distance_by_road === false ? ' (approx.)' : ''}</Text>}
                           </Flex>
                         )}
 

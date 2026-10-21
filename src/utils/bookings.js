@@ -75,3 +75,63 @@ export function payoutNote(booking, format = bookingDeadline) {
   }
   return null;
 }
+
+// ---- the mechanic service charge (motaa_backend/bookings/service_charge.py) ----------------------------
+
+const group = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '0';
+  const [whole, fraction] = (Math.round(number * 100) / 100).toString().split('.');
+  return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${fraction ? `.${fraction.padEnd(2, '0')}` : ''}`;
+};
+
+/** True when there is a service charge to show (it is "0.00" when Motaa has switched it off). */
+export function hasServiceCharge(value) {
+  return Number(value) > 0;
+}
+
+/**
+ * The label of the service charge row in a quote:
+ * "Service charge (28.5 km × ₦150/km)", "(28.5 km approx. × ₦150/km)" for a straight-line distance,
+ * "Service charge (minimum)" when the workshop isn't on the map.
+ */
+export function serviceChargeLabel(quote) {
+  const km = Number(quote?.distance_km);
+  if (quote?.distance_km === null || quote?.distance_km === undefined || !Number.isFinite(km)) return 'Service charge (minimum)';
+  const approx = quote?.distance_by_road === false ? ' (approx.)' : '';
+  return Number(quote?.per_km) > 0
+    ? `Service charge (${km.toFixed(1)} km${approx} × ₦${group(quote.per_km)}/km)`
+    : `Service charge (${km.toFixed(1)} km${approx})`;
+}
+
+/**
+ * What booking costs now, from the quote: { amount, ready, needsLocation }.
+ * Without a quote (it failed to load, e.g. an older server) the booking fee alone is charged.
+ */
+export function bookingAmountDue(quote, { fee, quoteFailed = false } = {}) {
+  if (quote) {
+    if (quote.needs_location) return { amount: null, ready: false, needsLocation: true };
+    const total = quote.total ?? quote.booking_fee ?? fee;
+    return { amount: total, ready: total !== null && total !== undefined, needsLocation: false };
+  }
+  if (quoteFailed && fee !== undefined && fee !== null) return { amount: fee, ready: true, needsLocation: false };
+  return { amount: null, ready: false, needsLocation: false };
+}
+
+/** The `code` of a refused booking ('quote_changed' with `quote`, 'needs_location'), or ''. */
+export function bookingErrorCode(error) {
+  const code = error?.data?.code;
+  return ['quote_changed', 'needs_location'].includes(code) ? code : '';
+}
+
+/** "You receive ₦9,275 (booking fee ₦5,000 + service charge ₦4,275)" for a mechanic, from `payout`. */
+export function mechanicReceives(payout) {
+  if (!payout) return '';
+  const fee = Number(payout.fee) || 0;
+  const charge = Number(payout.service_charge) || 0;
+  const total = Number(payout.total) || fee + charge;
+  if (!total) return '';
+  return charge > 0
+    ? `You receive ₦${group(total)} (booking fee ₦${group(fee)} + service charge ₦${group(charge)})`
+    : `You receive ₦${group(total)} (booking fee)`;
+}

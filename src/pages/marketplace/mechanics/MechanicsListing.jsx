@@ -18,15 +18,10 @@ import { PageControls } from "../../../components";
 import { AsyncState, EmptyState } from "../../../components/states";
 import { useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
+import { distanceLabel } from "../../../utils/transport";
 
 const PAGE_SIZE = 25;
 
-/** "3.3 km away" from the API's "3.27km", or null. */
-function distanceLabel(distance) {
-    const km = parseFloat(String(distance ?? ''));
-    if (!Number.isFinite(km)) return null;
-    return km < 1 ? 'Less than 1 km away' : `${km.toFixed(1)} km away`;
-}
 
 export const MechanicListPage = () => {
     const { commaInt } = useContext(GlobalStore);
@@ -55,7 +50,7 @@ export const MechanicListPage = () => {
                 setGeoStatus('ok');
             },
             () => setGeoStatus('denied'),
-            { timeout: 10000, maximumAge: 300000 }
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
     }, []);
 
@@ -97,7 +92,7 @@ export const MechanicListPage = () => {
         const path = `/mechanics/${mechanic.uuid}`;
         return {
             id: mechanic.uuid, lat: mechanic.coordinates.lat, lng: mechanic.coordinates.lng, title: name,
-            subtitle: [mechanic?.location, distanceLabel(mechanic?.distance)].filter(Boolean).join(' • '),
+            subtitle: [mechanic?.location, distanceLabel(mechanic?.distance, mechanic?.drive_minutes)].filter(Boolean).join(' • '),
             href: path, linkLabel: 'View & book', onOpen: () => navigate(path),
         };
     });
@@ -164,7 +159,7 @@ export const MechanicListPage = () => {
                                 <VStack w="100%" spacing={0} align="stretch" opacity={mechanics.loading ? 0.6 : 1} aria-busy={mechanics.loading}>
                                     {asList(data?.results).map((mechanic) => {
                                         const name = mechanic?.business_name || mechanic?.user?.name || 'Mechanic';
-                                        const distance = distanceLabel(mechanic?.distance);
+                                        const distance = distanceLabel(mechanic?.distance, mechanic?.drive_minutes);
                                         const services = asList(mechanic?.services);
                                         const rating = Number(mechanic?.rating);
                                         return (

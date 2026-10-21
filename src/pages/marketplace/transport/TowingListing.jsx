@@ -12,7 +12,7 @@ import { PageControls } from '../../../components';
 import { ChatPopup } from '../../../components/chat';
 import { CustomPlacesAutocomplete, DEFAULT_MAP_CENTER, MapComponent } from '../../../components/maps';
 import { AsyncState, EmptyState } from '../../../components/states';
-import { AvailableBadge, ContactButtons, TransportPhoto } from '../../../components/transport';
+import { AvailableBadge, ContactButtons, PhoneAfterBookingHint, TransportPhoto } from '../../../components/transport';
 import { useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { TRANSPORT_PAGE_SIZE, distanceLabel, servicePath, towingApiQuery } from '../../../utils/transport';
@@ -50,7 +50,7 @@ export function useSearchPoint(params) {
         setGeoStatus('ok');
       },
       () => setGeoStatus('denied'),
-      { timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
@@ -60,7 +60,7 @@ export function useSearchPoint(params) {
 }
 
 function TowingCard({ service, onMessage, loginPath }) {
-  const distance = distanceLabel(service?.distance_km);
+  const distance = distanceLabel(service?.distance_km, service?.drive_minutes);
   const path = servicePath(service);
   const business = service?.business || {};
   return (
@@ -80,6 +80,7 @@ function TowingCard({ service, onMessage, loginPath }) {
           <Text fontWeight="700" color="secondary" mt={1}>{service?.price_line}</Text>
         </Box>
       </Flex>
+      <PhoneAfterBookingHint business={business} mt={3} />
       <Flex gap={2} mt={3} flexWrap="wrap" justify="flex-end">
         <ContactButtons business={business} loginPath={loginPath} onMessage={() => onMessage(service)} />
         <Button as={RLink} to={path} size="sm" bg="primary" color="white" _hover={{ bg: 'secondary' }}>View &amp; request</Button>
@@ -124,7 +125,7 @@ export default function TowingListing() {
   // the vans listed, as pins on the map (those whose base has a position)
   const pins = results.filter((item) => item?.base_lat != null && item?.base_lng != null).map((item) => ({
     id: item.uuid, lat: item.base_lat, lng: item.base_lng, title: item.title,
-    subtitle: [item.business?.name, distanceLabel(item.distance_km)].filter(Boolean).join(' • '),
+    subtitle: [item.business?.name, distanceLabel(item.distance_km, item.drive_minutes)].filter(Boolean).join(' • '),
     href: servicePath(item), linkLabel: 'View & request', onOpen: () => navigate(servicePath(item)),
   }));
   const pinsNote = !results.length ? null

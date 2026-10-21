@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  TRANSPORT_STATES, capacityLabel, distanceLabel, emptyServiceForm, haulerApiQuery, invoicePayload, invoiceProblems, jobDateText,
+  TRANSPORT_STATES, capacityLabel, distanceLabel, driveTime, emptyServiceForm, haulerApiQuery, invoicePayload, invoiceProblems, jobDateText,
   jobEventLabel, jobProblemNotice, latestJobSteps, matchState, requestPayload, requestProblems, serviceFormData, servicePath, serviceToForm,
   statesLine, towingApiQuery, tripFacts, validateServiceForm,
 } from './transport';
@@ -31,6 +31,12 @@ describe('labels', () => {
     expect(distanceLabel(3.27)).toBe('3.3 km away');
     expect(distanceLabel(0.4)).toBe('Less than 1 km away');
     expect(distanceLabel(null)).toBeNull();
+    expect(distanceLabel('28.5km', 33)).toBe('28.5 km away · 33 min drive');
+    expect(distanceLabel(28.5, null)).toBe('28.5 km away');
+    expect(distanceLabel(140, 125)).toBe('140.0 km away · 2 h 5 min drive');
+    expect(driveTime(120)).toBe('2 h');
+    expect(driveTime(0)).toBe('');
+    expect(driveTime(undefined)).toBe('');
     expect(capacityLabel(1)).toBe('Carries 1 car');
     expect(capacityLabel(6)).toBe('Carries 6 cars');
     expect(capacityLabel(null)).toBe('');

@@ -42,7 +42,7 @@ import { Eye, MapPin, Star } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiMutation } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
-import { bookingDeadline, cleanStars, payoutNote } from '../../../utils/bookings';
+import { bookingDeadline, cleanStars, hasServiceCharge, mechanicReceives, payoutNote } from '../../../utils/bookings';
 
 export const STATUS_COLORS = {
   requested: 'cyan',
@@ -321,10 +321,16 @@ export function BookingDetailsModal({ booking, onClose, actions }) {
                   <Text fontSize="sm" whiteSpace="pre-wrap">{booking.problem_description}</Text>
                 </Box>
               )}
-              {booking.payout && booking.status === 'completed' && (
+              {booking.payout && mechanicReceives(booking.payout) && (
                 <Box>
-                  <Text color="gray.500" fontSize="sm" mb={1}>Booking fee (₦{commaInt(booking.payout.fee)})</Text>
-                  <PayoutNote booking={booking} fontSize="sm" maxW="none" />
+                  <Text color="gray.500" fontSize="sm" mb={1}>Your payment</Text>
+                  <Text fontSize="sm" fontWeight="600">{mechanicReceives(booking.payout)}</Text>
+                  {hasServiceCharge(booking.payout.service_charge) && (
+                    <Text fontSize="xs" color="gray.600" mt={0.5}>
+                      The service charge{Number(booking.payout.service_charge_km) > 0 ? ` (${Number(booking.payout.service_charge_km).toFixed(1)} km)` : ''} covers your transport. It's yours even if the customer cancels.
+                    </Text>
+                  )}
+                  {booking.status === 'completed' && <PayoutNote booking={booking} fontSize="sm" maxW="none" mt={1} />}
                 </Box>
               )}
               {booking.review && cleanStars(booking.review.stars) > 0 && (
@@ -364,7 +370,10 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
             <Text mt={3} fontSize="sm">{servicesSummary(booking)}</Text>
             <Flex mt={1} justify="space-between" fontSize="sm" color="gray.600" gap={2} wrap="wrap">
               <Text>{formatDate(booking?.date_created)}</Text>
-              <Text fontWeight="semibold" color="gray.800">₦{commaInt(booking?.sub_total)}</Text>
+              <Text fontWeight="semibold" color="gray.800">
+                ₦{commaInt(booking?.sub_total)}
+                {hasServiceCharge(booking?.payout?.service_charge) && <Text as="span" fontWeight="400" color="gray.600"> + ₦{commaInt(booking.payout.service_charge)} service charge</Text>}
+              </Text>
             </Flex>
             {(payoutNote(booking) || booking?.review) && (
               <VStack align="start" spacing={1} mt={2}>
@@ -397,7 +406,12 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
             <Tr key={booking?.uuid}>
               <Td py={3}><ClientInfo customer={booking?.customer} location={booking?.location} /></Td>
               <Td>{servicesSummary(booking)}</Td>
-              <Td isNumeric>₦{commaInt(booking?.sub_total)}</Td>
+              <Td isNumeric>
+                ₦{commaInt(booking?.sub_total)}
+                {hasServiceCharge(booking?.payout?.service_charge) && (
+                  <Text fontSize="xs" color="gray.600">+ ₦{commaInt(booking.payout.service_charge)} service charge</Text>
+                )}
+              </Td>
               <Td>{formatDate(booking?.date_created)}</Td>
               {showStatus && (
                 <Td>
