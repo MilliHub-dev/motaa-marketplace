@@ -83,8 +83,10 @@ function pinPopup(pin) {
  * onMapClick: called when the map itself is clicked, not dragged (used to open the large map).
  * pageScroll: true (default) keeps the page scrolling when the pointer is over the map;
  *             false lets the wheel and one finger move the map (for a full-screen map).
+ * onPinMove:  makes the `location` marker movable: drag it, or click the map to put it there.
+ *             Called with { lat, lng } (e.g. to fine-tune a business's pin).
  */
-export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, fitPins = false, onMapClick, pageScroll = true, ...props }) => {
+export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, fitPins = false, onMapClick, onPinMove, pageScroll = true, ...props }) => {
   const point = validPoint(location);
   const lat = point?.lat;
   const lng = point?.lng;
@@ -94,6 +96,9 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
   const pinMarkers = useRef([]);
   const clickHandler = useRef(onMapClick);
   clickHandler.current = onMapClick;
+  const moveHandler = useRef(onPinMove);
+  moveHandler.current = onPinMove;
+  const movable = Boolean(onPinMove);
   const [status, setStatus] = useState(MAPBOX_TOKEN ? 'loading' : 'error');
   const [view, setView] = useState(savedMapView);
   const shownView = useRef(view);
@@ -121,6 +126,10 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
       instance.on('click', (event) => {
         // a click on a pin opens that pin, not the large map
         if (event.originalEvent?.target?.closest?.('.mapboxgl-marker, .mapboxgl-popup')) return;
+        if (moveHandler.current && event.lngLat) {
+          moveHandler.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+          return;
+        }
         clickHandler.current?.();
       });
       instance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -167,10 +176,20 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
       marker.current = null;
       return;
     }
-    if (!marker.current) marker.current = new instance.mapboxgl.Marker({ color: '#0460CC' });
+    if (!marker.current) {
+      marker.current = new instance.mapboxgl.Marker({ color: '#0460CC' });
+      marker.current.on('dragend', () => {
+        const at = marker.current?.getLngLat();
+        if (at) moveHandler.current?.({ lat: at.lat, lng: at.lng });
+      });
+    }
+    marker.current.setDraggable(movable);
     marker.current.setLngLat([lng, lat]).addTo(instance);
-    instance.easeTo({ center: [lng, lat], zoom: Math.max(instance.getZoom(), zoom), duration: 600 });
-  }, [lat, lng, zoom, status]);
+    // a fine-tuned pin stays in view: only pan when it has left the visible area
+    if (!movable || !instance.getBounds().contains([lng, lat])) {
+      instance.easeTo({ center: [lng, lat], zoom: Math.max(instance.getZoom(), zoom), duration: 600 });
+    }
+  }, [lat, lng, zoom, status, movable]);
 
   // the other places (mechanics)
   useEffect(() => {

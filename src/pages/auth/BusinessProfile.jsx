@@ -29,6 +29,7 @@ import { GlobalStore } from '../../App';
 import { toApiError } from '../../api/client';
 import { EmptyState } from '../../components/states';
 import { CustomPlacesAutocomplete } from '../../components/maps';
+import { CurrentLocationButton } from '../../components/BusinessLocation';
 import {
   AuthShell,
   authHeader,
@@ -343,9 +344,12 @@ export default function BusinessProfile() {
                 <CustomPlacesAutocomplete
                   placeholder="Search for your area or building"
                   aria-label="Search for your business location"
+                  value={place?.formatted_address || ''}
                   onPlaceChange={(data) => setPlace(data)}
                 />
-                <FormHelperText>Optional — helps nearby customers find you.</FormHelperText>
+                <CurrentLocationButton mt={2} label="Use my current location (stand at your workshop)"
+                  onLocated={(found) => setPlace(found)} />
+                <FormHelperText>Optional — helps nearby customers find you. You can change it later in your business settings.</FormHelperText>
               </FormControl>
             </Stack>
           </Box>

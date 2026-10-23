@@ -22,6 +22,7 @@ import { CloudUpload } from 'lucide-react';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { useApiQuery, useApiMutation } from '../../../../hooks/useApi';
 import { AsyncState } from '../../../../components/states';
+import BusinessLocation from '../../../../components/BusinessLocation';
 import { DealershipContext } from '../Layout';
 
 const SERVICES = ['Car Sale', 'Car Leasing', 'Drivers', 'Car Trade-in'];
@@ -63,9 +64,12 @@ export const BusinessProfile = () => {
   );
 
   return (
-    <AsyncState query={settings} loadingLabel="Loading your business profile…">
-      {(data) => <ProfileForm data={data} onSaved={(next) => settings.setData(next)} />}
-    </AsyncState>
+    <Box w="100%" maxW="720px">
+      <AsyncState query={settings} loadingLabel="Loading your business profile…">
+        {(data) => <ProfileForm data={data} onSaved={(next) => settings.setData(next)} />}
+      </AsyncState>
+      <BusinessLocation mb={8} />
+    </Box>
   );
 };
 

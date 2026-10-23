@@ -25,6 +25,7 @@ import { CloudUpload } from 'lucide-react';
 import { GlobalStore } from '../../../../App';
 import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
 import { AsyncState } from '../../../../components/states';
+import BusinessLocation from '../../../../components/BusinessLocation';
 import { asList } from '../../../../utils';
 import { MechanicContext } from '../Layout';
 
@@ -219,6 +220,7 @@ export const BusinessProfile = () => {
           />
         )}
       </AsyncState>
+      <BusinessLocation mt={8} />
     </Box>
   );
 };

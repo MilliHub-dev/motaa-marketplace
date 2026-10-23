@@ -10,6 +10,7 @@ import { CloudUpload } from 'lucide-react';
 import { useApiMutation } from '../../../hooks/useApi';
 import { storePlace } from '../../../utils/parts';
 import { PartsShopContext } from './shop';
+import BusinessLocation from '../../../components/BusinessLocation';
 
 const MAX_LOGO_MB = 2;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -91,74 +92,77 @@ export default function PartsDealerBusinessProfile() {
   const place = (typeof business.location === 'string' && business.location) || storePlace(store);
 
   return (
-    <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" py={6} maxW="720px" w="100%">
-      <Box>
-        <Heading as="h1" size="md">Business profile</Heading>
-        <Text color="gray.600" fontSize="sm">What customers see on your parts shop.</Text>
-      </Box>
+    <Box w="100%" maxW="720px" pb={8}>
+      <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" py={6} maxW="720px" w="100%">
+        <Box>
+          <Heading as="h1" size="md">Business profile</Heading>
+          <Text color="gray.600" fontSize="sm">What customers see on your parts shop.</Text>
+        </Box>
 
-      <Box bg="white" borderWidth={1} borderColor="gray.200" borderRadius="xl" p={6}>
-        <VStack spacing={3}>
-          <Avatar size="xl" src={logoSrc} name={form.business_name || 'Parts dealer'} bg="primary" color="white" />
-          <FormControl isInvalid={Boolean(errors.logo)} textAlign="center">
-            <Button as="label" htmlFor={logoInputId} variant="link" color="primary" fontSize="sm" leftIcon={<CloudUpload size={16} />} cursor="pointer" tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); logoInput.current?.click(); } }}>
-              {logoSrc ? 'Change logo' : 'Upload logo'}
-            </Button>
-            <input id={logoInputId} ref={logoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={pickLogo}
-              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }} />
-            {errors.logo
-              ? <FormErrorMessage justifyContent="center">{errors.logo}</FormErrorMessage>
-              : <FormHelperText>{logo ? 'New logo will be saved when you save changes.' : `Square image, max ${MAX_LOGO_MB} MB.`}</FormHelperText>}
-          </FormControl>
-          <VStack spacing={1} textAlign="center">
-            <Heading as="h2" fontSize="md">{form.business_name || 'Your business'}</Heading>
-            {place && <Text fontSize="sm" color="gray.600">{place}</Text>}
-            {shop && <Badge colorScheme={shop.verified ? 'green' : 'yellow'} textTransform="none" borderRadius="full" px={2}>{shop.verified ? 'Verified business' : 'Not verified yet'}</Badge>}
+        <Box bg="white" borderWidth={1} borderColor="gray.200" borderRadius="xl" p={6}>
+          <VStack spacing={3}>
+            <Avatar size="xl" src={logoSrc} name={form.business_name || 'Parts dealer'} bg="primary" color="white" />
+            <FormControl isInvalid={Boolean(errors.logo)} textAlign="center">
+              <Button as="label" htmlFor={logoInputId} variant="link" color="primary" fontSize="sm" leftIcon={<CloudUpload size={16} />} cursor="pointer" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); logoInput.current?.click(); } }}>
+                {logoSrc ? 'Change logo' : 'Upload logo'}
+              </Button>
+              <input id={logoInputId} ref={logoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={pickLogo}
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }} />
+              {errors.logo
+                ? <FormErrorMessage justifyContent="center">{errors.logo}</FormErrorMessage>
+                : <FormHelperText>{logo ? 'New logo will be saved when you save changes.' : `Square image, max ${MAX_LOGO_MB} MB.`}</FormHelperText>}
+            </FormControl>
+            <VStack spacing={1} textAlign="center">
+              <Heading as="h2" fontSize="md">{form.business_name || 'Your business'}</Heading>
+              {place && <Text fontSize="sm" color="gray.600">{place}</Text>}
+              {shop && <Badge colorScheme={shop.verified ? 'green' : 'yellow'} textTransform="none" borderRadius="full" px={2}>{shop.verified ? 'Verified business' : 'Not verified yet'}</Badge>}
+            </VStack>
           </VStack>
-        </VStack>
-      </Box>
+        </Box>
 
-      <FormControl isRequired isInvalid={Boolean(errors.business_name)}>
-        <FormLabel>Business name</FormLabel>
-        <Input name="business_name" value={form.business_name} maxLength={300} onChange={(e) => change('business_name', e.target.value)} />
-        <FormErrorMessage>{errors.business_name}</FormErrorMessage>
-      </FormControl>
-
-      <FormControl isInvalid={Boolean(errors.headline)}>
-        <FormLabel>Headline</FormLabel>
-        <Input name="headline" value={form.headline} maxLength={200} placeholder="e.g. Genuine Toyota and Lexus parts" onChange={(e) => change('headline', e.target.value)} />
-        <FormErrorMessage>{errors.headline}</FormErrorMessage>
-      </FormControl>
-
-      <FormControl isInvalid={Boolean(errors.about)}>
-        <FormLabel>About</FormLabel>
-        <Textarea name="about" value={form.about} maxLength={2000} rows={5} onChange={(e) => change('about', e.target.value)} />
-        {errors.about ? <FormErrorMessage>{errors.about}</FormErrorMessage> : <FormHelperText>{form.about.length}/2000 characters</FormHelperText>}
-      </FormControl>
-
-      <Divider />
-      <Heading as="h2" size="sm">Customer contact details</Heading>
-
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-        <FormControl isInvalid={Boolean(errors.contact_email)}>
-          <FormLabel>Contact email</FormLabel>
-          <Input type="email" name="contact_email" autoComplete="email" value={form.contact_email} onChange={(e) => change('contact_email', e.target.value)} />
-          <FormErrorMessage>{errors.contact_email}</FormErrorMessage>
+        <FormControl isRequired isInvalid={Boolean(errors.business_name)}>
+          <FormLabel>Business name</FormLabel>
+          <Input name="business_name" value={form.business_name} maxLength={300} onChange={(e) => change('business_name', e.target.value)} />
+          <FormErrorMessage>{errors.business_name}</FormErrorMessage>
         </FormControl>
-        <FormControl isInvalid={Boolean(errors.contact_phone)}>
-          <FormLabel>Contact phone</FormLabel>
-          <Input type="tel" name="contact_phone" autoComplete="tel" placeholder="+234 801 234 5678" value={form.contact_phone} onChange={(e) => change('contact_phone', e.target.value)} />
-          <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
-        </FormControl>
-      </SimpleGrid>
 
-      <Flex justify="space-between" align="center" gap={3} flexWrap="wrap">
-        <Button as={RLink} to="/parts-store/settings" variant="link" color="primary">Delivery and pickup settings</Button>
-        <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving…" w={{ base: 'full', sm: 'auto' }}>
-          Save changes
-        </Button>
-      </Flex>
-    </VStack>
+        <FormControl isInvalid={Boolean(errors.headline)}>
+          <FormLabel>Headline</FormLabel>
+          <Input name="headline" value={form.headline} maxLength={200} placeholder="e.g. Genuine Toyota and Lexus parts" onChange={(e) => change('headline', e.target.value)} />
+          <FormErrorMessage>{errors.headline}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl isInvalid={Boolean(errors.about)}>
+          <FormLabel>About</FormLabel>
+          <Textarea name="about" value={form.about} maxLength={2000} rows={5} onChange={(e) => change('about', e.target.value)} />
+          {errors.about ? <FormErrorMessage>{errors.about}</FormErrorMessage> : <FormHelperText>{form.about.length}/2000 characters</FormHelperText>}
+        </FormControl>
+
+        <Divider />
+        <Heading as="h2" size="sm">Customer contact details</Heading>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          <FormControl isInvalid={Boolean(errors.contact_email)}>
+            <FormLabel>Contact email</FormLabel>
+            <Input type="email" name="contact_email" autoComplete="email" value={form.contact_email} onChange={(e) => change('contact_email', e.target.value)} />
+            <FormErrorMessage>{errors.contact_email}</FormErrorMessage>
+          </FormControl>
+          <FormControl isInvalid={Boolean(errors.contact_phone)}>
+            <FormLabel>Contact phone</FormLabel>
+            <Input type="tel" name="contact_phone" autoComplete="tel" placeholder="+234 801 234 5678" value={form.contact_phone} onChange={(e) => change('contact_phone', e.target.value)} />
+            <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
+          </FormControl>
+        </SimpleGrid>
+
+        <Flex justify="space-between" align="center" gap={3} flexWrap="wrap">
+          <Button as={RLink} to="/parts-store/settings" variant="link" color="primary">Delivery and pickup settings</Button>
+          <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving…" w={{ base: 'full', sm: 'auto' }}>
+            Save changes
+          </Button>
+        </Flex>
+      </VStack>
+      <BusinessLocation />
+    </Box>
   );
 }
