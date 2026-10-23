@@ -166,6 +166,9 @@ function OrderView({ order, reload, setOrder }) {
               {order.with_driver ? ' · driver requested' : ''}
             </Text>
           )}
+          {order.order_type === 'rental' && order.rental_purpose_label && (
+            <Text fontSize="sm" color="gray.600">Purpose: {order.rental_purpose_label}</Text>
+          )}
           {order.delivery_address && <Text fontSize="sm" color="gray.600" noOfLines={2}>{order.delivery_address}</Text>}
         </Box>
       </Flex>

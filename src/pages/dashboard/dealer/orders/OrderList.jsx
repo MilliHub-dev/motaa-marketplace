@@ -114,6 +114,11 @@ export function OrderCarCell({ order }) {
       <Box minW={0}>
         <Text fontWeight="600" noOfLines={1} whiteSpace="normal" maxW="240px">{orderTitle(order)}</Text>
         <Text color="gray.600" fontSize="sm">{order?.order_type === 'rental' ? 'Rental' : 'Purchase'}</Text>
+        {order?.order_type === 'rental' && order?.rental_purpose_label && (
+          <Text color="gray.600" fontSize="xs" noOfLines={1} whiteSpace="normal" maxW="240px" title={order.rental_purpose_label}>
+            For: {order.rental_purpose_label}
+          </Text>
+        )}
       </Box>
     </Flex>
   );
@@ -338,6 +343,7 @@ export function OrderDetailsDrawer({ order, onClose, onContact }) {
                 {isRental && (
                   <>
                     <DetailRow label="Rental period">{order.rent_from || order.rent_until ? `${fmt(order.rent_from)} – ${fmt(order.rent_until)}` : '—'}</DetailRow>
+                    {order.rental_purpose_label && <DetailRow label="Purpose">{order.rental_purpose_label}</DetailRow>}
                     {order.next_payment && <DetailRow label="Next payment">{fmt(order.next_payment)}</DetailRow>}
                   </>
                 )}

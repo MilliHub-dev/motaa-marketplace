@@ -330,6 +330,9 @@ export const CartPage = () => {
                                                     {order?.order_type === 'rental' && from && (
                                                         <Text fontSize="sm" color="gray.600" mt={1}>{from}{until ? ` – ${until}` : ''}</Text>
                                                     )}
+                                                    {order?.order_type === 'rental' && order?.rental_purpose_label && (
+                                                        <Text fontSize="sm" color="gray.600" noOfLines={2}>Purpose: {order.rental_purpose_label}</Text>
+                                                    )}
                                                 </CartRow>
                                             );
                                         })}

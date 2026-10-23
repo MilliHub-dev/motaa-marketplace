@@ -23,11 +23,13 @@ import {
   Input,
   InputGroup,
   InputLeftAddon,
+  Select,
   SimpleGrid,
   Skeleton,
   Stack,
   Switch,
   Text,
+  Textarea,
   useDisclosure,
   useRadio,
   useRadioGroup,
@@ -42,6 +44,7 @@ import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../compo
 import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { AgreedPriceTag } from '../../../components/offers';
 import { validForWords } from '../../../utils/offers';
+import { RENTAL_PURPOSE_DETAILS_MAX, rentalPurposeErrors, rentalPurposePayload } from '../../../utils/rentals';
 
 const OPTION_META = {
   card: { icon: CreditCard, title: 'Pay online', hint: 'Card, bank transfer or USSD via Paystack' },
@@ -167,11 +170,14 @@ function CheckoutPage() {
     postal_code: '',
     phone: '',
     with_driver: params.get('driver') === '1',
+    rental_purpose: '',
+    rental_purpose_details: '',
     payment_option: 'card',
     inspection_method: 'card', // how the inspection fee is paid when "pay after inspection" is chosen
     consent: false,
   });
   const [submitted, setSubmitted] = useState(false);
+  const [serverErrors, setServerErrors] = useState({}); // field errors from the server, e.g. rental_purpose
   const [paying, setPaying] = useState(false);
   const [pending, setPending] = useState(() => readPending(listingId)); // { listingId, reference, payload, message }
 
@@ -227,7 +233,20 @@ function CheckoutPage() {
   });
 
   const phoneDigits = form.phone.replace(/\D/g, '').replace(/^234/, '').replace(/^0/, '');
+  const rentalPurposes = isRental && Array.isArray(data?.rental_purposes) ? data.rental_purposes : [];
+  const purposeErrors = rentalPurposes.length
+    ? rentalPurposeErrors(form.rental_purpose, form.rental_purpose_details, rentalPurposes)
+    : { rental_purpose: '', rental_purpose_details: '' };
+  const purposeError = (submitted && purposeErrors.rental_purpose) || serverErrors.rental_purpose || '';
+  const purposeDetailsError = (submitted && purposeErrors.rental_purpose_details) || serverErrors.rental_purpose_details || '';
+  const otherPurpose = form.rental_purpose === 'other';
+  const setPurposeField = (key) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [key]: value }));
+    setServerErrors((current) => ({ ...current, [key]: '' }));
+  };
   const errors = {
+    ...purposeErrors,
     area: !form.area.trim() ? (isRental ? 'Choose the pickup or delivery area' : 'Choose the delivery area') : '',
     street: !form.street.trim() ? 'Enter the street address' : '',
     postal_code: form.postal_code && !/^\d{4,8}$/.test(form.postal_code) ? 'Postal codes are 4–8 digits' : '',
@@ -256,7 +275,17 @@ function CheckoutPage() {
       rent_from: isRental ? dates.from : undefined,
       rent_until: isRental ? dates.until : undefined,
       with_driver: isRental && form.with_driver,
+      ...rentalPurposePayload(rentalPurposes.length > 0, form.rental_purpose, form.rental_purpose_details),
     };
+  }
+
+  /** The server's field errors (400), e.g. a purpose it doesn't accept: shown on the fields. */
+  function showServerErrors(error) {
+    if (error?.status !== 400) return;
+    const fields = error.fieldErrors || {};
+    const picked = {};
+    ['rental_purpose', 'rental_purpose_details'].forEach((key) => { if (fields[key]) picked[key] = fields[key]; });
+    if (Object.keys(picked).length) setServerErrors(picked);
   }
 
   /** POST the order. Resolves the order, or throws the ApiError. */
@@ -298,6 +327,7 @@ function CheckoutPage() {
     try {
       await submitOrder(body);
     } catch (error) {
+      showServerErrors(error);
       const next = { ...record, message: error?.message };
       writePending(next);
       setPending(next);
@@ -306,8 +336,11 @@ function CheckoutPage() {
 
   async function retryPending() {
     try {
-      await submitOrder(pending.payload);
+      // the same payment and details; the purpose as it is now if it was fixed after the server refused it
+      const purpose = form.rental_purpose ? rentalPurposePayload(rentalPurposes.length > 0, form.rental_purpose, form.rental_purpose_details) : {};
+      await submitOrder({ ...pending.payload, ...purpose });
     } catch (error) {
+      showServerErrors(error);
       const next = { ...pending, message: error?.message || 'Still no luck. Check your connection, or contact support with this reference.' };
       writePending(next);
       setPending(next);
@@ -326,6 +359,7 @@ function CheckoutPage() {
       });
     } catch (error) {
       if (isPinCancelled(error)) return;
+      showServerErrors(error);
       if (!error?.isNetworkError && !(error?.status >= 500)) notifyError(error, "Couldn't place your order");
     }
   }
@@ -425,6 +459,29 @@ function CheckoutPage() {
               )}
               {isRental && data?.dates_error && !submitted && (
                 <Text fontSize="sm" color="orange.600" role="status">{data.dates_error}</Text>
+              )}
+
+              {rentalPurposes.length > 0 && (
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl isRequired isInvalid={Boolean(purposeError)}>
+                    <FormLabel htmlFor="rental-purpose">What are you renting the car for?</FormLabel>
+                    <Select id="rental-purpose" placeholder="Choose one" value={form.rental_purpose} onChange={setPurposeField('rental_purpose')}>
+                      {rentalPurposes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </Select>
+                    <FormErrorMessage>{purposeError}</FormErrorMessage>
+                  </FormControl>
+                  <FormControl isRequired={otherPurpose} isInvalid={Boolean(purposeDetailsError)}>
+                    <FormLabel htmlFor="rental-purpose-details">
+                      {otherPurpose ? "Tell the dealer what it's for" : 'Anything the dealer should know? (optional)'}
+                    </FormLabel>
+                    <Textarea id="rental-purpose-details" rows={2} maxLength={RENTAL_PURPOSE_DETAILS_MAX} resize="vertical"
+                      placeholder={otherPurpose ? 'e.g. Moving house across town' : 'e.g. Pick-up at the airport arrivals hall'}
+                      value={form.rental_purpose_details} onChange={setPurposeField('rental_purpose_details')} />
+                    {purposeDetailsError
+                      ? <FormErrorMessage>{purposeDetailsError}</FormErrorMessage>
+                      : <FormHelperText>{form.rental_purpose_details.length}/{RENTAL_PURPOSE_DETAILS_MAX}</FormHelperText>}
+                  </FormControl>
+                </SimpleGrid>
               )}
 
               <FormControl isRequired isInvalid={submitted && Boolean(errors.area)}>
