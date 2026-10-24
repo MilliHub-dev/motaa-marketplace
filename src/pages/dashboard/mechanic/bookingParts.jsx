@@ -43,6 +43,7 @@ import { GlobalStore } from '../../../App';
 import { useApiMutation } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { bookingDeadline, cleanStars, hasServiceCharge, mechanicReceives, payoutNote } from '../../../utils/bookings';
+import { ShareLiveLocation } from '../../../components/tracking';
 
 export const STATUS_COLORS = {
   requested: 'cyan',
@@ -297,6 +298,8 @@ export function BookingDetailsModal({ booking, onClose, actions }) {
               <ClientInfo customer={booking.customer} location={booking.location} />
               <Divider />
               <DetailRow label="Status"><StatusBadge status={booking.status} /></DetailRow>
+              <ShareLiveLocation kind="booking" uuid={booking.uuid} active={Boolean(booking.live_tracking)}
+                label={booking.customer?.name?.trim() || 'the customer'} />
               {booking.type && <DetailRow label="Type">{booking.type}</DetailRow>}
               <DetailRow label="Requested">{formatDate(booking.date_created)}</DetailRow>
               {booking.started_on && <DetailRow label="Started">{formatDate(booking.started_on)}</DetailRow>}

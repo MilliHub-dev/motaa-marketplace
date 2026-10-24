@@ -22,6 +22,7 @@ import { CustomPlacesAutocomplete } from './maps';
 import { ActionDialog } from './parts';
 import { PaymentRecoveryNotice, newReference, usePaystack } from './wallet';
 import { isPinCancelled, useWalletPin } from './walletPin';
+import { ShareLiveLocation, TrackOnMapButton } from './tracking';
 
 // ---------------------------------------------------------------- small pieces
 
@@ -611,6 +612,10 @@ export function TransportJobCard({ msg, mine, latest, naturalTime, onChanged }) 
           <JobProblem job={job} />
           <JobDeadline job={job} />
 
+          {/* live tracking while the job is paid: the customer follows the truck, the business shares */}
+          {job.live_tracking && customer && <TrackOnMapButton uuid={job.uuid} title={`${job.service?.title || 'Your tow'}: live location`} alignSelf="flex-start" />}
+          {!customer && <ShareLiveLocation kind="transport" uuid={job.uuid} active={Boolean(job.live_tracking)} label="the customer" />}
+
           {/* the business's number, for the customer, once the job is paid */}
           {customer && job.business_phone && !finished && (
             <Button as="a" href={`tel:${String(job.business_phone).replace(/\s+/g, '')}`} size="sm" variant="outline" leftIcon={<Phone size={14} />}
@@ -835,6 +840,7 @@ export function TransportJobRow({ job }) {
           <JobTrip job={job} compact />
           <JobProblem job={job} mt={2} />
           <JobDeadline job={job} mt={1} />
+          {business && <ShareLiveLocation kind="transport" uuid={job.uuid} active={Boolean(job.live_tracking)} label="the customer" mt={2} />}
           {hasInvoice(job) && (
             <Text fontSize="sm" fontWeight="600" mt={1}>
               ₦{commaInt(job.total)}
@@ -844,6 +850,7 @@ export function TransportJobRow({ job }) {
         </Box>
       </Flex>
       <Flex gap={2} flexShrink={0} direction={{ base: 'row', sm: 'column' }} flexWrap="wrap">
+        {!business && job?.live_tracking && <TrackOnMapButton uuid={job.uuid} title={`${job.service?.title || 'Your tow'}: live location`} />}
         {!business && job?.business_phone && !['completed', 'declined', 'cancelled'].includes(job?.status) && (
           <Button as="a" href={`tel:${String(job.business_phone).replace(/\s+/g, '')}`} size="sm" variant="outline" leftIcon={<Phone size={14} />}
             aria-label={`Call the business on ${job.business_phone}`}>

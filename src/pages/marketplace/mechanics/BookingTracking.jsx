@@ -13,6 +13,7 @@ import { Check, CircleAlert, Clock, MapPin, MessageCircle, Phone, Star, ThumbsUp
 import { GlobalStore } from '../../../App';
 import { ChatPopup } from '../../../components/chat';
 import { MapComponent } from '../../../components/maps';
+import { LiveTrackingPanel } from '../../../components/tracking';
 import { BackButton } from '../../../components/nav';
 import { useDateTime } from '../../../components/parts';
 import { ErrorState } from '../../../components/states';
@@ -429,6 +430,11 @@ export default function BookingTracking() {
             )}
           </Box>
         </Alert>
+
+        {data.live_tracking && (
+          <LiveTrackingPanel kind="booking" uuid={bookingId} height={{ base: '280px', md: '360px' }}
+            wrap={(node) => <Section as="section" title="Live location" mb={6} aria-label="Live location of your mechanic">{node}</Section>} />
+        )}
 
         {(data.can_confirm || data.can_report_problem) && (
           <Box mb={6}><ConfirmJobCard data={data} bookingId={bookingId} onUpdated={updated} /></Box>

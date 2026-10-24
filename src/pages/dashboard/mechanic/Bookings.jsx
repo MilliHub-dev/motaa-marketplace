@@ -18,6 +18,7 @@ import { AsyncState, EmptyState } from '../../../components/states';
 import { asList } from '../../../utils';
 import { splitBookingHistory } from '../../../utils/bookings';
 import { BookingDetailsModal, BookingTable, useBookingActions } from './bookingParts';
+import { SharingStatusBar } from '../../../components/tracking';
 
 // history only holds finished bookings; accepted / in-progress jobs have their own "Active jobs" section
 const FILTERS = [
@@ -87,6 +88,7 @@ const Bookings = () => {
         </InputGroup>
       </Flex>
 
+      <SharingStatusBar mb={6} />
       <AsyncState query={bookings} loadingLabel="Loading bookings…">
         {() => (
           <>

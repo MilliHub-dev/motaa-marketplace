@@ -43,6 +43,26 @@ function loadMapbox() {
   return mapboxPromise;
 }
 
+/** The live vehicle marker: a blue dot with a white ring, a soft halo and (when moving) a heading arrow. */
+function liveMarkerElement() {
+  const box = document.createElement('div');
+  box.setAttribute('role', 'img');
+  box.style.cssText = 'width:34px;height:34px;position:relative;transition:opacity .3s';
+  const halo = document.createElement('div');
+  halo.style.cssText = 'position:absolute;inset:0;border-radius:50%;background:rgba(4,96,204,.22)';
+  const dot = document.createElement('div');
+  dot.style.cssText = 'position:absolute;left:8px;top:8px;width:18px;height:18px;border-radius:50%;background:#0460CC;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)';
+  const arrow = document.createElement('div');
+  arrow.setAttribute('data-arrow', '');
+  // a small triangle above the dot, turned by the heading (0° = north)
+  arrow.style.cssText = 'position:absolute;inset:0;display:none;transform-origin:50% 50%';
+  const tip = document.createElement('div');
+  tip.style.cssText = 'position:absolute;left:11px;top:-3px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid #0460CC';
+  arrow.appendChild(tip);
+  box.append(halo, arrow, dot);
+  return box;
+}
+
 /** What a pin's popup shows: built from DOM nodes so names are never treated as HTML. */
 function pinPopup(pin) {
   const box = document.createElement('div');
@@ -85,8 +105,15 @@ function pinPopup(pin) {
  *             false lets the wheel and one finger move the map (for a full-screen map).
  * onPinMove:  makes the `location` marker movable: drag it, or click the map to put it there.
  *             Called with { lat, lng } (e.g. to fine-tune a business's pin).
+ * live:       a moving vehicle { lat, lng, heading?, label?, stale? } (live tracking). It glides to each new
+ *             position, and the first time it appears the map zooms so it, `location` and `pins` are all in
+ *             view; after that the view is left to the user.
+ * unavailableText: what to say when the map can't load.
  */
-export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, fitPins = false, onMapClick, onPinMove, pageScroll = true, ...props }) => {
+export const MapComponent = ({
+  location, style, zoom = 12, label = 'Map', pins, fitPins = false, onMapClick, onPinMove, live, pageScroll = true,
+  unavailableText = "The map isn't available right now. You can still type your address.", ...props
+}) => {
   const point = validPoint(location);
   const lat = point?.lat;
   const lng = point?.lng;
@@ -107,6 +134,10 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
   const pinsKey = validPins.map((pin) => `${pin.id ?? ''}:${pin.lat.toFixed(5)},${pin.lng.toFixed(5)}:${pin.title ?? ''}:${pin.subtitle ?? ''}`).join('|');
   const pinsRef = useRef(validPins);
   pinsRef.current = validPins;
+  const livePoint = validPoint(live);
+  const liveMarker = useRef(null);
+  const liveFrame = useRef(0);
+  const liveFitted = useRef(false);
 
   // create the map once
   useEffect(() => {
@@ -144,6 +175,8 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
     }).catch(() => { if (!cancelled) setStatus('error'); });
     return () => {
       cancelled = true;
+      cancelAnimationFrame(liveFrame.current);
+      liveMarker.current = null;
       marker.current = null;
       pinMarkers.current = [];
       map.current?.remove();
@@ -221,6 +254,65 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinsKey, fitPins, status, lat, lng]);
 
+  // the live vehicle: a distinct marker that glides to each new position
+  const liveLat = livePoint?.lat;
+  const liveLng = livePoint?.lng;
+  const liveHeading = Number.isFinite(Number(live?.heading)) && live?.heading !== null && live?.heading !== '' ? Number(live.heading) : null;
+  const liveStale = Boolean(live?.stale);
+  const liveLabel = live?.label || 'Live position';
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || status !== 'ready') return;
+    if (liveLat === undefined) {
+      cancelAnimationFrame(liveFrame.current);
+      liveMarker.current?.remove();
+      liveMarker.current = null;
+      return;
+    }
+    const mapboxgl = instance.mapboxgl;
+    if (!liveMarker.current) {
+      liveMarker.current = new mapboxgl.Marker({ element: liveMarkerElement(), rotationAlignment: 'map' })
+        .setLngLat([liveLng, liveLat])
+        .addTo(instance);
+    } else {
+      // glide from where it is to the new position (~1 s), unless the user prefers less motion
+      cancelAnimationFrame(liveFrame.current);
+      const from = liveMarker.current.getLngLat();
+      const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) {
+        liveMarker.current.setLngLat([liveLng, liveLat]);
+      } else {
+        const start = performance.now();
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / 1000);
+          const ease = t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
+          liveMarker.current?.setLngLat([from.lng + (liveLng - from.lng) * ease, from.lat + (liveLat - from.lat) * ease]);
+          if (t < 1) liveFrame.current = requestAnimationFrame(step);
+        };
+        liveFrame.current = requestAnimationFrame(step);
+      }
+    }
+    const element = liveMarker.current.getElement();
+    element.setAttribute('aria-label', liveLabel);
+    element.title = liveLabel;
+    element.style.opacity = liveStale ? '0.55' : '1';
+    const arrow = element.querySelector('[data-arrow]');
+    if (arrow) {
+      arrow.style.display = liveHeading === null ? 'none' : 'block';
+      arrow.style.transform = `rotate(${liveHeading ?? 0}deg)`;
+    }
+    // the first time: show the vehicle, `location` and the pins together; then leave the view alone
+    if (!liveFitted.current) {
+      liveFitted.current = true;
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend([liveLng, liveLat]);
+      if (lat !== undefined) bounds.extend([lng, lat]);
+      pinsRef.current.forEach((pin) => bounds.extend([pin.lng, pin.lat]));
+      instance.fitBounds(bounds, { padding: 70, maxZoom: 15, duration: 600 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveLat, liveLng, liveHeading, liveStale, liveLabel, status]);
+
   return (
     <Box position="relative" role="region" aria-label={label} borderRadius="lg" overflow="hidden" minH="200px" bg="gray.100" style={style} {...props}>
       {/* Mapbox makes its container position:relative, so it gets its size from this wrapper */}
@@ -244,7 +336,7 @@ export const MapComponent = ({ location, style, zoom = 12, label = 'Map', pins, 
           {status === 'error' ? (
             <>
               <MapPin aria-hidden="true" />
-              <Text fontSize="sm">The map isn't available right now. You can still type your address.</Text>
+              <Text fontSize="sm">{unavailableText}</Text>
             </>
           ) : (
             <Spinner color="primary" aria-label="Loading map" />
