@@ -112,6 +112,7 @@ const WalletHomePage = lazyPage(() => import('./pages/marketplace/wallet/Dashboa
 const WalletDepositPage = lazyPage(() => import('./pages/marketplace/wallet/Deposit'));
 const WalletTransactionsPage = lazyPage(() => import('./pages/marketplace/wallet/Transactions'));
 const WalletWithdrawalPage = lazyPage(() => import('./pages/marketplace/wallet/Withdraw'));
+const WalletSendPage = lazyPage(() => import('./pages/marketplace/wallet/Send'));
 
 
 const BrandColors = extendTheme({
@@ -554,6 +555,7 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} path='savings' element={<ComingSoon />} />
                       <Route ErrorBoundary={ErrorBoundary} path='deposit' element={<WalletDepositPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='withdraw' element={<WalletWithdrawalPage />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='send' element={<WalletSendPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='settings' element={<WalletSettingsPage />} />
                       <Route ErrorBoundary={ErrorBoundary} path='' element={<Navigate to='home' />} />
                       <Route ErrorBoundary={ErrorBoundary} path='*' element={<Navigate to='home' />} />

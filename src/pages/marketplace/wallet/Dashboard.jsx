@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Link as RLink } from 'react-router-dom';
 import { Box, Button, Flex, Heading, HStack, Icon, SimpleGrid, Skeleton, Stack, Text } from '@chakra-ui/react';
-import { ArrowDownToLine, ArrowUpFromLine, Landmark, Lock, Receipt } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Landmark, Lock, Receipt, Send } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { AsyncState, EmptyState, ErrorState } from '../../../components/states';
@@ -40,6 +40,7 @@ function WalletHomePage() {
               <Stack direction={{ base: 'column', sm: 'row' }} spacing={3} mt={4}>
                 <Button as={RLink} to="/wallet/deposit" leftIcon={<ArrowDownToLine size={18} />} bg="primary" color="white" _hover={{ bg: 'secondary' }}>Deposit</Button>
                 <Button as={RLink} to="/wallet/withdraw" leftIcon={<ArrowUpFromLine size={18} />} variant="outline" color="primary" borderColor="primary">Withdraw</Button>
+                <Button as={RLink} to="/wallet/send" leftIcon={<Send size={18} />} variant="outline" color="primary" borderColor="primary">Send money</Button>
               </Stack>
             </>
           )}
