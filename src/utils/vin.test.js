@@ -80,3 +80,15 @@ describe('similar car (no record for this VIN)', () => {
     expect(similarCarNote({ ...car, platform: '' })).toMatch(/another 2014 Toyota Camry from a US auction, to show/);
   });
 });
+
+describe('dealer listing photos (this exact car)', () => {
+  it('words the subline and alt text, and keeps absolute photo URLs as they are', async () => {
+    const { auctionPhotoUrl, dealerPhotoAlt, dealerSubline } = await import('./vin');
+    expect(dealerSubline({ last_listed: '2026-02-13' })).toBe('From a US dealer listing · last listed 13 Feb 2026');
+    expect(dealerSubline({ last_listed: null })).toBe('From a US dealer listing');
+    expect(dealerPhotoAlt('2014 Toyota Camry', 1, 12)).toBe('2014 Toyota Camry, dealer listing photo 2 of 12');
+    expect(dealerPhotoAlt('', 0, 3)).toBe('This car, dealer listing photo 1 of 3');
+    expect(auctionPhotoUrl('https://api.auto.dev/photos/abc.jpg', 'https://server.motaa.net')).toBe('https://api.auto.dev/photos/abc.jpg');
+    expect(auctionPhotoUrl('HTTPS://API.AUTO.DEV/x.jpg', 'https://server.motaa.net')).toBe('HTTPS://API.AUTO.DEV/x.jpg');
+  });
+});

@@ -86,7 +86,8 @@ export default function VinChecker() {
       }
       const record = body?.data;
       if (record?.found) setAuction({ status: 'found', record, message: '' });
-      else setAuction({ status: 'none', record: null, similar: record?.similar || null, message: '' });
+      // no record: photos of this exact car from a US dealer listing, else of a similar car
+      else setAuction({ status: 'none', record: null, dealer: record?.dealer?.photos?.length ? record.dealer : null, similar: record?.similar || null, message: '' });
     } catch (err) {
       if (err?.name !== 'AbortError') setAuction({ status: 'failed', record: null, message: '' });
     }
@@ -282,9 +283,16 @@ export default function VinChecker() {
                     </Suspense>
                   )}
                   {auction.status === 'none' && (
-                    <Text mt={5} fontSize="sm" color="gray.600">No US auction record found for this VIN.</Text>
+                    <Text mt={5} fontSize="sm" color="gray.600">
+                      {auction.dealer ? 'No US auction record for this VIN, but we found dealer photos.' : 'No US auction record found for this VIN.'}
+                    </Text>
                   )}
-                  {auction.status === 'none' && auction.similar && (
+                  {auction.status === 'none' && auction.dealer && (
+                    <Suspense fallback={<Flex mt={4} align="center" gap={3} color="gray.600" fontSize="sm"><Spinner size="sm" color="primary" /> Loading photos…</Flex>}>
+                      <VinAuction dealer={auction.dealer} carName={result?.name || ''} />
+                    </Suspense>
+                  )}
+                  {auction.status === 'none' && !auction.dealer && auction.similar && (
                     <Suspense fallback={<Flex mt={4} align="center" gap={3} color="gray.600" fontSize="sm"><Spinner size="sm" color="primary" /> Loading photos…</Flex>}>
                       <VinAuction record={auction.similar} similar />
                     </Suspense>

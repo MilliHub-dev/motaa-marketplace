@@ -2,11 +2,12 @@
 // car was sold, from GET /vin/<VIN>/auction/. With `similar`, the record is another car of the same make, model and
 // year (no record for this VIN), labelled so nobody takes it for theirs. Loaded only when there is something to show.
 import { Badge, Box, Flex, Heading, Icon, List, ListItem, SimpleGrid, Text } from '@chakra-ui/react';
-import { Gavel, Gauge, Hash, Images, MapPin, TriangleAlert, Palette } from 'lucide-react';
+import { Gavel, Gauge, Hash, Images, MapPin, Palette, Store, TriangleAlert } from 'lucide-react';
 import { ImageCarousel } from '.';
 import { SERVER_ORIGIN } from '../config';
 import {
-  auctionCarName, auctionHistoryLine, auctionOdometer, auctionPhotoAlt, auctionPhotoUrl, auctionSaleLine, similarCarNote,
+  auctionCarName, auctionHistoryLine, auctionOdometer, auctionPhotoAlt, auctionPhotoUrl, auctionSaleLine, dealerPhotoAlt, dealerSubline,
+  similarCarNote,
 } from '../utils/vin';
 
 function Fact({ icon, label, value }) {
@@ -22,7 +23,30 @@ function Fact({ icon, label, value }) {
   );
 }
 
-export default function VinAuction({ record, similar = false }) {
+/** Photos of this exact car from when a US dealer listed it (auto.dev): no auction facts. `carName` from the decode. */
+function DealerPhotos({ dealer, carName }) {
+  const photos = (Array.isArray(dealer?.photos) ? dealer.photos : [])
+    .map((path) => ({ url: auctionPhotoUrl(path, SERVER_ORIGIN) })) // absolute URLs stay as they are
+    .filter((photo) => photo.url);
+  if (!photos.length) return null;
+  return (
+    <Box as="section" aria-labelledby="vin-auction-title" mt={4} pt={6} borderTopWidth="1px" borderColor="gray.100">
+      <Flex align="center" gap={2} mb={1} flexWrap="wrap">
+        <Icon as={Store} boxSize="20px" color="primary" aria-hidden="true" />
+        <Heading as="h3" id="vin-auction-title" fontSize="xl" color="secondary">Photos of this car</Heading>
+      </Flex>
+      <Text fontWeight="600" color="gray.800" mb={4}>{dealerSubline(dealer)}</Text>
+      <ImageCarousel images={photos} lazy height={{ base: '220px', md: '320px' }}
+        altFor={(index, total) => dealerPhotoAlt(carName, index, total)} />
+      <Text fontSize="xs" color="gray.500">
+        Photos from when a US dealer had this car for sale, before it was exported. It may have changed since.
+      </Text>
+    </Box>
+  );
+}
+
+export default function VinAuction({ record, similar = false, dealer = null, carName = '' }) {
+  if (dealer) return <DealerPhotos dealer={dealer} carName={carName} />;
   const photos = (Array.isArray(record?.photos) ? record.photos : [])
     .map((path) => ({ url: auctionPhotoUrl(path, SERVER_ORIGIN) }))
     .filter((photo) => photo.url);

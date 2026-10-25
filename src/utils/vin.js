@@ -184,3 +184,16 @@ export function auctionHistoryLine(row) {
     String(row?.status || '').trim(),
   ].filter(Boolean).join(' · ');
 }
+
+// ---- photos from a US dealer listing of this exact car (auto.dev; absolute URLs) ---------------------
+
+/** "From a US dealer listing · last listed 13 Feb 2026" */
+export function dealerSubline(dealer) {
+  const date = auctionDate(dealer?.last_listed);
+  return `From a US dealer listing${date ? ` · last listed ${date}` : ''}`;
+}
+
+/** "2014 Toyota Camry, dealer listing photo 2 of 12" (`name` from the VIN decode). */
+export function dealerPhotoAlt(name, index, total) {
+  return `${String(name || '').trim() || 'This car'}, dealer listing photo ${index + 1} of ${total}`;
+}
