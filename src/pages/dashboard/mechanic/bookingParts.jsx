@@ -42,7 +42,7 @@ import { Eye, MapPin, Star } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiMutation } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
-import { bookingDeadline, cleanStars, hasServiceCharge, mechanicReceives, payoutNote } from '../../../utils/bookings';
+import { bookingDeadline, cleanStars, hasServiceCharge, mechanicPayoutAmount, mechanicReceives, payoutNote } from '../../../utils/bookings';
 import { ShareLiveLocation } from '../../../components/tracking';
 
 export const STATUS_COLORS = {
@@ -375,7 +375,7 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
               <Text>{formatDate(booking?.date_created)}</Text>
               <Text fontWeight="semibold" color="gray.800">
                 ₦{commaInt(booking?.sub_total)}
-                {hasServiceCharge(booking?.payout?.service_charge) && <Text as="span" fontWeight="400" color="gray.600"> + ₦{commaInt(booking.payout.service_charge)} service charge</Text>}
+                {mechanicPayoutAmount(booking?.payout) > 0 && <Text as="span" fontWeight="400" color="green.700"> · you receive ₦{commaInt(mechanicPayoutAmount(booking.payout))}</Text>}
               </Text>
             </Flex>
             {(payoutNote(booking) || booking?.review) && (
@@ -411,8 +411,8 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
               <Td>{servicesSummary(booking)}</Td>
               <Td isNumeric>
                 ₦{commaInt(booking?.sub_total)}
-                {hasServiceCharge(booking?.payout?.service_charge) && (
-                  <Text fontSize="xs" color="gray.600">+ ₦{commaInt(booking.payout.service_charge)} service charge</Text>
+                {mechanicPayoutAmount(booking?.payout) > 0 && (
+                  <Text fontSize="xs" color="green.700">You receive ₦{commaInt(mechanicPayoutAmount(booking.payout))}</Text>
                 )}
               </Td>
               <Td>{formatDate(booking?.date_created)}</Td>

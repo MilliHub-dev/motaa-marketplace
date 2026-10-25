@@ -124,14 +124,32 @@ export function bookingErrorCode(error) {
   return ['quote_changed', 'needs_location'].includes(code) ? code : '';
 }
 
-/** "You receive ₦9,275 (booking fee ₦5,000 + service charge ₦4,275)" for a mechanic, from `payout`. */
-export function mechanicReceives(payout) {
-  if (!payout) return '';
+/**
+ * What a mechanic is paid for a booking, from `payout`: the server's `you_receive` (booking fee + service charge
+ * − Motaa's commission), or the fee + service charge from an older server. → number, or 0 when unknown.
+ */
+export function mechanicPayoutAmount(payout) {
+  if (!payout) return 0;
+  const server = Number(payout.you_receive);
+  if (payout.you_receive !== null && payout.you_receive !== undefined && payout.you_receive !== '' && Number.isFinite(server)) return server;
   const fee = Number(payout.fee) || 0;
   const charge = Number(payout.service_charge) || 0;
-  const total = Number(payout.total) || fee + charge;
-  if (!total) return '';
-  return charge > 0
-    ? `You receive ₦${group(total)} (booking fee ₦${group(fee)} + service charge ₦${group(charge)})`
-    : `You receive ₦${group(total)} (booking fee)`;
+  return Number(payout.total) || fee + charge;
+}
+
+/**
+ * "You receive ₦6,500 (booking fee ₦5,000 + service charge ₦2,000 − Motaa commission ₦500)" for a mechanic.
+ * The parts with no money in them are left out.
+ */
+export function mechanicReceives(payout) {
+  if (!payout) return '';
+  const amount = mechanicPayoutAmount(payout);
+  const fee = Number(payout.fee) || 0;
+  const charge = Number(payout.service_charge) || 0;
+  const commission = Number(payout.commission) || 0;
+  if (!amount && !fee) return '';
+  const parts = [`booking fee ₦${group(fee)}`];
+  if (charge > 0) parts.push(`+ service charge ₦${group(charge)}`);
+  if (commission > 0) parts.push(`− Motaa commission ₦${group(commission)}`);
+  return `You receive ₦${group(amount)} (${parts.join(' ')})`;
 }

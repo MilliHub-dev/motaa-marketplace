@@ -1,5 +1,5 @@
 import {
-    Box, Heading, Button, Container, Flex, HStack, Input, InputGroup, InputLeftElement, SimpleGrid, Text,
+    Box, Heading, Button, Container, Flex, HStack, Input, InputGroup, InputLeftElement, Select, SimpleGrid, Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { AsyncState, EmptyState } from "../../../components/states";
 import { CarBrandFilter, TransmissionFilter } from "../../../components/filters";
 import { useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
+import { SEARCH_KINDS, carSearchPath, searchKind } from "../../../utils/carSearch";
 
 const PAGE_SIZE = 25;
 
@@ -29,6 +30,7 @@ export function resultsSummary(pagination, shown, find) {
 export const CarSearchPage = () => {
     const [params, setParams] = useSearchParams();
     const find = params.get('find') || '';
+    const kind = searchKind(params.get('listing_type'));  // 'sale' | 'rental' | '' (both)
     const [query, setQuery] = useState(find);
     const navigate = useNavigate();
 
@@ -37,6 +39,7 @@ export const CarSearchPage = () => {
 
     const qs = new URLSearchParams();
     if (find) qs.set('find', find);
+    if (kind) qs.set('listing_type', kind);
     for (const key of ['make', 'transmission', 'offset']) if (params.get(key)) qs.set(key, params.get(key));
     const apiQs = qs.toString();
 
@@ -57,9 +60,8 @@ export const CarSearchPage = () => {
 
     function handleSearch(e) {
         e.preventDefault();
-        const text = query.trim();
-        if (!text) return;
-        navigate(`/search/cars/?find=${encodeURIComponent(text)}`);
+        if (!query.trim()) return;
+        navigate(carSearchPath(query, kind));
     }
 
     return (
@@ -78,6 +80,11 @@ export const CarSearchPage = () => {
                         <InputLeftElement pointerEvents="none"><RiSearch2Line aria-hidden="true" /></InputLeftElement>
                         <Input type="search" aria-label="Search cars" placeholder="Search by make or model" value={query} onChange={e => setQuery(e.target.value)} />
                     </InputGroup>
+                    <Select aria-label="Search cars to buy or to rent" value={kind} onChange={(e) => update({ listing_type: e.target.value })}
+                      w={{ base: '6.5rem', md: '8rem' }} flexShrink={0}>
+                        <option value="">Buy & rent</option>
+                        {SEARCH_KINDS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </Select>
                     <Button type="submit" bg="primary" color="white" colorScheme="blue" isDisabled={!query.trim()}>Search</Button>
                 </Flex>
 

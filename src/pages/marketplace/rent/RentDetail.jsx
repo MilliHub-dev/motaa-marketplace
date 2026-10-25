@@ -18,8 +18,9 @@ import {
 } from 'lucide-react'
 import {
   Box, Container, Grid, Heading, Text, Button, HStack, VStack, Stack, Avatar, Badge, Flex, Icon,
-  SimpleGrid, Switch, FormControl, FormLabel, FormErrorMessage, Tag,
+  SimpleGrid, Switch, FormControl, FormLabel, FormErrorMessage, FormHelperText, Tag, Select, Textarea,
 } from '@chakra-ui/react'
+import { RENTAL_PURPOSES, RENTAL_PURPOSE_DETAILS_MAX, rentalPurposeErrors } from '../../../utils/rentals'
 import { profilePicture } from '../../../utils';
 
 
@@ -214,8 +215,11 @@ const BookingForm = ({ listing, ...props }) => {
     params.get('where') ? { formatted_address: params.get('where'), lat: params.get('lat'), lng: params.get('lng') } : null
   ));
   const [driver, setDriver] = useState(false);
+  const [purpose, setPurpose] = useState(params.get('purpose') || '');
+  const [purposeDetails, setPurposeDetails] = useState(params.get('purpose_details') || '');
   const [submitted, setSubmitted] = useState(false);
   const formRef = useRef(null);
+  const otherPurpose = purpose === 'other';
   const offersDrivers = Boolean(listing?.vehicle?.dealer?.offers_drivers);
 
   useEffect(() => { setDriver(false); }, [listing?.uuid]);
@@ -225,8 +229,9 @@ const BookingForm = ({ listing, ...props }) => {
     from: !from ? 'Choose a pick-up date' : from < today ? 'Pick-up date can’t be in the past' : '',
     until: !until ? 'Choose a return date' : from && until <= from ? 'Return date must be after the pick-up date' : '',
     where: !place?.formatted_address ? 'Choose a pickup location' : '',
+    ...rentalPurposeErrors(purpose, purposeDetails, RENTAL_PURPOSES),
   };
-  const valid = !errors.from && !errors.until && !errors.where;
+  const valid = !errors.from && !errors.until && !errors.where && !errors.rental_purpose && !errors.rental_purpose_details;
 
   function book(e) {
     e.preventDefault();
@@ -235,6 +240,8 @@ const BookingForm = ({ listing, ...props }) => {
     const qs = new URLSearchParams({ listingId: listing.uuid, from, until, location: place.formatted_address });
     if (place.lat && place.lng) { qs.set('lat', place.lat); qs.set('lng', place.lng); }
     if (offersDrivers && driver) qs.set('driver', '1');
+    qs.set('purpose', purpose);
+    if (purposeDetails.trim()) qs.set('purpose_details', purposeDetails.trim());
     navigate(`/checkout/?${qs.toString()}`);
   }
 
@@ -269,6 +276,26 @@ const BookingForm = ({ listing, ...props }) => {
               />
             </Box>
             <FormErrorMessage>{errors.where}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isRequired isInvalid={submitted && Boolean(errors.rental_purpose)}>
+            <FormLabel htmlFor="book-purpose">What are you renting it for?</FormLabel>
+            <Select id="book-purpose" placeholder="Choose one" value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+              {RENTAL_PURPOSES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </Select>
+            <FormErrorMessage>{errors.rental_purpose}</FormErrorMessage>
+          </FormControl>
+
+          <FormControl isRequired={otherPurpose} isInvalid={submitted && Boolean(errors.rental_purpose_details)}>
+            <FormLabel htmlFor="book-purpose-details">
+              {otherPurpose ? "Tell the dealer what it's for" : 'Anything the dealer should know? (optional)'}
+            </FormLabel>
+            <Textarea id="book-purpose-details" rows={2} maxLength={RENTAL_PURPOSE_DETAILS_MAX} resize="vertical"
+              placeholder={otherPurpose ? 'e.g. Moving house across town' : "e.g. My sister's wedding in Garki"}
+              value={purposeDetails} onChange={(e) => setPurposeDetails(e.target.value)} />
+            {submitted && errors.rental_purpose_details
+              ? <FormErrorMessage>{errors.rental_purpose_details}</FormErrorMessage>
+              : <FormHelperText>{purposeDetails.length}/{RENTAL_PURPOSE_DETAILS_MAX}</FormHelperText>}
           </FormControl>
 
           {offersDrivers && (

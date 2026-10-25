@@ -1,6 +1,26 @@
 // "Purpose of rental" on the rental checkout (server rules: motaa_backend listings checkout).
 
 export const RENTAL_PURPOSE_DETAILS_MAX = 300;
+
+// The same options the server offers at checkout (`rental_purposes`), for the "Book this car" box on the car's page,
+// which is where the customer chooses it; checkout then shows it and lets them change it.
+export const RENTAL_PURPOSES = [
+  { value: 'personal', label: 'Personal use' },
+  { value: 'business', label: 'Business or work trip' },
+  { value: 'wedding-event', label: 'Wedding or event' },
+  { value: 'airport', label: 'Airport pickup or drop-off' },
+  { value: 'travel', label: 'Travel or tourism' },
+  { value: 'film-photo', label: 'Film or photo shoot' },
+  { value: 'other', label: 'Other' },
+];
+
+/** "Wedding or event: my sister's wedding" for showing a chosen purpose ('' when none). */
+export function rentalPurposeText(purpose, details, options = RENTAL_PURPOSES) {
+  const label = (options.find((option) => option?.value === purpose) || {}).label || '';
+  const text = String(details || '').trim();
+  if (purpose === 'other') return text || label;
+  return label && text ? `${label}: ${text}` : label;
+}
 export const RENTAL_PURPOSE_OTHER_MIN = 3;
 
 /**

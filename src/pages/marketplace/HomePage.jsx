@@ -9,6 +9,8 @@ import {
   ButtonGroup,
   InputGroup,
   InputLeftElement,
+  InputRightElement,
+  Select,
   SimpleGrid,
   Tab,
   TabList,
@@ -28,6 +30,7 @@ import { useApiQuery } from "../../hooks/useApi";
 import { AsyncState, EmptyState } from "../../components/states";
 import { ListingSkeleton } from "../../components/loaders";
 import { asList } from "../../utils";
+import { SEARCH_KINDS, carSearchPath } from "../../utils/carSearch";
 import ScrollAnimation from 'react-animate-on-scroll';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -66,6 +69,7 @@ const tabProps = {
 
 export default function MainPage() {
   const [query, setQuery] = useState("");
+  const [searchFor, setSearchFor] = useState("sale"); // the Buy / Rent picker next to the search box
   const { authUser } = useContext(GlobalStore);
   const navigate = useNavigate();
   const home = useApiQuery(
@@ -78,8 +82,7 @@ export default function MainPage() {
 
   function onSearch(e) {
     e.preventDefault();
-    const text = query.trim();
-    if (text) navigate(`/search/cars/?find=${encodeURIComponent(text)}`);
+    navigate(carSearchPath(query, searchFor));
   }
 
   return (
@@ -114,12 +117,30 @@ export default function MainPage() {
                     <Input
                      type="search"
                      value={query}
-                     aria-label="Search for cars"
-                     placeholder="Search for cars, e.g. Toyota Camry"
+                     aria-label={searchFor === 'rental' ? 'Search cars for rent' : 'Search cars for sale'}
+                     placeholder={searchFor === 'rental' ? 'Cars to rent, e.g. Toyota Prado' : 'Cars to buy, e.g. Toyota Camry'}
                      borderRadius="30px" bg="gray.200"
+                     pr="7.5rem"
                      enterKeyHint="search"
                      onChange={e => setQuery(e.target.value)}
                     />
+                    {/* buy or rent: which cars the search looks through */}
+                    <InputRightElement width="7rem" pr={1}>
+                      <Select
+                       aria-label="Search cars to buy or to rent"
+                       value={searchFor}
+                       onChange={(e) => setSearchFor(e.target.value)}
+                       size="sm"
+                       borderRadius="full"
+                       bg="white"
+                       fontWeight="600"
+                       color="primary"
+                       borderColor="gray.300"
+                       cursor="pointer"
+                      >
+                        {SEARCH_KINDS.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
+                      </Select>
+                    </InputRightElement>
                   </InputGroup>
                 </form>
 

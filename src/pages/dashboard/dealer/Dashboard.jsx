@@ -26,7 +26,7 @@ import { asList } from '../../../utils';
 import { StatCard, SafeChart } from '../../../components/charts';
 import { useApiQuery } from '../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../components/states';
-import { OrderCarCell, OrderDate, OrderStatusBadge, OrderDetailsDrawer, ContactCustomerModal } from './orders/OrderList';
+import { OrderCarCell, OrderDate, OrderPayoutCell, OrderStatusBadge, OrderDetailsDrawer, ContactCustomerModal } from './orders/OrderList';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
@@ -91,7 +91,7 @@ function Dashboard() {
                     <Thead bg="gray.50">
                       <Tr>
                         <Th py={3}>Car</Th>
-                        <Th isNumeric>Amount</Th>
+                        <Th isNumeric>You receive</Th>
                         <Th>Date</Th>
                         <Th>Status</Th>
                         <Th>Customer</Th>
@@ -102,7 +102,7 @@ function Dashboard() {
                       {recentOrders.map((order) => (
                         <Tr key={order?.uuid || order?.id}>
                           <Td py={3}><OrderCarCell order={order} /></Td>
-                          <Td isNumeric><Text color="green.600" fontWeight="600">₦{commaInt(order?.sub_total ?? order?.order_item?.price)}</Text></Td>
+                          <Td isNumeric><OrderPayoutCell order={order} /></Td>
                           <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
                           <Td><OrderStatusBadge status={order?.order_status} /></Td>
                           <Td>

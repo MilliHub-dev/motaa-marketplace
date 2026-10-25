@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bookingAmountDue, bookingDeadline, bookingErrorCode, cleanStars, hasServiceCharge, mechanicReceives, nextStar, payoutNote,
+  bookingAmountDue, bookingDeadline, bookingErrorCode, cleanStars, hasServiceCharge, mechanicPayoutAmount, mechanicReceives, nextStar, payoutNote,
   problemError, serviceChargeLabel, splitBookingHistory,
 } from './bookings';
 
@@ -112,10 +112,22 @@ describe('service charge', () => {
     expect(bookingErrorCode({ data: { code: 'pin_incorrect' } })).toBe('');
   });
 
-  it("words what the mechanic receives", () => {
+  it("words what the mechanic receives, after Motaa's commission", () => {
+    expect(mechanicReceives({ fee: '5000.00', service_charge: '2000.00', total: '7000.00', commission: '500.00', you_receive: '6500.00' }))
+      .toBe('You receive ₦6,500 (booking fee ₦5,000 + service charge ₦2,000 − Motaa commission ₦500)');
+    expect(mechanicReceives({ fee: '5000.00', service_charge: '0.00', commission: '500.00', you_receive: '4500.00' }))
+      .toBe('You receive ₦4,500 (booking fee ₦5,000 − Motaa commission ₦500)');
+    expect(mechanicReceives({ fee: '5000.00', service_charge: '0.00', commission: '0.00', you_receive: '5000.00' }))
+      .toBe('You receive ₦5,000 (booking fee ₦5,000)');
+    expect(mechanicReceives(null)).toBe('');
+  });
+
+  it('falls back to fee + service charge on an older server', () => {
+    expect(mechanicPayoutAmount({ fee: '5000.00', service_charge: '4275.00', total: '9275.00' })).toBe(9275);
+    expect(mechanicPayoutAmount({ fee: '5000.00', service_charge: '4275.00' })).toBe(9275);
+    expect(mechanicPayoutAmount({ fee: '5000.00', you_receive: '4500.00' })).toBe(4500);
+    expect(mechanicPayoutAmount(null)).toBe(0);
     expect(mechanicReceives({ fee: '5000.00', service_charge: '4275.00', total: '9275.00' }))
       .toBe('You receive ₦9,275 (booking fee ₦5,000 + service charge ₦4,275)');
-    expect(mechanicReceives({ fee: '5000.00', service_charge: '0.00' })).toBe('You receive ₦5,000 (booking fee)');
-    expect(mechanicReceives(null)).toBe('');
   });
 });

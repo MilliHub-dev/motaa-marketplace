@@ -44,7 +44,7 @@ import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../compo
 import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { AgreedPriceTag } from '../../../components/offers';
 import { validForWords } from '../../../utils/offers';
-import { RENTAL_PURPOSE_DETAILS_MAX, rentalPurposeErrors, rentalPurposePayload } from '../../../utils/rentals';
+import { RENTAL_PURPOSE_DETAILS_MAX, rentalPurposeErrors, rentalPurposePayload, rentalPurposeText } from '../../../utils/rentals';
 
 const OPTION_META = {
   card: { icon: CreditCard, title: 'Pay online', hint: 'Card, bank transfer or USSD via Paystack' },
@@ -170,8 +170,9 @@ function CheckoutPage() {
     postal_code: '',
     phone: '',
     with_driver: params.get('driver') === '1',
-    rental_purpose: '',
-    rental_purpose_details: '',
+    // chosen in the "Book this car" box on the car's page; checkout shows it and lets them change it
+    rental_purpose: params.get('purpose') || '',
+    rental_purpose_details: params.get('purpose_details') || '',
     payment_option: 'card',
     inspection_method: 'card', // how the inspection fee is paid when "pay after inspection" is chosen
     consent: false,
@@ -240,6 +241,9 @@ function CheckoutPage() {
   const purposeError = (submitted && purposeErrors.rental_purpose) || serverErrors.rental_purpose || '';
   const purposeDetailsError = (submitted && purposeErrors.rental_purpose_details) || serverErrors.rental_purpose_details || '';
   const otherPurpose = form.rental_purpose === 'other';
+  // already chosen on the car's page: show it as a line with "Change" (the fields come back on a problem)
+  const [editingPurpose, setEditingPurpose] = useState(() => !params.get('purpose'));
+  const showPurposeFields = editingPurpose || Boolean(purposeError || purposeDetailsError);
   const setPurposeField = (key) => (e) => {
     const value = e.target.value;
     setForm((f) => ({ ...f, [key]: value }));
@@ -461,7 +465,17 @@ function CheckoutPage() {
                 <Text fontSize="sm" color="orange.600" role="status">{data.dates_error}</Text>
               )}
 
-              {rentalPurposes.length > 0 && (
+              {rentalPurposes.length > 0 && !showPurposeFields && (
+                <Flex align="center" justify="space-between" gap={3} borderWidth="1px" borderRadius="md" px={4} py={3} bg="gray.50">
+                  <Box minW={0}>
+                    <Text fontSize="sm" color="gray.600">Renting it for</Text>
+                    <Text fontWeight="600" noOfLines={2}>{rentalPurposeText(form.rental_purpose, form.rental_purpose_details, rentalPurposes)}</Text>
+                  </Box>
+                  <Button size="sm" variant="link" color="primary" flexShrink={0} onClick={() => setEditingPurpose(true)}>Change</Button>
+                </Flex>
+              )}
+
+              {rentalPurposes.length > 0 && showPurposeFields && (
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl isRequired isInvalid={Boolean(purposeError)}>
                     <FormLabel htmlFor="rental-purpose">What are you renting the car for?</FormLabel>

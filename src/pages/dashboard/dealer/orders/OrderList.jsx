@@ -54,6 +54,7 @@ import { asList } from '../../../../utils';
 import { useApiQuery, useApiMutation } from '../../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../../components/states';
 import { optionLabel } from '../../../../components/forms';
+import { dealerPayout } from '../../../../utils/payouts';
 
 // Backend Order.order_status slugs → label + colour.
 export const ORDER_STATUS = {
@@ -121,6 +122,18 @@ export function OrderCarCell({ order }) {
         )}
       </Box>
     </Flex>
+  );
+}
+
+/** What the dealer is paid for an order (after Motaa's commission), with the commission underneath. */
+export function OrderPayoutCell({ order }) {
+  const { commaInt } = useContext(GlobalStore);
+  const { amount, commission } = dealerPayout(order);
+  return (
+    <Box textAlign="right">
+      <Text fontWeight="600" color="green.600" aria-label={`You receive ₦${commaInt(amount)}`}>₦{commaInt(amount)}</Text>
+      {commission > 0 && <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">after ₦{commaInt(commission)} commission</Text>}
+    </Box>
   );
 }
 
@@ -222,7 +235,7 @@ const OrderListAdmin = () => {
               <Thead bg="gray.50">
                 <Tr>
                   <Th py={3}>Car</Th>
-                  <Th isNumeric>Amount</Th>
+                  <Th isNumeric>You receive</Th>
                   <Th>Date</Th>
                   <Th>Status</Th>
                   <Th>Customer</Th>
@@ -234,8 +247,8 @@ const OrderListAdmin = () => {
                   <Tr key={order?.uuid || order?.id}>
                     <Td py={3}><OrderCarCell order={order} /></Td>
                     <Td isNumeric>
-                      {/* what the dealer earns for this order (rentals: rate × period), not the listing's unit price */}
-                      <Text fontWeight="600" color="green.600">₦{commaInt(order?.sub_total ?? order?.order_item?.price)}</Text>
+                      {/* what the dealer is paid (car amount − Motaa's commission), never the customer's total with VAT/fees */}
+                      <OrderPayoutCell order={order} />
                     </Td>
                     <Td><OrderDate value={order?.date_created || order?.last_updated} /></Td>
                     <Td>
@@ -327,6 +340,12 @@ export function OrderDetailsDrawer({ order, onClose, onContact }) {
                   </DetailRow>
                 )}
                 <DetailRow label={isRental ? 'Rental amount' : 'Sale amount'}>₦{commaInt(order.sub_total ?? order.order_item?.price)}</DetailRow>
+                {dealerPayout(order).commission > 0 && (
+                  <DetailRow label="Motaa commission">− ₦{commaInt(dealerPayout(order).commission)}</DetailRow>
+                )}
+                <DetailRow label="You receive">
+                  <Text as="span" fontWeight="700" color="green.600">₦{commaInt(dealerPayout(order).amount)}</Text>
+                </DetailRow>
                 <DetailRow label="Listing price">
                   ₦{commaInt(order.order_item?.price)}
                   {isRental && order.order_item?.payment_cycle && ` ${optionLabel('payment_cycle', order.order_item.payment_cycle).toLowerCase()}`}

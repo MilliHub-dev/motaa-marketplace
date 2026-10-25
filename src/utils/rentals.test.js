@@ -26,3 +26,14 @@ describe('purpose of rental', () => {
     expect(rentalPurposePayload(false, 'personal', 'x')).toEqual({});
   });
 });
+
+describe('rentalPurposeText', () => {
+  it('reads a chosen purpose back', async () => {
+    const { rentalPurposeText, RENTAL_PURPOSES } = await import('./rentals');
+    expect(rentalPurposeText('wedding-event', " My sister's wedding ")).toBe("Wedding or event: My sister's wedding");
+    expect(rentalPurposeText('airport', '')).toBe('Airport pickup or drop-off');
+    expect(rentalPurposeText('other', 'Moving house')).toBe('Moving house');
+    expect(rentalPurposeText('', '')).toBe('');
+    expect(RENTAL_PURPOSES.map((option) => option.value)).toEqual(['personal', 'business', 'wedding-event', 'airport', 'travel', 'film-photo', 'other']);
+  });
+});
