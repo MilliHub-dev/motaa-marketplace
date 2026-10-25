@@ -1,9 +1,10 @@
 // "Check a VIN" on the landing page: decodes a car's VIN into its make, model, year and specs
-// using NHTSA's free vPIC database (the US government's VIN decoder), straight from the browser.
-import { useState } from 'react';
+// using NHTSA's free vPIC database (the US government's VIN decoder), straight from the browser, then looks for the
+// car's US auction record (Copart / IAAI photos and sale history) on the Motaa API without holding up the specs.
+import { lazy, Suspense, useRef, useState } from 'react';
 import {
   Alert, AlertDescription, AlertIcon, Badge, Box, Button, Container, Flex, FormControl, FormErrorMessage, FormLabel, Grid,
-  Heading, Icon, Input, InputGroup, InputRightElement, SimpleGrid, Skeleton, Text, VStack,
+  Heading, Icon, Input, InputGroup, InputRightElement, SimpleGrid, Skeleton, Spinner, Text, VStack,
 } from '@chakra-ui/react';
 import { Link as RLink } from 'react-router-dom';
 import {
@@ -11,6 +12,10 @@ import {
   ShieldCheck, Tag, TriangleAlert, Users,
 } from 'lucide-react';
 import { VIN_API, cleanVin, summariseVin, vinProblem } from '../utils/vin';
+import { API_URL } from '../config';
+
+// the photo carousel is only downloaded when there is an auction record to show
+const VinAuction = lazy(() => import('./VinAuction'));
 
 const SAMPLE_VIN = '1HGCM82633A004352';
 const ROW_ICONS = {
@@ -54,7 +59,31 @@ export default function VinChecker() {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const [state, setState] = useState({ status: 'idle', result: null }); // idle | loading | done | none | failed
+  const [auction, setAuction] = useState({ status: 'idle', record: null, message: '' }); // idle | loading | found | none | failed
+  const auctionRequest = useRef(null);
   const typed = cleanVin(value).length;
+
+  /** The US auction record, in parallel with the decode (never blocks or hides the specs). */
+  async function lookUpAuction(vin) {
+    auctionRequest.current?.abort();
+    const controller = new AbortController();
+    auctionRequest.current = controller;
+    setAuction({ status: 'loading', record: null, message: '' });
+    try {
+      const response = await fetch(`${API_URL}/vin/${encodeURIComponent(vin)}/auction/`, { signal: controller.signal, headers: { Accept: 'application/json' } });
+      let body = null;
+      try { body = await response.json(); } catch { /* not JSON */ }
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        setAuction({ status: 'failed', record: null, message: response.status === 503 ? (body?.message || '') : '' });
+        return;
+      }
+      const record = body?.data;
+      setAuction(record?.found ? { status: 'found', record, message: '' } : { status: 'none', record: null, message: '' });
+    } catch (err) {
+      if (err?.name !== 'AbortError') setAuction({ status: 'failed', record: null, message: '' });
+    }
+  }
 
   async function lookUp(raw) {
     const problem = vinProblem(raw);
@@ -62,6 +91,7 @@ export default function VinChecker() {
     if (problem) return;
     const vin = cleanVin(raw);
     setState({ status: 'loading', result: null });
+    lookUpAuction(vin);
     try {
       const response = await fetch(`${VIN_API}/${encodeURIComponent(vin)}?format=json`);
       if (!response.ok) throw new Error(String(response.status));
@@ -122,7 +152,8 @@ export default function VinChecker() {
           </Box>
 
           {/* the checker */}
-          <Box bg="white" rounded="3xl" p={{ base: 5, md: 8 }} boxShadow="0 30px 60px -20px rgba(4, 30, 70, 0.55)">
+          {/* minW 0: a wide child (the photo thumbnails) must scroll inside the card, not widen the grid column */}
+          <Box bg="white" rounded="3xl" p={{ base: 5, md: 8 }} boxShadow="0 30px 60px -20px rgba(4, 30, 70, 0.55)" minW={0}>
             <Box as="form" noValidate onSubmit={(event) => { event.preventDefault(); lookUp(value); }}>
               <FormControl isInvalid={Boolean(error)}>
                 <FormLabel htmlFor="vin-input" fontWeight="700" fontSize="lg" color="secondary" mb={3}>Enter the VIN</FormLabel>
@@ -220,6 +251,28 @@ export default function VinChecker() {
                   <Text fontSize="xs" color="gray.500" mt={4}>
                     From the US government's NHTSA vehicle database: how the car was built. This is not an accident, mileage or ownership history.
                   </Text>
+                </Box>
+              )}
+
+              {/* the US auction record: after the specs, or on its own when the decode found nothing */}
+              {['done', 'none', 'failed'].includes(state.status) && auction.status !== 'idle' && (
+                <Box>
+                  {auction.status === 'loading' && (
+                    <Flex mt={6} align="center" gap={3} color="gray.600" fontSize="sm" role="status">
+                      <Spinner size="sm" color="primary" /> Checking US auction records…
+                    </Flex>
+                  )}
+                  {auction.status === 'found' && (
+                    <Suspense fallback={<Flex mt={6} align="center" gap={3} color="gray.600" fontSize="sm"><Spinner size="sm" color="primary" /> Loading auction photos…</Flex>}>
+                      <VinAuction record={auction.record} />
+                    </Suspense>
+                  )}
+                  {auction.status === 'none' && (
+                    <Text mt={5} fontSize="sm" color="gray.600">No US auction record found for this VIN.</Text>
+                  )}
+                  {auction.status === 'failed' && (
+                    <Text mt={5} fontSize="sm" color="gray.600">{auction.message || "We couldn't check US auction records just now."}</Text>
+                  )}
                 </Box>
               )}
             </Box>

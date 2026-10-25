@@ -1394,10 +1394,15 @@ export const OTPField = ({ onChange, value}) => {
 }
 
 
-export function ImageCarousel({ images, alt = 'Vehicle', height = { base: '260px', md: '400px' } }) {
+/**
+ * Photos with thumbnails and a click-to-enlarge view. Arrow keys work in the enlarged view, and swiping left/right
+ * changes photo on touch screens. `altFor(index, total)` words each photo's alt text; `lazy` defers loading.
+ */
+export function ImageCarousel({ images, alt = 'Vehicle', height = { base: '260px', md: '400px' }, altFor, lazy = false }) {
   const photos = (Array.isArray(images) ? images : []).filter((img) => img?.url)
   const [currentImage, setCurrentImage] = useState(0)
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const touchStart = useRef(null)
   const total = photos.length
   const current = total ? currentImage % total : 0
 
@@ -1411,6 +1416,18 @@ export function ImageCarousel({ images, alt = 'Vehicle', height = { base: '260px
 
   const nextImage = () => setCurrentImage((prev) => (prev + 1) % total)
   const previousImage = () => setCurrentImage((prev) => (prev - 1 + total) % total)
+  const photoAlt = (index) => (altFor ? altFor(index, total) : `${alt} – photo ${index + 1} of ${total}`)
+  // swipe left / right to change photo
+  const swipe = total > 1 ? {
+    onTouchStart: (e) => { touchStart.current = e.touches?.[0]?.clientX ?? null },
+    onTouchEnd: (e) => {
+      const start = touchStart.current
+      touchStart.current = null
+      const end = e.changedTouches?.[0]?.clientX
+      if (start === null || end === undefined || Math.abs(end - start) < 40) return
+      if (end < start) nextImage(); else previousImage()
+    },
+  } : {}
   const arrowProps = {
     rounded: 'full',
     position: 'absolute',
@@ -1424,11 +1441,12 @@ export function ImageCarousel({ images, alt = 'Vehicle', height = { base: '260px
 
   return (
     <Box>
-        <Box position="relative" mb={4}>
+        <Box position="relative" mb={4} {...swipe}>
             <Box as="button" type="button" display="block" w="100%" onClick={onOpen} aria-label={`Enlarge photo ${current + 1} of ${total}`} cursor="zoom-in">
               <Image
                 src={photos[current].url}
-                alt={`${alt} – photo ${current + 1} of ${total}`}
+                alt={photoAlt(current)}
+                loading={lazy ? 'lazy' : undefined}
                 w="100%"
                 h={height}
                 objectFit="cover"
@@ -1475,13 +1493,17 @@ export function ImageCarousel({ images, alt = 'Vehicle', height = { base: '260px
 
         <Modal isOpen={isOpen} onClose={onClose} size={{ base: 'full', md: '4xl' }} isCentered>
           <ModalOverlay />
-          <ModalContent bg="black">
+          <ModalContent bg="black" onKeyDown={(e) => {
+            if (total < 2) return
+            if (e.key === 'ArrowRight') { e.preventDefault(); nextImage() }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); previousImage() }
+          }}>
             <ModalCloseButton color="white" zIndex={2} />
             <ModalBody p={0} display="flex" alignItems="center">
-              <Box position="relative" w="100%">
+              <Box position="relative" w="100%" {...swipe}>
                 <Image
                   src={photos[current].url}
-                  alt={`${alt} – photo ${current + 1} of ${total}`}
+                  alt={photoAlt(current)}
                   w="100%"
                   maxH="85vh"
                   objectFit="contain"

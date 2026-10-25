@@ -85,3 +85,68 @@ export function summariseVin(result, vin) {
 }
 
 export const VIN_API = 'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues';
+
+// ---- US auction records (GET /vin/<VIN>/auction/ on the Motaa API) -----------------------------------
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const group = (value) => String(Math.round(Number(value))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const hasNumber = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+
+/** An auction photo link → an absolute URL. The API sends paths relative to its host ("/api/v1/vin/photo/?u=…"). */
+export function auctionPhotoUrl(path, origin) {
+  const text = String(path || '').trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  const base = String(origin || '').replace(/\/+$/, '');
+  return `${base}${text.startsWith('/') ? '' : '/'}${text}`;
+}
+
+/** "2023-05-04" → "4 May 2023" (no time zone shift), or ''. */
+export function auctionDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ''));
+  if (!match) return '';
+  const month = MONTHS[Number(match[2]) - 1];
+  return month ? `${Number(match[3])} ${month} ${match[1]}` : '';
+}
+
+/** 6200 → "$6,200", or '' when unknown. */
+export function usd(value) {
+  return hasNumber(value) && Number(value) > 0 ? `$${group(value)}` : '';
+}
+
+/** "Sold at COPART · 4 May 2023 · $6,200" (the parts that are known). */
+export function auctionSaleLine(record) {
+  const platform = String(record?.platform || '').trim();
+  return [platform ? `Sold at ${platform}` : 'Sold at a US auction', auctionDate(record?.sale_date), usd(record?.sale_price_usd)]
+    .filter(Boolean).join(' · ');
+}
+
+/** "48,280 km (30,000 mi)", or just one of them, or ''. */
+export function auctionOdometer(km, mi) {
+  const k = hasNumber(km) && Number(km) > 0 ? `${group(km)} km` : '';
+  const m = hasNumber(mi) && Number(mi) > 0 ? `${group(mi)} mi` : '';
+  if (k && m) return `${k} (${m})`;
+  return k || m;
+}
+
+/** "2016 Toyota Camry" for the auction record (or its title). */
+export function auctionCarName(record) {
+  const name = [record?.year, record?.make, record?.model].filter(Boolean).join(' ').trim();
+  return name || String(record?.title || '').trim() || 'This car';
+}
+
+/** "2016 Toyota Camry, auction photo 3 of 12" */
+export function auctionPhotoAlt(record, index, total) {
+  return `${auctionCarName(record)}, auction photo ${index + 1} of ${total}`;
+}
+
+/** One earlier sale: "IAAI · lot 3311 · 2 Mar 2021 · $4,100 · Sold" */
+export function auctionHistoryLine(row) {
+  return [
+    String(row?.platform || '').trim(),
+    row?.lot_number ? `lot ${row.lot_number}` : '',
+    auctionDate(row?.date),
+    usd(row?.price_usd),
+    String(row?.status || '').trim(),
+  ].filter(Boolean).join(' · ');
+}

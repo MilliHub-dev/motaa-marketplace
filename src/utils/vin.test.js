@@ -31,3 +31,30 @@ describe('VIN checker', () => {
     expect(summariseVin({ Make: '', Model: '', ModelYear: '' }, 'X')).toBeNull();
   });
 });
+
+describe('US auction record', () => {
+  it('prefixes photo paths with the API host', async () => {
+    const { auctionPhotoUrl } = await import('./vin');
+    expect(auctionPhotoUrl('/api/v1/vin/photo/?u=abc', 'https://server.motaa.net')).toBe('https://server.motaa.net/api/v1/vin/photo/?u=abc');
+    expect(auctionPhotoUrl('api/v1/vin/photo/?u=abc', 'https://server.motaa.net/')).toBe('https://server.motaa.net/api/v1/vin/photo/?u=abc');
+    expect(auctionPhotoUrl('https://cdn.example.com/a.jpg', 'https://server.motaa.net')).toBe('https://cdn.example.com/a.jpg');
+    expect(auctionPhotoUrl('', 'https://server.motaa.net')).toBe('');
+  });
+
+  it('words the sale, the odometer and the history', async () => {
+    const { auctionDate, auctionHistoryLine, auctionOdometer, auctionPhotoAlt, auctionSaleLine, usd } = await import('./vin');
+    expect(auctionDate('2023-05-04')).toBe('4 May 2023');
+    expect(auctionDate('nope')).toBe('');
+    expect(usd(6200)).toBe('$6,200');
+    expect(usd(null)).toBe('');
+    expect(auctionSaleLine({ platform: 'COPART', sale_date: '2023-05-04', sale_price_usd: 6200 })).toBe('Sold at COPART · 4 May 2023 · $6,200');
+    expect(auctionSaleLine({ platform: 'IAAI', sale_date: null, sale_price_usd: null })).toBe('Sold at IAAI');
+    expect(auctionOdometer(48280, 30000)).toBe('48,280 km (30,000 mi)');
+    expect(auctionOdometer(null, 30000)).toBe('30,000 mi');
+    expect(auctionOdometer(0, null)).toBe('');
+    expect(auctionPhotoAlt({ year: 2016, make: 'Toyota', model: 'Camry' }, 2, 12)).toBe('2016 Toyota Camry, auction photo 3 of 12');
+    expect(auctionPhotoAlt({ title: '2016 TOYOTA CAMRY SE' }, 0, 1)).toBe('2016 TOYOTA CAMRY SE, auction photo 1 of 1');
+    expect(auctionHistoryLine({ platform: 'IAAI', lot_number: '3311', date: '2021-03-02', price_usd: 4100, status: 'Sold' }))
+      .toBe('IAAI · lot 3311 · 2 Mar 2021 · $4,100 · Sold');
+  });
+});
