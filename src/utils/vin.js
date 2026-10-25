@@ -114,11 +114,34 @@ export function usd(value) {
   return hasNumber(value) && Number(value) > 0 ? `$${group(value)}` : '';
 }
 
-/** "Sold at COPART · 4 May 2023 · $6,200" (the parts that are known). */
+/**
+ * "Sold at COPART · 4 May 2023 · $6,200 · Sold on Approval" when the sale date or price is known; otherwise
+ * "At IAAI · lot 44031493 · Sold on Approval". The parts that are unknown are left out.
+ */
 export function auctionSaleLine(record) {
   const platform = String(record?.platform || '').trim();
-  return [platform ? `Sold at ${platform}` : 'Sold at a US auction', auctionDate(record?.sale_date), usd(record?.sale_price_usd)]
-    .filter(Boolean).join(' · ');
+  const date = auctionDate(record?.sale_date);
+  const price = usd(record?.sale_price_usd);
+  const status = String(record?.sale_status || '').trim();
+  const where = platform || 'a US auction';
+  const parts = date || price
+    ? [`Sold at ${where}`, date, price]
+    : [`At ${where}`, record?.lot_number ? `lot ${record.lot_number}` : ''];
+  return [...parts, status].filter(Boolean).join(' · ');
+}
+
+/** The auction lookup's query: make, model and year from the VIN decode (empty when it hasn't any). */
+export function auctionQuery(decoded) {
+  const params = new URLSearchParams();
+  const make = String(decoded?.make || '').trim();
+  const model = String(decoded?.model || '').trim();
+  const year = String(decoded?.year || '').trim();
+  if (make && model && year) {
+    params.set('make', make);
+    params.set('model', model);
+    params.set('year', year);
+  }
+  return params.toString();
 }
 
 /** "48,280 km (30,000 mi)", or just one of them, or ''. */
@@ -135,9 +158,20 @@ export function auctionCarName(record) {
   return name || String(record?.title || '').trim() || 'This car';
 }
 
-/** "2016 Toyota Camry, auction photo 3 of 12" */
-export function auctionPhotoAlt(record, index, total) {
-  return `${auctionCarName(record)}, auction photo ${index + 1} of ${total}`;
+/**
+ * "2016 Toyota Camry, auction photo 3 of 12"; for a similar car (not the one checked):
+ * "Another 2014 Toyota Camry (not this car), auction photo 3 of 12".
+ */
+export function auctionPhotoAlt(record, index, total, { similar = false } = {}) {
+  const name = similar ? `Another ${auctionCarName(record)} (not this car)` : auctionCarName(record);
+  return `${name}, auction photo ${index + 1} of ${total}`;
+}
+
+/** The note under a similar car's photos. */
+export function similarCarNote(record) {
+  const platform = String(record?.platform || '').trim();
+  return `No US auction record for this exact car. These photos are of another ${auctionCarName(record)}`
+    + `${platform ? ` sold at ${platform}` : ' from a US auction'}, to show what one looks like.`;
 }
 
 /** One earlier sale: "IAAI · lot 3311 · 2 Mar 2021 · $4,100 · Sold" */

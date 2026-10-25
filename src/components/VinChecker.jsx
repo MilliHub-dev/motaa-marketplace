@@ -11,7 +11,7 @@ import {
   Calendar, Car, CircleCheck, Cog, DoorOpen, FileText, Flag, Fuel, Gauge, Layers, PanelTop, Route, ScanSearch, Search,
   ShieldCheck, Tag, TriangleAlert, Users,
 } from 'lucide-react';
-import { VIN_API, cleanVin, summariseVin, vinProblem } from '../utils/vin';
+import { VIN_API, auctionQuery, cleanVin, summariseVin, vinProblem } from '../utils/vin';
 import { API_URL } from '../config';
 
 // the photo carousel is only downloaded when there is an auction record to show
@@ -61,16 +61,22 @@ export default function VinChecker() {
   const [state, setState] = useState({ status: 'idle', result: null }); // idle | loading | done | none | failed
   const [auction, setAuction] = useState({ status: 'idle', record: null, message: '' }); // idle | loading | found | none | failed
   const auctionRequest = useRef(null);
+  const lookupId = useRef(0); // a newer check replaces an older one still in flight
   const typed = cleanVin(value).length;
 
-  /** The US auction record, in parallel with the decode (never blocks or hides the specs). */
-  async function lookUpAuction(vin) {
+  /**
+   * The US auction record, right after the decode (so the lookup can ask for photos of a similar car by make,
+   * model and year when this VIN has none). One lookup per check; it never hides the specs.
+   */
+  async function lookUpAuction(vin, decoded) {
     auctionRequest.current?.abort();
     const controller = new AbortController();
     auctionRequest.current = controller;
     setAuction({ status: 'loading', record: null, message: '' });
     try {
-      const response = await fetch(`${API_URL}/vin/${encodeURIComponent(vin)}/auction/`, { signal: controller.signal, headers: { Accept: 'application/json' } });
+      const query = auctionQuery(decoded);
+      const response = await fetch(`${API_URL}/vin/${encodeURIComponent(vin)}/auction/${query ? `?${query}` : ''}`,
+        { signal: controller.signal, headers: { Accept: 'application/json' } });
       let body = null;
       try { body = await response.json(); } catch { /* not JSON */ }
       if (controller.signal.aborted) return;
@@ -79,7 +85,8 @@ export default function VinChecker() {
         return;
       }
       const record = body?.data;
-      setAuction(record?.found ? { status: 'found', record, message: '' } : { status: 'none', record: null, message: '' });
+      if (record?.found) setAuction({ status: 'found', record, message: '' });
+      else setAuction({ status: 'none', record: null, similar: record?.similar || null, message: '' });
     } catch (err) {
       if (err?.name !== 'AbortError') setAuction({ status: 'failed', record: null, message: '' });
     }
@@ -90,17 +97,24 @@ export default function VinChecker() {
     setError(problem);
     if (problem) return;
     const vin = cleanVin(raw);
+    const id = ++lookupId.current;
     setState({ status: 'loading', result: null });
-    lookUpAuction(vin);
+    auctionRequest.current?.abort();
+    setAuction({ status: 'idle', record: null, message: '' });
+    let summary = null;
     try {
       const response = await fetch(`${VIN_API}/${encodeURIComponent(vin)}?format=json`);
       if (!response.ok) throw new Error(String(response.status));
       const body = await response.json();
-      const summary = summariseVin(body?.Results?.[0], vin);
+      summary = summariseVin(body?.Results?.[0], vin);
+      if (id !== lookupId.current) return;
       setState(summary ? { status: 'done', result: summary } : { status: 'none', result: null });
     } catch {
+      if (id !== lookupId.current) return;
       setState({ status: 'failed', result: null });
     }
+    // then the auction record (with make/model/year when the decode found them, for similar-car photos)
+    lookUpAuction(vin, summary);
   }
 
   const result = state.result;
@@ -269,6 +283,11 @@ export default function VinChecker() {
                   )}
                   {auction.status === 'none' && (
                     <Text mt={5} fontSize="sm" color="gray.600">No US auction record found for this VIN.</Text>
+                  )}
+                  {auction.status === 'none' && auction.similar && (
+                    <Suspense fallback={<Flex mt={4} align="center" gap={3} color="gray.600" fontSize="sm"><Spinner size="sm" color="primary" /> Loading photos…</Flex>}>
+                      <VinAuction record={auction.similar} similar />
+                    </Suspense>
                   )}
                   {auction.status === 'failed' && (
                     <Text mt={5} fontSize="sm" color="gray.600">{auction.message || "We couldn't check US auction records just now."}</Text>

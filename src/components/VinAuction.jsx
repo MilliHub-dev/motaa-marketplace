@@ -1,11 +1,12 @@
 // The "Auction history" part of the VIN checker: photos and details from the US auction (Copart / IAAI) where the
-// car was sold, from GET /vin/<VIN>/auction/. Loaded only when a record is found (it pulls in the photo carousel).
+// car was sold, from GET /vin/<VIN>/auction/. With `similar`, the record is another car of the same make, model and
+// year (no record for this VIN), labelled so nobody takes it for theirs. Loaded only when there is something to show.
 import { Badge, Box, Flex, Heading, Icon, List, ListItem, SimpleGrid, Text } from '@chakra-ui/react';
-import { Gavel, Gauge, Hash, MapPin, TriangleAlert, Palette } from 'lucide-react';
+import { Gavel, Gauge, Hash, Images, MapPin, TriangleAlert, Palette } from 'lucide-react';
 import { ImageCarousel } from '.';
 import { SERVER_ORIGIN } from '../config';
 import {
-  auctionHistoryLine, auctionOdometer, auctionPhotoAlt, auctionPhotoUrl, auctionSaleLine,
+  auctionCarName, auctionHistoryLine, auctionOdometer, auctionPhotoAlt, auctionPhotoUrl, auctionSaleLine, similarCarNote,
 } from '../utils/vin';
 
 function Fact({ icon, label, value }) {
@@ -21,29 +22,37 @@ function Fact({ icon, label, value }) {
   );
 }
 
-export default function VinAuction({ record }) {
+export default function VinAuction({ record, similar = false }) {
   const photos = (Array.isArray(record?.photos) ? record.photos : [])
     .map((path) => ({ url: auctionPhotoUrl(path, SERVER_ORIGIN) }))
     .filter((photo) => photo.url);
-  const history = (Array.isArray(record?.history) ? record.history : []).filter((row) => auctionHistoryLine(row));
+  const history = similar ? [] : (Array.isArray(record?.history) ? record.history : []).filter((row) => auctionHistoryLine(row));
   const earlier = history.filter((row) => !(row.lot_number && row.lot_number === record?.lot_number && row.date === record?.sale_date));
 
   return (
-    <Box as="section" aria-labelledby="vin-auction-title" mt={8} pt={6} borderTopWidth="1px" borderColor="gray.100">
+    <Box as="section" aria-labelledby="vin-auction-title" mt={similar ? 4 : 8} pt={6} borderTopWidth="1px" borderColor="gray.100">
       <Flex align="center" gap={2} mb={1} flexWrap="wrap">
-        <Icon as={Gavel} boxSize="20px" color="primary" aria-hidden="true" />
-        <Heading as="h3" id="vin-auction-title" fontSize="xl" color="secondary">Auction history</Heading>
+        <Icon as={similar ? Images : Gavel} boxSize="20px" color="primary" aria-hidden="true" />
+        <Heading as="h3" id="vin-auction-title" fontSize="xl" color="secondary">
+          {similar ? `Similar car: ${auctionCarName(record)}` : 'Auction history'}
+        </Heading>
+        {similar && <Badge colorScheme="orange" rounded="full" px={2} textTransform="none">Not this car</Badge>}
         {record?.platform && <Badge colorScheme="purple" rounded="full" px={2} textTransform="none">{record.platform}</Badge>}
       </Flex>
+      {similar && (
+        <Text fontSize="sm" color="orange.800" bg="orange.50" rounded="lg" px={3} py={2} my={2}>{similarCarNote(record)}</Text>
+      )}
       <Text fontWeight="600" color="gray.800" mb={1}>{auctionSaleLine(record)}</Text>
       {record?.title && <Text fontSize="sm" color="gray.600" mb={4}>{record.title}</Text>}
 
       {photos.length > 0 && (
         <Box mb={2}>
           <ImageCarousel images={photos} lazy height={{ base: '220px', md: '320px' }}
-            altFor={(index, total) => auctionPhotoAlt(record, index, total)} />
+            altFor={(index, total) => auctionPhotoAlt(record, index, total, { similar })} />
           <Text fontSize="xs" color="gray.500">
-            Photos from the US auction where this car was sold. The car may have been repaired since.
+            {similar
+              ? 'Photos of a different car of the same model, from a US auction.'
+              : 'Photos from the US auction where this car was sold. The car may have been repaired since.'}
           </Text>
         </Box>
       )}
