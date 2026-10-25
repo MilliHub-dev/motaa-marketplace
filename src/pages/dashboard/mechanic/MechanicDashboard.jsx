@@ -22,11 +22,12 @@ import {
   useBookingActions,
 } from './bookingParts';
 
-function MetricCard({ title, value }) {
+function MetricCard({ title, value, note }) {
   return (
-    <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+    <Box borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4} bg="white" h="100%">
       <Text fontSize="sm" fontWeight="medium" color="gray.600" mb={2}>{title}</Text>
       <Text fontSize="2xl" fontWeight="bold" noOfLines={1}>{value}</Text>
+      {note}
     </Box>
   );
 }
@@ -60,10 +61,19 @@ export const MechanicOverview = () => {
           const current = data?.current_job;
           return (
             <>
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={8}>
-                <Box gridColumn={{ base: 'span 2', md: 'auto' }}>
-                  <MetricCard title="Completed jobs (quoted value)" value={`₦${commaInt(data?.total_revenue)}`} />
-                </Box>
+              <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4} mb={8}>
+                {/* what Motaa has paid them: booking fee + service charge, less commission */}
+                <MetricCard title="Earned through Motaa" value={`₦${commaInt(data?.total_earned)}`} />
+                <MetricCard
+                  title="Completed jobs (quoted value)"
+                  value={`₦${commaInt(data?.total_revenue)}`}
+                  note={Number(data?.unpriced_completed) > 0 && (
+                    <Text fontSize="xs" color="orange.600" mt={1}>
+                      {data.unpriced_completed} job{Number(data.unpriced_completed) === 1 ? '' : 's'} had no price.{' '}
+                      <Button as={RLink} to="/services" variant="link" size="xs" color="primary">Set your prices</Button>
+                    </Text>
+                  )}
+                />
                 <MetricCard title="Hires" value={commaInt(data?.total_hires)} />
                 <MetricCard title="Bookings" value={commaInt(data?.total_bookings)} />
                 <MetricCard title="Pending requests" value={commaInt(data?.total_pending ?? pending.length)} />
