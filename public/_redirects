@@ -1,3 +1,5 @@
 # hashed build files that no longer exist must 404, not fall through to the app shell
 /assets/*  /404  404
+# the service worker is a real file: never the app shell
+/sw.js  /sw.js  200
 /*  /index.html  200

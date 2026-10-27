@@ -13,6 +13,8 @@ import ErrorBoundary from './components/error';
 import { LoadingState } from './components/states';
 import { RoleRedirect, SETTINGS_NOTICE } from './components/team';
 import { WalletPinProvider } from './components/walletPin';
+import { InstalledPushPrompt } from './components/WebPush';
+import { forget as forgetPushDevice, sync as syncPushDevice } from './utils/webPush';
 import { VisitPing } from './hooks/useVisitPing';
 import { canChangeSettings, canUseWallet, isOwner } from './utils/team';
 
@@ -343,7 +345,9 @@ function App() {
     });
   }
   
-  function onLogout(){
+  async function onLogout(){
+    // stop this account's notifications on this device while the token still works (never wait long for it)
+    await Promise.race([forgetPushDevice(api).catch(() => {}), new Promise((resolve) => setTimeout(resolve, 2500))]);
     endSession();
   }
 
@@ -382,6 +386,8 @@ function App() {
   // remembered page data belongs to whoever was signed in
   const sessionToken = authUser?.token;
   useEffect(() => { forgetShownData(); }, [sessionToken]);
+  // a device that already allowed notifications: make sure the server sends them to whoever is signed in now
+  useEffect(() => { if (sessionToken) syncPushDevice(api).catch(() => {}); }, [api, sessionToken]);
 
   // fetch the code for the pages this visitor is most likely to open next, while the browser is idle
   const visitorType = authUser?.user_type;
@@ -598,6 +604,7 @@ function App() {
           </Routes>
            </Suspense>
           </WalletPinProvider>
+          <InstalledPushPrompt />
         </GlobalStore.Provider>
       </Router>
     </ErrorBoundary>                

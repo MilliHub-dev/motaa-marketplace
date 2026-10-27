@@ -18,6 +18,7 @@ import { GlobalStore } from '../../App'
 import { useApiQuery, useApiMutation } from '../../hooks/useApi'
 import { AsyncState, EmptyState } from '../../components/states'
 import { asList } from '../../utils'
+import { PushSettings } from '../../components/WebPush'
 
 const LEVELS = {
   info: { color: 'blue', icon: Info },
@@ -121,6 +122,8 @@ function NotificationsPage() {
               ? "You're all caught up."
               : `You have ${unread} unread notification${unread === 1 ? '' : 's'}.`}
         </Text>
+
+        <PushSettings mb={8} />
 
         <AsyncState
           query={query}

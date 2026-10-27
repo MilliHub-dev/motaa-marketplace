@@ -7,12 +7,17 @@ import reportWebVitals from './reportWebVitals';
 import { glassEnabled, isIOS } from './utils/platform';
 import { reloadForNewVersion } from './utils/lazyPage';
 import './utils/installApp'; // listens for the browser's "install this site" offer from the first moment
+import { registerServiceWorker } from './utils/webPush';
 
 // Vite fires this when a code-split chunk (or its CSS) fails to load — usually
 // because a new version was deployed. Reload once to pick it up.
 window.addEventListener('vite:preloadError', (event) => {
   if (reloadForNewVersion()) event.preventDefault();
 });
+
+// The service worker shows push notifications (public/sw.js). Production only: in development Vite serves the
+// app differently and a worker left over from testing would just get in the way.
+if (import.meta.env.PROD) window.addEventListener('load', () => { registerServiceWorker(); });
 
 // Hooks for platform-specific CSS (see assets/index.css)
 if (isIOS) document.documentElement.classList.add('ios');
