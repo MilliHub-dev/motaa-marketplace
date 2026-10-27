@@ -24,6 +24,8 @@ function PartsDealerDashboardLayout({ hideSidebar }) {
     if (type === 'success') {
       notify({ title: 'Verification submitted', body: 'Your details were submitted. Your dashboard will update when the result is confirmed.' });
       query.reload();
+    } else if (type === 'documents') {
+      query.reload(); // an upload makes the verification "pending"
     } else if (type === 'error') {
       notifyError(new Error(data?.message || 'The verification could not be completed. Please try again.'), 'Verification failed');
     }

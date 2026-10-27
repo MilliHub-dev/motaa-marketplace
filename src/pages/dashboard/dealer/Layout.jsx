@@ -32,6 +32,8 @@ function DealerDashboardLayout({ hideSidebar }) {
     if (type === 'success') {
       notify({ title: 'Verification submitted', body: 'Your details were submitted. Your dashboard will update when the result is confirmed.' });
       dealershipQuery.reload();
+    } else if (type === 'documents') {
+      dealershipQuery.reload(); // an upload makes the verification "pending"
     } else if (type === 'error') {
       notify({
         title: "Verification didn't complete",

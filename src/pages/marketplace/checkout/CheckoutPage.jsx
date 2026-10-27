@@ -44,6 +44,7 @@ import { newReference, PaymentRecoveryNotice, usePaystack } from '../../../compo
 import { isPinCancelled, useWalletPin } from '../../../components/walletPin';
 import { AgreedPriceTag } from '../../../components/offers';
 import { validForWords } from '../../../utils/offers';
+import { listingCondition } from '../../../utils';
 import { RENTAL_PURPOSE_DETAILS_MAX, rentalPurposeErrors, rentalPurposePayload, rentalPurposeText } from '../../../utils/rentals';
 
 const OPTION_META = {
@@ -124,7 +125,7 @@ function CarCard({ listing, agreement, commaInt }) {
       <Box p={5}>
         <Flex justify="space-between" align="start" gap={2}>
           <Heading as="h2" size="md">{listing?.title}</Heading>
-          {vehicle.condition && <Badge flexShrink={0}>{vehicle.condition}</Badge>}
+          {listingCondition(listing) && <Badge flexShrink={0}>{listingCondition(listing)}</Badge>}
         </Flex>
         {agreement ? (
           <Flex mt={1} align="center" gap={2} flexWrap="wrap">

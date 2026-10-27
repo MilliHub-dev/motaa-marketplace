@@ -11,12 +11,14 @@ import { CarFront, Leaf, Star } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon, StarIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CalendarIcon, TimeIcon } from '@chakra-ui/icons';
 import { addMonths, endOfMonth, format, isSameDay, isSameMonth, isToday, startOfMonth, subMonths } from "date-fns"
-import { MdWarning, MdLock } from "react-icons/md"
+import { MdWarning, MdLock, MdUploadFile } from "react-icons/md"
 import Dojah from 'react-dojah';
 
 
 import { DOJAH } from '../config';
 import { isOwner } from '../utils/team';
+import { listingCondition } from '../utils';
+import VerificationDocuments from './VerificationDocuments';
 export const ComboBox = ({ defaultOptions, onSelect }) => {
   const [inputValue, setInputValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState(defaultOptions);
@@ -119,7 +121,8 @@ export const ComboBox = ({ defaultOptions, onSelect }) => {
 /**
  * businessType: 'dealership' | 'mechanic' (keys of DOJAH.appIds / DOJAH.widgetIds) | 'parts_dealer'
  * (parts dealers are verified through the same Dojah app and widget as car dealers).
- * onVerification(type, data) receives the Dojah events ('success', 'error', 'close', ...).
+ * onVerification(type, data) receives the Dojah events ('success', 'error', 'close', ...), and 'documents' after a
+ * verification document is uploaded or removed (the business's status may have changed: reload it).
  */
 export const VerificationNotice = ({ businessType, user, onVerification, verificationStatus, ...props })=>{
   const [beginVerification, setVerificationState] = useState(false);
@@ -128,6 +131,7 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
   const owner = isOwner(authUser);
   const [session, setSession] = useState(null);
   const [starting, setStarting] = useState(false);
+  const documents = useDisclosure();
   async function startVerification() {
     setStarting(true);
     try {
@@ -166,7 +170,7 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
           )}
           {owner && !configured && (
             <Text as="span" display="block" fontWeight="normal" mt={1}>
-              Online verification is unavailable right now. Please contact Motaa support to verify your business.
+              Online verification is unavailable right now. Upload your documents instead, or contact Motaa support.
             </Text>
           )}
         </AlertTitle>
@@ -182,6 +186,15 @@ export const VerificationNotice = ({ businessType, user, onVerification, verific
         >
           Complete verification
         </Button>
+        )}
+        {owner && (
+          <Button onClick={documents.onOpen} colorScheme="yellow" variant="ghost" size="sm" leftIcon={<MdUploadFile size={16} />}>
+            Upload documents
+          </Button>
+        )}
+        {owner && (
+          <VerificationDocuments isOpen={documents.isOpen} onClose={documents.onClose}
+            onChanged={(event, doc) => onVerification?.('documents', { event, document: doc })} />
         )}
         {
           owner && beginVerification && configured &&
@@ -1113,7 +1126,8 @@ export const ListingItemCard = ({ listing, linkSearch = '', ...props }) => {
                         <Heading as="h3" size="md" className="subtitle" textTransform="capitalize" noOfLines={2}>
                             <Link to={href}>{title}</Link>
                         </Heading>
-                        {vehicle?.condition && <Badge color="gray.600" className="bold" flexShrink={0}>{vehicle.condition}</Badge>}
+                        {/* rentals never show a condition */}
+                        {listingCondition(listing) && <Badge color="gray.600" className="bold" flexShrink={0}>{listingCondition(listing)}</Badge>}
                     </Flex>
 
                     {isRental ? (

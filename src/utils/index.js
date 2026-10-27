@@ -36,3 +36,10 @@ export const BUSINESS_USER_TYPES = ['dealer', 'mechanic', 'parts_dealer'];
 export function isBusinessUser(user) {
   return BUSINESS_USER_TYPES.includes(user?.user_type);
 }
+
+/** The condition to show for a listing ("Foreign used", "New"…), or '' — rentals never show one. */
+export function listingCondition(listing, { rental } = {}) {
+    const isRental = rental ?? listing?.listing_type === 'rental';
+    if (isRental) return '';
+    return String(listing?.vehicle?.condition ?? '').trim();
+}

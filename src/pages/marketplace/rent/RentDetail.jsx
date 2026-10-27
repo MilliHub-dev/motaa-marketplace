@@ -89,8 +89,8 @@ export default function RentalDetails() {
                     <Box minW={0}>
                       <Heading as="h1" size="lg">{title}</Heading>
                       <HStack spacing={2} mt={1} color="gray.600" flexWrap="wrap">
-                        {vehicle?.condition && <Text>{vehicle.condition}</Text>}
-                        {Number.isFinite(trips) && <Text>· {trips === 0 ? 'No trips yet' : `${trips} trip${trips === 1 ? '' : 's'}`}</Text>}
+                        {/* rentals show no condition */}
+                        {Number.isFinite(trips) && <Text>{trips === 0 ? 'No trips yet' : `${trips} trip${trips === 1 ? '' : 's'}`}</Text>}
                         {listing?.verified && (
                           <Badge colorScheme="blue" display="inline-flex" alignItems="center" gap={1}>
                             <CheckCircle size={12} aria-hidden="true" /> Verified listing

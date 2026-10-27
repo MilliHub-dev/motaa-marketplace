@@ -383,7 +383,6 @@ export const CartPage = () => {
                                                     <Button as={RLink} to={`/rent/${rental?.uuid}`} bg="primary" color="white" _hover={{ bg: 'secondary' }}>Choose dates</Button>
                                                 </>}
                                             >
-                                                {rental?.vehicle?.condition && <Tag size="sm" mb={1}>{rental.vehicle.condition}</Tag>}
                                                 <Heading as="h3" size="sm" noOfLines={1}>{listingName(rental)}</Heading>
                                                 <Text fontWeight="600" mt={1}>
                                                     ₦{commaInt(rental?.price)}

@@ -29,6 +29,8 @@ function MechanicDashboardLayout({ hideSidebar }) {
     if (type === 'success') {
       notify({ title: 'Verification submitted', body: 'Your details were submitted. Your dashboard will update when the result is confirmed.' });
       profile.reload();
+    } else if (type === 'documents') {
+      profile.reload(); // an upload makes the verification "pending"
     } else if (type === 'error') {
       notifyError(new Error(data?.message || 'The verification could not be completed. Please try again.'), 'Verification failed');
     }
