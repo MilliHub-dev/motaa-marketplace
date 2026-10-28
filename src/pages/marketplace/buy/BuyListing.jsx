@@ -24,7 +24,7 @@ const CONDITIONS = [
 /** URL (?brands=&transmission=&min_price=&max_price=&condition=&page=) → /listings/buy/ query string. */
 function apiQuery(params) {
     const qs = new URLSearchParams();
-    for (const key of ['brands', 'transmission', 'condition']) {
+    for (const key of ['brands', 'transmission', 'condition', 'location']) {
         if (params.get(key)) qs.set(key, params.get(key));
     }
     const min = params.get('min_price');
@@ -40,6 +40,7 @@ function apiQuery(params) {
 function appliedChips(params, commaInt) {
     const chips = [];
     if (params.get('brands')) chips.push({ keys: ['brands'], label: `Brand: ${params.get('brands').split(',').join(', ')}` });
+    if (params.get('location')) chips.push({ keys: ['location'], label: `Location: ${params.get('location')}` });
     if (params.get('transmission')) {
         const names = params.get('transmission').split(',').map((v) => TRANSMISSIONS.find((t) => t.value === v)?.label || v);
         chips.push({ keys: ['transmission'], label: `Transmission: ${names.join(', ')}` });

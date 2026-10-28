@@ -1,3 +1,46 @@
-# https://www.robotstxt.org/robotstxt.html
+# Motaa (www.motaa.net): search engines and AI assistants are welcome to read and link to our public pages.
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wallet
+Disallow: /chat
+Disallow: /orders
+Disallow: /bookings
+Disallow: /notifications
+Disallow: /settings
+Disallow: /team
+Disallow: /inventory
+Disallow: /analytics
+Disallow: /parts/cart
+Disallow: /parts/checkout
+Disallow: /parts/orders
+Disallow: /mechanics/book/
+Disallow: /reset-password/
+Disallow: /login
+Disallow: /signup
+
+# AI search and assistants (answers in ChatGPT, Claude, Perplexity, Gemini, Copilot…)
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wallet
+Disallow: /chat
+Disallow: /orders
+Disallow: /bookings
+Disallow: /settings
+
+Sitemap: https://www.motaa.net/sitemap.xml

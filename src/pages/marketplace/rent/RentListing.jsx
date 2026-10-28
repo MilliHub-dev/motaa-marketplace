@@ -23,6 +23,7 @@ const TRIP_KEYS = ['where', 'lat', 'lng', 'from', 'until'];
 function apiQuery(params) {
     const qs = new URLSearchParams();
     if (params.get('make')) qs.set('make', params.get('make'));
+    if (params.get('location')) qs.set('location', params.get('location'));
     if (params.get('transmission')) qs.set('transmission', params.get('transmission'));
     if (params.get('min_price')) qs.set('price_min', params.get('min_price'));
     if (params.get('max_price')) qs.set('price_max', params.get('max_price'));
@@ -83,6 +84,7 @@ export const RentListing = () => {
 
     const chips = [];
     if (params.get('make')) chips.push({ keys: ['make'], label: `Brand: ${params.get('make').split(',').join(', ')}` });
+    if (params.get('location')) chips.push({ keys: ['location'], label: `Location: ${params.get('location')}` });
     if (params.get('transmission')) chips.push({ keys: ['transmission'], label: `Transmission: ${params.get('transmission').split(',').map((v) => TRANSMISSIONS.find((t) => t.value === v)?.label || v).join(', ')}` });
     if (params.get('min_price') || params.get('max_price')) {
         const min = params.get('min_price'); const max = params.get('max_price');
@@ -174,7 +176,7 @@ export const RentListing = () => {
                   icon={Car}
                   title={chips.length ? 'No rentals match these filters' : 'No cars available for rent yet'}
                   description={chips.length ? 'Try removing a filter or widening your price range.' : 'Check back soon — new rentals are added regularly.'}
-                  action={chips.length ? { label: 'Clear filters', onClick: () => updateParams({ make: null, transmission: null, min_price: null, max_price: null }) } : undefined}
+                  action={chips.length ? { label: 'Clear filters', onClick: () => updateParams({ make: null, location: null, transmission: null, min_price: null, max_price: null }) } : undefined}
                 />
               }
             >

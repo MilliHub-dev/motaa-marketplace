@@ -1,6 +1,9 @@
 # Serves the built single-page app on Railway. Mirrors vercel.json:
 # hashed assets are cached forever, a missing asset is a real 404 (so a stale tab
 # reloads instead of getting index.html as JavaScript), every other path is the app.
+#
+# Search engines and AI crawlers can't read a JavaScript app, so their requests for public pages go to the
+# backend, which answers with the same content as real HTML (motaa_backend/seo). People always get the app.
 {
 	admin off
 	auto_https off
@@ -10,19 +13,45 @@
 	root * /srv
 	encode zstd gzip
 
-	# liveness check for the platform
-	respond /healthz 200
-
 	@assets path /assets/*
-	handle @assets {
-		header Cache-Control "public, max-age=31536000, immutable"
-		file_server
+
+	# what Google, Bing and AI assistants read: the sitemap and llms.txt are made by the backend
+	@seofiles path /sitemap.xml /llms.txt
+
+	@crawlers {
+		path / /home /buy /buy/* /rent /rent/* /search/cars /search/cars/ /featured/* /dealership/* /mechanics /mechanics/* /towing /towing/* /car-haulers /car-haulers/* /parts /parts/* /about /business /features /services /transport /support /privacy-policy /terms-of-service
+		header_regexp User-Agent (?i)(googlebot|google-inspectiontool|storebot-google|googleother|bingbot|bingpreview|msnbot|duckduckbot|yandex|baiduspider|applebot|gptbot|oai-searchbot|chatgpt-user|claudebot|claude-user|claude-searchbot|anthropic-ai|perplexitybot|perplexity-user|mistralai-user|youbot|amazonbot|ccbot|cohere-ai|meta-externalagent|meta-externalfetcher|facebookexternalhit|facebookcatalog|twitterbot|linkedinbot|whatsapp|telegrambot|slackbot|discordbot|pinterest|skypeuripreview|redditbot|petalbot|ahrefsbot|semrushbot)
 	}
 
-	handle {
-		header Cache-Control "no-cache"
-		try_files {path} /index.html
-		file_server
+	# in this order: the first that matches answers
+	route {
+		# liveness check for the platform
+		respond /healthz 200
+
+		handle @seofiles {
+			rewrite * /seo{path}
+			reverse_proxy {$SEO_BACKEND:https://server.motaa.net} {
+				header_up Host {upstream_hostport}
+			}
+		}
+
+		handle @crawlers {
+			rewrite * /seo/render{uri}
+			reverse_proxy {$SEO_BACKEND:https://server.motaa.net} {
+				header_up Host {upstream_hostport}
+			}
+		}
+
+		handle @assets {
+			header Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+
+		handle {
+			header Cache-Control "no-cache"
+			try_files {path} /index.html
+			file_server
+		}
 	}
 
 	header {
