@@ -16,7 +16,7 @@ import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuChartLine } from 'react-icons/lu';
-import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users } from 'lucide-react';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users, Images } from 'lucide-react';
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';
@@ -395,6 +395,7 @@ const MECHANIC_LINKS = [
   { icon: GiHomeGarage, label: 'Dashboard', path: '/dashboard' },
   { icon: GrUserWorker, label: 'Bookings', path: '/bookings' },
   { icon: GiMechanicGarage, label: 'Service Offerings', path: '/services' },
+  { icon: Images, label: 'Gallery', path: '/gallery' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
   { icon: Truck, label: 'Towing vans', path: '/transport' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },

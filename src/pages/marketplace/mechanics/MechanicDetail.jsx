@@ -15,6 +15,7 @@ import { AsyncState } from "../../../components/states";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { useApiQuery } from "../../../hooks/useApi";
 import { asList } from "../../../utils";
+import WorkGallery from '../../../components/WorkGallery';
 import { distanceLabel } from "../../../utils/transport";
 
 
@@ -207,6 +208,10 @@ export const MechanicDetailPage = () => {
                     <VStack spacing={6} align="stretch">
                       {reviews.map((review, idx) => <ReviewCard key={review?.uuid || idx} review={review} />)}
                     </VStack>
+                  </Box>
+                  <Box as="section" py={6} px={{ base: 0, md: 6 }}>
+                    <Heading as="h2" size="md" mb={4}>Gallery</Heading>
+                    <WorkGallery photos={asList(mechanic?.gallery)} />
                   </Box>
                 </Box>
 

@@ -62,6 +62,7 @@ const NotificationsPage = lazyPage(() => import('./pages/marketplace/Notificatio
 
 // Mechanic Dashboard
 const MechanicDashboardLayout = lazyPage(() => import('./pages/dashboard/mechanic/Layout'));
+const MechanicGallery = lazyPage(() => import('./pages/dashboard/mechanic/Gallery'));
 const MechanicDashboard = lazyPage(() => import('./pages/dashboard/mechanic/MechanicDashboard'));
 const BookingsAdmin = lazyPage(() => import('./pages/dashboard/mechanic/Bookings'));
 const ServiceOfferings = lazyPage(() => import('./pages/dashboard/mechanic/services/ServiceOfferings'));
@@ -470,6 +471,7 @@ function App() {
                       <Route ErrorBoundary={ErrorBoundary} element={<MechanicDashboardLayout />}>
                         <Route ErrorBoundary={ErrorBoundary} path='/analytics' element={<MechanicAnalytics />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/dashboard' element={<MechanicDashboard />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/gallery' element={<MechanicGallery />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/bookings' element={<BookingsAdmin />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/services' element={<> <Outlet /> </>}>
