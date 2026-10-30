@@ -209,7 +209,7 @@ export const MechanicDetailPage = () => {
                       {reviews.map((review, idx) => <ReviewCard key={review?.uuid || idx} review={review} />)}
                     </VStack>
                   </Box>
-                  <Box as="section" py={6} px={{ base: 0, md: 6 }}>
+                  <Box as="section" mt={6} p={{ base: 4, md: 6 }} bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="2xl">
                     <Heading as="h2" size="md" mb={4}>Gallery</Heading>
                     <WorkGallery photos={asList(mechanic?.gallery)} />
                   </Box>
