@@ -8,7 +8,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchIcon, StarIcon } from '@chakra-ui/icons';
 import { RiFilterLine } from 'react-icons/ri'
 import { GrLocation } from 'react-icons/gr';
-import { Maximize2, Wrench } from "lucide-react";
+import { Maximize2, Wrench, VerifiedIcon } from "lucide-react";
 import { GlobalStore } from "../../../App";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { MapComponent, CustomPlacesAutocomplete, DEFAULT_MAP_CENTER } from "../../../components/maps";
@@ -169,8 +169,13 @@ export const MechanicListPage = () => {
                                                     <Box flex={1} minW={0}>
                                                         <Flex justify="space-between" align="flex-start" gap={2} flexWrap="wrap">
                                                             <Box minW={0}>
-                                                                <Heading as="h2" size="md" fontWeight="600" mb={1}>
+                                                                <Heading as="h2" size="md" fontWeight="600" mb={1} display="flex" alignItems="center" gap={2}>
                                                                     <Link to={`/mechanics/${mechanic?.uuid}`}>{name}</Link>
+                                                                    {mechanic?.verified_business === true && (
+                                                                        <Box as="span" title="Verified business" display="inline-flex" flexShrink={0}>
+                                                                            <VerifiedIcon fill="cornflowerblue" color="white" aria-label="Verified business" />
+                                                                        </Box>
+                                                                    )}
                                                                 </Heading>
                                                                 {mechanic?.headline && <Text color="gray.800" fontSize="sm">{mechanic.headline}</Text>}
                                                             </Box>
