@@ -137,7 +137,7 @@ function CarCard({ listing, agreement, commaInt }) {
           <Text mt={1} color="secondary" className="bold">₦{commaInt(listing?.price)}{cycle}</Text>
         )}
         <HStack mt={3} spacing={4} flexWrap="wrap" color="gray.700" fontSize="sm">
-          {vehicle.mileage && <HStack spacing={1}><Icon as={Gauge} aria-hidden="true" /><Text>{/\d/.test(vehicle.mileage) && !/km|mi/i.test(vehicle.mileage) ? `${commaInt(String(vehicle.mileage).replace(/\D/g, ''))} km` : vehicle.mileage}</Text></HStack>}
+          {listing?.listing_type !== 'rental' && vehicle.mileage && <HStack spacing={1}><Icon as={Gauge} aria-hidden="true" /><Text>{/\d/.test(vehicle.mileage) && !/km|mi/i.test(vehicle.mileage) ? `${commaInt(String(vehicle.mileage).replace(/\D/g, ''))} km` : vehicle.mileage}</Text></HStack>}
           {vehicle.transmission && <Text>{vehicle.transmission}</Text>}
           {vehicle.fuel_system && <HStack spacing={1}><Icon as={Fuel} aria-hidden="true" /><Text>{vehicle.fuel_system}</Text></HStack>}
         </HStack>

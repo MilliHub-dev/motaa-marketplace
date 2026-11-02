@@ -57,14 +57,14 @@ export const MechanicListPage = () => {
     const qs = new URLSearchParams(searchPoint ? { lat: searchPoint.lat.toFixed(5), lng: searchPoint.lng.toFixed(5) } : {});
     if (params.get('services')) qs.set('services', params.get('services'));
     if (params.get('offset')) qs.set('offset', params.get('offset'));
+    qs.set('summary', '1');
     const apiQs = qs.toString();
-    // wait briefly for the device location so we don't load Abuja first and then jump
-    const ready = Boolean(picked) || geoStatus !== 'locating';
+    // Show listings immediately; refine the results when GPS becomes available.
 
     const mechanics = useApiQuery(
         (api, signal, { useCache }) => api.get(`/mechanics/?${apiQs}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
         [apiQs],
-        { enabled: ready, select: (body) => body?.data, keepAs: `mechanics:${apiQs}` }
+        { select: (body) => body?.data, keepAs: `mechanics:${apiQs}` }
     );
 
     function update(changes) {
@@ -143,7 +143,7 @@ export const MechanicListPage = () => {
                 <Flex gap={6} alignItems="flex-start" direction={{ base: 'column-reverse', md: 'row' }}>
                     <Box w="100%" flex={1} minW={0}>
                         <AsyncState
-                          query={ready ? mechanics : { ...mechanics, loading: true }}
+                          query={mechanics}
                           skeleton={<MechanicListSkeleton />}
                           isEmpty={(data) => asList(data?.results).length === 0}
                           empty={

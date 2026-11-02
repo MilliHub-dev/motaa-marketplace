@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom"
 import { GlobalStore } from "../../../App";
 import {
   LocationBreadcrumb, DatePicker, ReviewCard, RatingCard, ListingItemCard, ImageCarousel, cycleSuffix,
-  formatMileage, toDateInputValue,
+  toDateInputValue,
 } from "../../../components";
 import { ListingDetailSkeleton } from "../../../components/loaders";
 import { AsyncState } from "../../../components/states";
@@ -124,7 +124,6 @@ export default function RentalDetails() {
                         vehicle?.seats && `${vehicle.seats} seats`,
                         vehicle?.doors && `${vehicle.doors} doors`,
                         vehicle?.color,
-                        formatMileage(vehicle?.mileage, commaInt),
                       ].filter(Boolean).map((item) => <Tag key={item} size="lg">{item}</Tag>)}
                     </Flex>
                   </Box>

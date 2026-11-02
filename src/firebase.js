@@ -35,8 +35,22 @@ const FRIENDLY_ERRORS = {
   'auth/network-request-failed': "Can't reach Google right now. Check your internet connection and try again.",
   'auth/unauthorized-domain': "Google sign-in isn't enabled for this web address yet. Use your email and password instead.",
   'auth/operation-not-allowed': "Google sign-in isn't available right now. Use your email and password instead.",
+  'auth/popup-timeout': 'Google sign-in took too long. Close the Google window, allow pop-ups for this site, and try again.',
+  'auth/token-timeout': 'Google could not finish signing you in. Check your connection and try again.',
   'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
 };
+
+// Firebase's popup handshake can remain pending when the browser blocks its
+// helper frame. Bound both stages so the caller's finally always resets the UI.
+function withDeadline(promise, milliseconds, code) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error(code), { code })), milliseconds);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 /**
  * Opens the Google popup and returns what the Motaa API needs.
@@ -51,8 +65,8 @@ export async function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    const { user } = await auth.signInWithPopup(provider);
-    const idToken = await user.getIdToken();
+    const { user } = await withDeadline(auth.signInWithPopup(provider), 90000, 'auth/popup-timeout');
+    const idToken = await withDeadline(user.getIdToken(), 20000, 'auth/token-timeout');
     const [firstName = '', ...rest] = (user.displayName || '').trim().split(/\s+/);
     // Motaa uses its own API token from here on; don't keep a Firebase session around.
     auth.signOut().catch(() => {});

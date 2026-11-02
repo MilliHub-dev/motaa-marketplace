@@ -19,13 +19,12 @@ export function asList(value){
     return Array.isArray(value) ? value : [];
 }
 
-// The Motaa icon stands in for a dealer whose profile Motaa has hidden from customers
-// (the API then sends `profile_hidden: true`, no logo, and "Motaa Dealer #<id>" as the name).
+// Legacy Motaa icon export; contact privacy does not change dealer branding.
 export const MOTAA_ICON = '/logo192.png';
 
-/** Picture for a dealer or chat contact: their own logo, or the Motaa icon when hidden. */
+/** Picture for a dealer or chat contact, regardless of contact privacy. */
 export function profilePicture(profile) {
-  return profile?.logo || profile?.image || (profile?.profile_hidden ? MOTAA_ICON : undefined);
+  return profile?.logo || profile?.image || undefined;
 }
 
 

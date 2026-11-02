@@ -56,7 +56,7 @@ export function useSearchPoint(params) {
 
   const point = picked || deviceLocation;
   const name = params.get('near') || (picked ? 'Selected location' : deviceLocation ? 'your location' : 'Nigeria');
-  return { picked, deviceLocation, geoStatus, point, name, ready: Boolean(picked) || geoStatus !== 'locating' };
+  return { picked, deviceLocation, geoStatus, point, name };
 }
 
 function TowingCard({ service, onMessage, loginPath }) {
@@ -94,7 +94,7 @@ export default function TowingListing() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { picked, deviceLocation, geoStatus, point, name, ready } = useSearchPoint(params);
+  const { picked, deviceLocation, geoStatus, point, name } = useSearchPoint(params);
   const availableOnly = params.get('all') !== '1';
   const [chatWith, setChatWith] = useState(null);
   const bigMap = useDisclosure();
@@ -106,7 +106,7 @@ export default function TowingListing() {
   const query = useApiQuery(
     (api, signal, { useCache }) => api.get(`/transport/?${apiQs}`, { signal, cacheTTL: useCache ? 30000 : 0 }),
     [apiQs],
-    { enabled: ready, select: (body) => body?.data, keepAs: `towing:${apiQs}` }
+    { select: (body) => body?.data, keepAs: `towing:${apiQs}` }
   );
 
   function update(changes) {
@@ -161,7 +161,7 @@ export default function TowingListing() {
         <Flex gap={6} alignItems="flex-start" direction={{ base: 'column-reverse', md: 'row' }}>
           <Box w="100%" flex={1} minW={0}>
             <AsyncState
-              query={ready ? query : { ...query, loading: true }}
+              query={query}
               skeleton={<TransportListSkeleton />}
               isEmpty={(data) => asList(data?.results).length === 0}
               empty={

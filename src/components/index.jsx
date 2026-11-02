@@ -1072,7 +1072,7 @@ export const ListingItemCard = ({ listing, linkSearch = '', ...props }) => {
     const href = `/${isRental ? 'rent' : 'buy'}/${listing?.uuid}${linkSearch}`;
     const title = listing?.title || vehicle?.name || 'Untitled listing';
     const image = images.length ? images[index % images.length] : null;
-    const mileage = formatMileage(vehicle?.mileage, commaInt);
+    const mileage = isRental ? null : formatMileage(vehicle?.mileage, commaInt);
     const trips = Number(vehicle?.trips);
     const rating = Number(vehicle?.dealer?.rating);
 

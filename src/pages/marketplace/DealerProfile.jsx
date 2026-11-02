@@ -29,10 +29,11 @@ function Stats({ number, label }) {
 // The dealer's live cars, for sale or for rent (/listings/{buy,rentals}/?dealer=<uuid>).
 function DealerListings({ dealerUuid, offersSales, offersRentals }) {
   const kinds = [
-    offersSales !== false && { key: 'buy', label: 'For sale' },
-    offersRentals && { key: 'rentals', label: 'For rent' },
-  ].filter(Boolean);
-  const [kind, setKind] = useState(kinds[0]?.key || 'buy');
+    { key: 'buy', label: 'For sale' },
+    { key: 'rentals', label: 'For rent' },
+  ];
+  // Service flags describe the business; they must not hide published inventory.
+  const [kind, setKind] = useState(offersSales === false && offersRentals ? 'rentals' : 'buy');
   const listings = useApiQuery(
     (api, signal) => api.get(`/listings/${kind}/?dealer=${encodeURIComponent(dealerUuid)}`, { signal }),
     [kind, dealerUuid],
@@ -169,7 +170,7 @@ export default function DealerProfile() {
                   <Divider mb={6} />
 
                   {data?.uuid && (
-                    <DealerListings dealerUuid={data.uuid} offersSales={data?.offers_purchase} offersRentals={data?.offers_rental} />
+                    <DealerListings key={data.uuid} dealerUuid={data.uuid} offersSales={data?.offers_purchase} offersRentals={data?.offers_rental} />
                   )}
 
                   <Divider mb={6} />

@@ -166,12 +166,13 @@ const REQUIRED = ['title', 'brand', 'model', 'vin', 'price', 'condition', 'vehic
 export function validateListingForm(form) {
   const errors = {};
   for (const field of REQUIRED) {
+    if (form?.listing_type === 'rental' && ['mileage', 'drivetrain'].includes(field)) continue;
     if (!String(form?.[field] ?? '').trim()) errors[field] = 'This field is required.';
   }
   const price = Number(form?.price);
   if (!errors.price && (!Number.isFinite(price) || price <= 0)) errors.price = 'Enter a price greater than ₦0.';
   const mileage = Number(form?.mileage);
-  if (!errors.mileage && (!Number.isFinite(mileage) || mileage < 0)) errors.mileage = 'Enter the mileage in km (0 or more).';
+  if (form?.listing_type !== 'rental' && !errors.mileage && (!Number.isFinite(mileage) || mileage < 0)) errors.mileage = 'Enter the mileage in km (0 or more).';
   if (form?.listing_type === 'rental' && !form?.payment_cycle) errors.payment_cycle = 'Choose how often renters pay.';
   if (String(form?.title || '').length > 200) errors.title = 'Keep the title under 200 characters.';
   if (String(form?.notes || '').length > 700) errors.notes = 'Keep notes under 700 characters.';
@@ -183,6 +184,7 @@ export function listingPayload(form) {
   const payload = {};
   for (const key of ['listing_type', 'title', 'brand', 'model', 'vin', 'price', 'condition', 'vehicle_type',
     'fuel_system', 'transmission', 'drivetrain', 'doors', 'seats', 'mileage', 'color', 'notes']) {
+    if (form.listing_type === 'rental' && ['mileage', 'drivetrain'].includes(key)) continue;
     payload[key] = typeof form[key] === 'string' ? form[key].trim() : form[key];
   }
   payload.features = Array.isArray(form.features) ? form.features : [];
@@ -344,11 +346,11 @@ export function ListingDetailsForm({ form, errors = {}, onChange }) {
         <SelectField field="vehicle_type" label="Body type" placeholder="Select body type" form={form} errors={errors} onChange={onChange} />
         <SelectField field="fuel_system" label="Fuel" placeholder="Select fuel type" form={form} errors={errors} onChange={onChange} />
         <SelectField field="transmission" label="Transmission" placeholder="Select transmission" form={form} errors={errors} onChange={onChange} />
-        <SelectField field="drivetrain" label="Drive train" placeholder="Select drive train" form={form} errors={errors} onChange={onChange} />
+        {!isRental && <SelectField field="drivetrain" label="Drive train" placeholder="Select drive train" form={form} errors={errors} onChange={onChange} />}
         <SelectField field="doors" label="Doors" form={form} errors={errors} onChange={onChange} />
         <SelectField field="seats" label="Seats" form={form} errors={errors} onChange={onChange} />
 
-        <FormControl isRequired isInvalid={Boolean(errors.mileage)}>
+        {!isRental && <FormControl isRequired isInvalid={Boolean(errors.mileage)}>
           <FormLabel>Mileage</FormLabel>
           <InputGroup>
             <Input
@@ -363,7 +365,7 @@ export function ListingDetailsForm({ form, errors = {}, onChange }) {
             <InputRightAddon>km</InputRightAddon>
           </InputGroup>
           <FormErrorMessage>{errors.mileage}</FormErrorMessage>
-        </FormControl>
+        </FormControl>}
 
         <FormControl isInvalid={Boolean(errors.color)}>
           <FormLabel>Colour <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
@@ -538,10 +540,10 @@ export function ListingReviewCard({ form, images = [] }) {
   const cover = images.find((i) => !i.removed);
   const isRental = form.listing_type === 'rental';
   const specs = [
-    { icon: Gauge, label: form.mileage !== '' ? `${commaInt(form.mileage)} km` : null },
+    { icon: Gauge, label: form.listing_type !== 'rental' && form.mileage !== '' ? `${commaInt(form.mileage)} km` : null },
     { icon: Settings, label: optionLabel('transmission', form.transmission) },
     { icon: Zap, label: optionLabel('fuel_system', form.fuel_system) },
-    { icon: Car, label: [optionLabel('vehicle_type', form.vehicle_type), form.drivetrain].filter(Boolean).join(' · ') },
+    { icon: Car, label: [optionLabel('vehicle_type', form.vehicle_type), form.listing_type !== 'rental' && form.drivetrain].filter(Boolean).join(' · ') },
     { icon: DoorOpen, label: form.doors ? `${form.doors} doors` : null },
     { icon: Users, label: form.seats ? `${form.seats} seats` : null },
   ].filter((s) => s.label);
