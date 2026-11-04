@@ -166,7 +166,7 @@ const REQUIRED = ['title', 'brand', 'model', 'vin', 'price', 'condition', 'vehic
 export function validateListingForm(form) {
   const errors = {};
   for (const field of REQUIRED) {
-    if (form?.listing_type === 'rental' && ['mileage', 'drivetrain'].includes(field)) continue;
+    if (form?.listing_type === 'rental' && ['mileage', 'drivetrain', 'vin'].includes(field)) continue;
     if (!String(form?.[field] ?? '').trim()) errors[field] = 'This field is required.';
   }
   const price = Number(form?.price);
@@ -184,7 +184,7 @@ export function listingPayload(form) {
   const payload = {};
   for (const key of ['listing_type', 'title', 'brand', 'model', 'vin', 'price', 'condition', 'vehicle_type',
     'fuel_system', 'transmission', 'drivetrain', 'doors', 'seats', 'mileage', 'color', 'notes']) {
-    if (form.listing_type === 'rental' && ['mileage', 'drivetrain'].includes(key)) continue;
+    if (form.listing_type === 'rental' && ['mileage', 'drivetrain', 'vin'].includes(key)) continue;
     payload[key] = typeof form[key] === 'string' ? form[key].trim() : form[key];
   }
   payload.features = Array.isArray(form.features) ? form.features : [];
@@ -337,11 +337,11 @@ export function ListingDetailsForm({ form, errors = {}, onChange }) {
 
         <SelectField field="condition" label="Condition" placeholder="Choose condition" form={form} errors={errors} onChange={onChange} />
 
-        <FormControl isRequired isInvalid={Boolean(errors.vin)}>
+        {!isRental && <FormControl isRequired isInvalid={Boolean(errors.vin)}>
           <FormLabel>VIN / chassis number</FormLabel>
           <Input name="vin" placeholder="17-character VIN" value={form.vin} onChange={(e) => onChange('vin', e.target.value.toUpperCase())} />
           <FormErrorMessage>{errors.vin}</FormErrorMessage>
-        </FormControl>
+        </FormControl>}
 
         <SelectField field="vehicle_type" label="Body type" placeholder="Select body type" form={form} errors={errors} onChange={onChange} />
         <SelectField field="fuel_system" label="Fuel" placeholder="Select fuel type" form={form} errors={errors} onChange={onChange} />
@@ -588,7 +588,7 @@ export function ListingReviewCard({ form, images = [] }) {
             </Wrap>
           )}
           {form.notes && <Text fontSize="sm" color="gray.700" whiteSpace="pre-wrap">{form.notes}</Text>}
-          <Text fontSize="xs" color="gray.500" mt={4}>VIN: {form.vin}</Text>
+          {!isRental && <Text fontSize="xs" color="gray.500" mt={4}>VIN: {form.vin}</Text>}
         </Box>
       </Box>
 
