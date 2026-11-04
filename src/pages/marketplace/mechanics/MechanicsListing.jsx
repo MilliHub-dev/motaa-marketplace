@@ -8,7 +8,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchIcon, StarIcon } from '@chakra-ui/icons';
 import { RiFilterLine } from 'react-icons/ri'
 import { GrLocation } from 'react-icons/gr';
-import { Maximize2, Wrench, VerifiedIcon } from "lucide-react";
+import { Maximize2, Wrench, VerifiedIcon, HelpCircle } from "lucide-react";
 import { GlobalStore } from "../../../App";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { MapComponent, CustomPlacesAutocomplete, DEFAULT_MAP_CENTER } from "../../../components/maps";
@@ -208,7 +208,18 @@ export const MechanicListPage = () => {
                                                         <Flex justify="flex-start" columnGap={5} rowGap={2} flexWrap="wrap" align="center">
                                                             {Number(mechanic?.price_start) > 0 && (
                                                                 <Flex align="center" gap={1}>
-                                                                    <Text color="gray.600">Services from</Text>
+                                                                    <Text color="gray.600">Service Charge</Text>
+                                                                    <Tooltip
+                                                                        label="This is the amount you'll pay for the mechanic's services and transport. It isn't refundable once the mechanic accepts your order."
+                                                                        hasArrow
+                                                                        placement="top"
+                                                                        maxW="260px"
+                                                                        fontSize="sm"
+                                                                    >
+                                                                        <Box as="span" display="inline-flex" color="gray.500" cursor="help" aria-label="What is the service charge?">
+                                                                            <HelpCircle size={14} aria-hidden="true" />
+                                                                        </Box>
+                                                                    </Tooltip>
                                                                     <Text fontSize="lg" fontWeight="bold">₦{commaInt(mechanic.price_start)}</Text>
                                                                 </Flex>
                                                             )}
