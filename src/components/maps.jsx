@@ -143,6 +143,7 @@ export const MapComponent = ({
   useEffect(() => {
     if (!MAPBOX_TOKEN) return undefined;
     let cancelled = false;
+    let readyTimer;
     loadMapbox().then((mapboxgl) => {
       if (cancelled || !container.current) return;
       if (mapboxgl.supported && !mapboxgl.supported()) return setStatus('error');
@@ -164,17 +165,24 @@ export const MapComponent = ({
         clickHandler.current?.();
       });
       instance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-      instance.on('load', () => { if (!cancelled) setStatus('ready'); });
-      // a rejected token or unreachable style: fall back to the notice
+      instance.on('load', () => { clearTimeout(readyTimer); if (!cancelled) setStatus('ready'); });
+      // Only a rejected token or a blocked style is fatal. Mapbox also fires 'error' for harmless
+      // things while loading (one failed tile, a sprite/glyph, an aborted request), so those must
+      // never replace a working map with the "isn't available" notice.
       instance.on('error', (event) => {
         const code = event?.error?.status;
-        if (!cancelled && (code === 401 || code === 403 || !instance.isStyleLoaded())) setStatus((s) => (s === 'ready' ? s : 'error'));
+        if (!cancelled && (code === 401 || code === 403)) { clearTimeout(readyTimer); setStatus('error'); }
       });
+      // safety net: if nothing has rendered after 15s (offline, blocked script, no WebGL) show the notice
+      readyTimer = setTimeout(() => {
+        if (!cancelled && !instance.isStyleLoaded()) setStatus((s) => (s === 'ready' ? s : 'error'));
+      }, 15000);
       map.current = instance;
       map.current.mapboxgl = mapboxgl;
     }).catch(() => { if (!cancelled) setStatus('error'); });
     return () => {
       cancelled = true;
+      clearTimeout(readyTimer);
       cancelAnimationFrame(liveFrame.current);
       liveMarker.current = null;
       marker.current = null;
