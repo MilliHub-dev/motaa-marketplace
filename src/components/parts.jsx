@@ -41,7 +41,7 @@ export function usePartsCartCount() {
 // ---------------------------------------------------------------- parts
 
 /** A part's photo, or a grey box with an icon when there is none (or it fails to load). */
-export function PartPhoto({ src, alt, iconSize = 8, ...props }) {
+export function PartPhoto({ src, alt, iconSize = 8, objectFit = 'cover', ...props }) {
   const empty = (
     <Flex w="100%" h="100%" align="center" justify="center" bg="gray.100" color="gray.400" role="img" aria-label={`No photo of ${alt}`}>
       <Icon as={Package} boxSize={iconSize} aria-hidden="true" />
@@ -49,7 +49,7 @@ export function PartPhoto({ src, alt, iconSize = 8, ...props }) {
   );
   return (
     <Box overflow="hidden" bg="gray.100" flexShrink={0} {...props}>
-      {src ? <Image src={src} alt={alt} w="100%" h="100%" objectFit="cover" loading="lazy" fallback={empty} /> : empty}
+      {src ? <Image src={src} alt={alt} w="100%" h="100%" objectFit={objectFit} loading="lazy" fallback={empty} /> : empty}
     </Box>
   );
 }
@@ -69,7 +69,7 @@ export function PartCard({ part }) {
     <LinkBox as="article" borderWidth="1px" borderColor="gray.200" borderRadius="xl" overflow="hidden" bg="white"
       display="flex" flexDirection="column" h="100%" _hover={{ boxShadow: 'md' }} transition="box-shadow .2s">
       <Box position="relative">
-        <PartPhoto src={part?.image} alt={part?.name || 'Part'} h={{ base: '150px', md: '180px' }} iconSize={10} />
+        <PartPhoto src={part?.image} alt={part?.name || 'Part'} h={{ base: '150px', md: '180px' }} iconSize={10} objectFit="contain" />
         {!part?.in_stock && (
           <Badge position="absolute" top={2} left={2} colorScheme="red" borderRadius="full" px={2} textTransform="none">Out of stock</Badge>
         )}
