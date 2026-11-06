@@ -48,7 +48,7 @@ export function PartPhoto({ src, alt, iconSize = 8, objectFit = 'cover', ...prop
     </Flex>
   );
   return (
-    <Box overflow="hidden" bg="gray.100" flexShrink={0} {...props}>
+    <Box overflow="hidden" bg="white" flexShrink={0} {...props}>
       {src ? <Image src={src} alt={alt} w="100%" h="100%" objectFit={objectFit} loading="lazy" fallback={empty} /> : empty}
     </Box>
   );
