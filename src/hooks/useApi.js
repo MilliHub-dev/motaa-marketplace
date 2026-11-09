@@ -15,17 +15,60 @@ import { toApiError } from '../api/client';
 
 // What each `keepAs` query last showed, so coming back to a page shows it straight away
 // (and refreshes it behind the scenes) instead of a loading placeholder. Cleared on log in/out.
+// The map only lives for one page load, so a fresh load (a refresh or a deep link) would still
+// wait for the API — the copy in sessionStorage keeps the last answer across reloads in this tab.
 const lastShown = new Map();
 const LAST_SHOWN_MAX = 80;
+const SHOWN_KEY_PREFIX = 'motaa:shown:';
+
+function shownStore() {
+  try {
+    return typeof window !== 'undefined' ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
+}
 
 export function forgetShownData() {
   lastShown.clear();
+  const store = shownStore();
+  if (!store) return;
+  try {
+    for (let i = store.length - 1; i >= 0; i -= 1) {
+      const key = store.key(i);
+      if (key?.startsWith(SHOWN_KEY_PREFIX)) store.removeItem(key);
+    }
+  } catch {
+    // storage blocked (private mode): nothing to clear
+  }
 }
 
 function remember(key, value) {
   lastShown.delete(key);
   lastShown.set(key, value);
-  if (lastShown.size > LAST_SHOWN_MAX) lastShown.delete(lastShown.keys().next().value);
+  const store = shownStore();
+  if (lastShown.size > LAST_SHOWN_MAX) {
+    const oldest = lastShown.keys().next().value;
+    lastShown.delete(oldest);
+    try { store?.removeItem(SHOWN_KEY_PREFIX + oldest); } catch { /* storage blocked */ }
+  }
+  try { store?.setItem(SHOWN_KEY_PREFIX + key, JSON.stringify(value)); } catch { /* storage blocked or full */ }
+}
+
+/** The last answer for this request, from memory or the tab's storage. `undefined` when there is none. */
+function recall(key) {
+  if (lastShown.has(key)) return lastShown.get(key);
+  try {
+    const raw = shownStore()?.getItem(SHOWN_KEY_PREFIX + key);
+    if (raw != null) {
+      const value = JSON.parse(raw);
+      remember(key, value);
+      return value;
+    }
+  } catch {
+    // unreadable or corrupt: treat it as absent
+  }
+  return undefined;
 }
 
 /**
@@ -38,7 +81,10 @@ function remember(key, value) {
  */
 export function useApiQuery(fetcher, deps = [], { enabled = true, select, initialData, keepAs } = {}) {
   const { api } = useContext(GlobalStore);
-  const [data, setData] = useState(() => (keepAs && lastShown.has(keepAs) ? lastShown.get(keepAs) : initialData));
+  const [data, setData] = useState(() => {
+    const shown = keepAs ? recall(keepAs) : undefined;
+    return shown !== undefined ? shown : initialData;
+  });
   const keepAsRef = useRef(keepAs);
   keepAsRef.current = keepAs;
   const [error, setError] = useState(null);
@@ -57,7 +103,10 @@ export function useApiQuery(fetcher, deps = [], { enabled = true, select, initia
     controllerRef.current = controller;
     const key = keepAsRef.current;
     // a request we have answered before: show that answer while the fresh one loads
-    if (key && lastShown.has(key)) setData(lastShown.get(key));
+    if (key) {
+      const shown = recall(key);
+      if (shown !== undefined) setData(shown);
+    }
     setLoading(true);
     setError(null);
     try {
