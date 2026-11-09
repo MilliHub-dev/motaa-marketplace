@@ -33,9 +33,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "dev": "vite",
-    "start": "vite --host",
-    "build": "vite build"
+    "dev": "node init && vite",
+    "start": "node init && vite --host",
+    "build": "node init && vite build"
   },
   "browserslist": {
     "production": [
