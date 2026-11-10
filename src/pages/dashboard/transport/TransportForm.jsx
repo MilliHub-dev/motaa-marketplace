@@ -1,6 +1,6 @@
 // /transport/add and /transport/:serviceId — add or edit a towing van (mechanics) or car hauler (dealers).
 import { useContext, useEffect, useState } from 'react';
-import { Link as RLink, useNavigate, useParams } from 'react-router-dom';
+import { Link as RLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert, AlertDescription, AlertIcon, Box, Button, Checkbox, Flex, FormControl, FormErrorMessage, FormHelperText, FormLabel,
   Heading, HStack, Input, Radio, RadioGroup, Select, SimpleGrid, Stack, Switch, Text, Textarea,
@@ -269,15 +269,21 @@ function ServiceEditor({ service, options }) {
 
 export default function TransportForm() {
   const { serviceId } = useParams();
+  const [searchParams] = useSearchParams();
   const editing = Boolean(serviceId);
   const { authUser } = useContext(GlobalStore);
   const words = useTransportWords(authUser?.user_type === 'dealer' ? 'hauler' : 'towing');
 
+  // For dealers adding a new service, get kind from URL query param (?kind=towing|hauler)
+  const urlKind = searchParams.get('kind');
+  const defaultKind = authUser?.user_type === 'dealer' ? 'hauler' : 'towing';
+  const initialKind = urlKind || defaultKind;
+
   useEffect(() => { document.title = `${editing ? `Edit ${words.one}` : words.add} | Motaa`; }, [editing, words]);
 
   const options = useApiQuery(
-    (api, signal) => api.get('/transport/mine/', { signal }),
-    [],
+    (api, signal) => api.get('/transport/mine/', { signal, params: { kind: initialKind } }),
+    [initialKind],
     { select: (body) => body?.data, keepAs: 'transport-mine' }
   );
   const serviceQuery = useApiQuery(

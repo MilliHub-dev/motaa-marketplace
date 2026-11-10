@@ -16,7 +16,7 @@ import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuChartLine } from 'react-icons/lu';
-import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users, Images } from 'lucide-react';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users, Images, TowTruck } from 'lucide-react';
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';
@@ -384,7 +384,8 @@ const DEALER_LINKS = [
   { icon: Coin, label: 'Orders', path: '/orders' },
   { icon: Shop, label: 'Inventory', path: '/inventory' },
   { icon: Package, label: 'Parts shop', path: '/parts-store' },
-  { icon: Truck, label: 'Car haulers', path: '/transport' },
+  { icon: Truck, label: 'Car haulers', path: '/transport?kind=hauler' },
+  { icon: TowTruck, label: 'Towing vans', path: '/transport?kind=towing' },
   { icon: LuChartLine, label: 'Analytics', path: '/analytics' },
   { icon: Users, label: 'Team', path: '/team', ownerOnly: true },
   { icon: HelpCircle, label: 'Support', path: '/support' },

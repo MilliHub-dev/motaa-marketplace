@@ -6,7 +6,7 @@ import {
   Alert, AlertDescription, AlertIcon, Badge, Box, Button, Flex, FormControl, FormLabel, Heading, HStack, Skeleton, Stack, Switch,
   Tab, TabList, TabPanel, TabPanels, Tabs, Text,
 } from '@chakra-ui/react';
-import { Eye, EyeOff, Pencil, Plus, Trash2, Truck } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Trash2, Truck, TowTruck } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ActionDialog } from '../../../components/parts';
 import { AsyncState, EmptyState } from '../../../components/states';
@@ -27,27 +27,40 @@ function ListSkeleton() {
 
 export function useTransportWords(kind) {
   return kind === 'hauler'
-    ? { plural: 'Car haulers', one: 'car hauler', add: 'Add a car hauler' }
-    : { plural: 'Towing vans', one: 'towing van', add: 'Add a towing van' };
+    ? { plural: 'Car haulers', one: 'car hauler', add: 'Add a car hauler', icon: Truck }
+    : { plural: 'Towing vans', one: 'towing van', add: 'Add a towing van', icon: TowTruck };
 }
 
 export default function MyTransport() {
   const { authUser, notify } = useContext(GlobalStore);
-  const mayDelete = canDelete(authUser); // sales staff can add and edit, not delete
+  const mayDelete = canDelete(authUser);
   const [params, setParams] = useSearchParams();
   const tabIndex = Math.max(0, TABS.indexOf(params.get('tab')));
   const [busy, setBusy] = useState(null);
   const [toDelete, setToDelete] = useState(null);
-  const words = useTransportWords(authUser?.user_type === 'dealer' ? 'hauler' : 'towing');
+  
+  // Dealer can switch between towing vans and car haulers via ?kind= query param
+  const defaultKind = authUser?.user_type === 'dealer' ? 'hauler' : 'towing';
+  const [kindSelector, setKindSelector] = useState(params.get('kind') || defaultKind);
+
+  // Sync kindSelector with URL param when it changes
+  useEffect(() => {
+    const kindFromUrl = params.get('kind');
+    if (authUser?.user_type === 'dealer' && kindFromUrl && kindFromUrl !== kindSelector) {
+      setKindSelector(kindFromUrl);
+    }
+  }, [params, authUser?.user_type, kindSelector]);
+
+  const words = useTransportWords(kindSelector);
 
   useEffect(() => { document.title = `${words.plural} | Motaa`; }, [words.plural]);
 
   const query = useApiQuery(
-    (api, signal) => api.get('/transport/mine/', { signal }),
-    [],
+    (api, signal) => api.get('/transport/mine/', { signal, params: { kind: kindSelector } }),
+    [kindSelector],
     { select: (body) => body?.data, keepAs: 'transport-mine' }
   );
-  const kind = query.data?.kind || (authUser?.user_type === 'dealer' ? 'hauler' : 'towing');
+  const kind = kindSelector;
   const towing = kind === 'towing';
 
   const patch = useApiMutation(
@@ -85,6 +98,15 @@ export default function MyTransport() {
     setParams(next, { replace: true });
   }
 
+  function selectKind(newKind) {
+    if (newKind === kindSelector) return;
+    const next = new URLSearchParams(params);
+    next.set('kind', newKind);
+    next.set('tab', 'listings');
+    setParams(next, { replace: true });
+    setKindSelector(newKind);
+  }
+
   const results = asList(query.data?.results);
 
   return (
@@ -96,7 +118,29 @@ export default function MyTransport() {
             {towing ? 'Customers near you find your tow trucks, request a tow and pay in the app.' : 'Customers request quotes for moving cars and pay in the app.'}
           </Text>
         </Box>
-        <Button as={RLink} to="/transport/add" bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<Plus size={16} />}>{words.add}</Button>
+        <HStack gap={2}>
+          {authUser?.user_type === 'dealer' && (
+            <HStack spacing={2} border="1px" borderColor="gray.200" borderRadius="md" p={1} bg="white">
+              <Button
+                variant={kindSelector === 'hauler' ? 'solid' : 'ghost'}
+                colorScheme={kindSelector === 'hauler' ? 'blue' : 'gray'}
+                leftIcon={<Truck size={14} />}
+                onClick={() => selectKind('hauler')}
+              >
+                Car haulers
+              </Button>
+              <Button
+                variant={kindSelector === 'towing' ? 'solid' : 'ghost'}
+                colorScheme={kindSelector === 'towing' ? 'blue' : 'gray'}
+                leftIcon={<TowTruck size={14} />}
+                onClick={() => selectKind('towing')}
+              >
+                Towing vans
+              </Button>
+            </HStack>
+          )}
+          <Button as={RLink} to={`/transport/add?kind=${kindSelector}`} bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<Plus size={16} />}>{words.add}</Button>
+        </HStack>
       </Flex>
 
       {query.data && query.data.verified === false && (
@@ -118,9 +162,9 @@ export default function MyTransport() {
               skeleton={<ListSkeleton />}
               isEmpty={(data) => asList(data?.results).length === 0}
               empty={
-                <EmptyState icon={Truck} title={`No ${towing ? 'towing vans' : 'car haulers'} yet`}
+                <EmptyState icon={words.icon} title={`No ${towing ? 'towing vans' : 'car haulers'} yet`}
                   description={towing ? 'Add your tow truck with photos and your call-out price so customers nearby can find you.' : 'Add your car carrier with photos, its price and the states it covers.'}
-                  action={{ label: words.add, to: '/transport/add' }} />
+                  action={{ label: words.add, to: `/transport/add?kind=${kindSelector}` }} />
               }
             >
               {() => (
@@ -180,7 +224,7 @@ export default function MyTransport() {
           </TabPanel>
           <TabPanel px={0}>
             <TransportJobList
-              empty={<EmptyState icon={Truck} title="No jobs yet" description={`Requests for your ${towing ? 'towing vans' : 'car haulers'} arrive in your messages. You can also send an invoice from a chat with a customer.`} />}
+              empty={<EmptyState icon={words.icon} title="No jobs yet" description={`Requests for your ${towing ? 'towing vans' : 'car haulers'} arrive in your messages. You can also send an invoice from a chat with a customer.`} />}
             />
           </TabPanel>
         </TabPanels>
