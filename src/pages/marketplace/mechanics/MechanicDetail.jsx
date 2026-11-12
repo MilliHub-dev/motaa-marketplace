@@ -242,6 +242,17 @@ export const MechanicDetailPage = () => {
                         <FormErrorMessage>{errors.street}</FormErrorMessage>
                       </FormControl>
 
+                      <Box bg="gray.50" p={3} rounded="md" fontSize="sm">
+                        <Text fontWeight="600">Total service charge</Text>
+                        {query.loading ? <Text>Calculating…</Text> : query.error ? <Text>Unable to calculate. Confirm your fee on the booking screen.</Text> : mechanic?.booking?.quote?.total != null ? (
+                          <>
+                            <Text fontWeight="bold">₦{Number(mechanic.booking.quote.total).toLocaleString('en-NG')}</Text>
+                            <Text color="gray.600">Booking fee ₦{Number(mechanic.booking.quote.booking_fee).toLocaleString('en-NG')} + transport ₦{Number(mechanic.booking.quote.service_charge).toLocaleString('en-NG')}</Text>
+                            <Text color="gray.600">Based on your selected location. Confirm the final amount before paying.</Text>
+                          </>
+                        ) : <Text color="gray.600">Select your area to calculate the booking fee and transport charge.</Text>}
+                      </Box>
+
                       <Button type="submit" colorScheme="blue" bg="primary" size="lg" w="full" isDisabled={!mechanic?.available}>
                         {mechanic?.available ? 'Book Now' : 'Not taking bookings'}
                       </Button>

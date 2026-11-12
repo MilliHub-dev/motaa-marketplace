@@ -6,7 +6,7 @@ import {
   Alert, AlertDescription, AlertIcon, Badge, Box, Button, Flex, FormControl, FormLabel, Heading, HStack, Skeleton, Stack, Switch,
   Tab, TabList, TabPanel, TabPanels, Tabs, Text,
 } from '@chakra-ui/react';
-import { Eye, EyeOff, Pencil, Plus, Trash2, Truck, TowTruck } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Trash2, Truck, Truck as TowTruck } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { ActionDialog } from '../../../components/parts';
 import { AsyncState, EmptyState } from '../../../components/states';

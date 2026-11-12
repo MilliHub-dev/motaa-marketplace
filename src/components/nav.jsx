@@ -16,7 +16,7 @@ import { GrUserWorker } from 'react-icons/gr';
 import { FiBell } from 'react-icons/fi';
 import { MdOutlineAccountCircle } from 'react-icons/md';
 import { LuChartLine } from 'react-icons/lu';
-import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users, Images, TowTruck } from 'lucide-react';
+import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, ShoppingBasket, Truck, Users, Images, Truck as TowTruck } from 'lucide-react';
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';

@@ -1,15 +1,14 @@
 import {
     Box, Heading, Button, Container, Flex, Input, InputGroup, InputLeftElement, Text, Avatar, Badge,
     Alert, AlertIcon, VStack, HStack, Tag, Divider, useColorModeValue, useDisclosure,
-    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Tooltip,
+    Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
 } from "@chakra-ui/react";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchIcon, StarIcon } from '@chakra-ui/icons';
 import { RiFilterLine } from 'react-icons/ri'
 import { GrLocation } from 'react-icons/gr';
-import { Maximize2, Wrench, VerifiedIcon, HelpCircle } from "lucide-react";
-import { GlobalStore } from "../../../App";
+import { Maximize2, Wrench, VerifiedIcon } from "lucide-react";
 import { MechanicListSkeleton } from "../../../components/loaders";
 import { MapComponent, CustomPlacesAutocomplete, DEFAULT_MAP_CENTER } from "../../../components/maps";
 import { TopRatedBadgeIcon } from "../../../components/icons";
@@ -24,7 +23,6 @@ const PAGE_SIZE = 25;
 
 
 export const MechanicListPage = () => {
-    const { commaInt } = useContext(GlobalStore);
     const [params, setParams] = useSearchParams();
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
@@ -206,21 +204,6 @@ export const MechanicListPage = () => {
                                                         <Divider my={4} />
 
                                                         <Flex justify="flex-start" columnGap={5} rowGap={2} flexWrap="wrap" align="center">
-                                                            <Flex align="center" gap={1}>
-                                                                <Text color="gray.600">Service Charge</Text>
-                                                                <Tooltip
-                                                                    label="This is the amount you'll pay for the mechanic's services and transport. It isn't refundable once the mechanic accepts your order."
-                                                                    hasArrow
-                                                                    placement="top"
-                                                                    maxW="260px"
-                                                                    fontSize="sm"
-                                                                >
-                                                                    <Box as="span" display="inline-flex" color="gray.500" cursor="help" aria-label="What is the service charge?">
-                                                                        <HelpCircle size={14} aria-hidden="true" />
-                                                                    </Box>
-                                                                </Tooltip>
-                                                                <Text fontSize="lg" fontWeight="bold">₦{commaInt(mechanic?.price_start)}</Text>
-                                                            </Flex>
                                                             <Flex align="center" gap={1} color="gray.600">
                                                                 {Number.isFinite(rating) && rating > 0
                                                                     ? <><Text>Rating {rating.toFixed(1)}</Text><StarIcon color="tertiary" aria-hidden="true" /></>
