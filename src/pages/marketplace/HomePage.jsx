@@ -25,6 +25,7 @@ import {
 import { Search, Car } from "lucide-react"
 import { ListingItemCard } from "../../components";
 import FeaturedSlider from "../../components/FeaturedSlider";
+import NeedACar from "../../components/NeedACar";
 import { GlobalStore } from "../../App";
 import { useApiQuery } from "../../hooks/useApi";
 import { AsyncState, EmptyState } from "../../components/states";
@@ -189,113 +190,8 @@ export default function MainPage() {
         </Container>
       }
 
-      {/* Promotional Banner */}
-      <Box position="relative" overflow="hidden" py={16}>
-        <Box position="absolute" inset={0} bg="primary" />
-        <Box position="absolute" top={-80} right={-80} w={300} h={300} borderRadius="full" bg="rgba(255,255,255,0.06)" />
-        <Box position="absolute" bottom={-60} left={-40} w={200} h={200} borderRadius="full" bg="rgba(255,255,255,0.04)" />
-        <Box position="absolute" top={40} right={120} w={60} h={60} borderRadius="full" bg="rgba(255,255,255,0.08)" />
-
-        <Container maxW="7xl" position="relative" zIndex={1}>
-          <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={8} alignItems="center">
-            <Box display={{ base: 'none', md: 'block' }}>
-              <Box position="relative">
-                <Box position="absolute" inset={-20} bg="rgba(255,255,255,0.05)" borderRadius="3xl" />
-                <Image
-                  loading="lazy"
-                  src="/assets/images/motaa-car-mid.png"
-                  alt=""
-                  w="full"
-                  h="auto"
-                  borderRadius="2xl"
-                  boxShadow="2xl"
-                />
-                <Box
-                  position="absolute"
-                  top={-12}
-                  right={-12}
-                  bg="tertiary"
-                  color="primary"
-                  px={4}
-                  py={2}
-                  borderRadius="full"
-                  fontWeight="700"
-                  fontSize="sm"
-                  boxShadow="lg"
-                >
-                  Verified
-                </Box>
-              </Box>
-            </Box>
-
-            <Box color="white">
-              <Box display="inline-flex" alignItems="center" gap={2} bg="rgba(255,255,255,0.15)" px={4} py={2} borderRadius="full" mb={4}>
-                <Box w={8} h={8} borderRadius="full" bg="tertiary" display="flex" alignItems="center" justifyContent="center">
-                  <Box w={4} h={4} borderRadius="2px" bg="primary" />
-                </Box>
-                <Text fontWeight="600" fontSize="sm">Verified Dealerships</Text>
-              </Box>
-
-              <Heading as="h2" size={{ base: "3xl", sm: "4xl", md: "5xl" }} mb={4} fontWeight="800" lineHeight="1.1">
-                NEED A CAR?
-              </Heading>
-
-              <Box
-                display="inline-block"
-                bg="tertiary"
-                color="primary"
-                px={6}
-                py={3}
-                borderRadius="xl"
-                mb={6}
-                fontWeight="600"
-                fontSize="lg"
-              >
-                Cars from verified dealers across Nigeria
-              </Box>
-
-              <Text mb={8} fontSize="md" opacity={0.9} lineHeight={1.6} maxW="480px">
-                Explore a range of cars on Motaa, buy from verified car dealerships across the country. Secure payments, transparent deals.
-              </Text>
-
-              <Flex gap={4} flexWrap="wrap">
-                <Button
-                  as={Link}
-                  to='/buy/'
-                  fontWeight={'700'}
-                  bg="tertiary"
-                  color="primary"
-                  size="lg"
-                  px={8}
-                  py={7}
-                  borderRadius="xl"
-                  rightIcon={<Box as="span" fontSize="lg">→</Box>}
-                  _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
-                  transition="all 0.2s"
-                >
-                  BUY NOW!
-                </Button>
-                <Button
-                  as={Link}
-                  to='/rent/'
-                  fontWeight={'600'}
-                  bg="transparent"
-                  color="white"
-                  size="lg"
-                  px={8}
-                  py={7}
-                  borderRadius="xl"
-                  border="2px solid rgba(255,255,255,0.4)"
-                  _hover={{ bg: "rgba(255,255,255,0.1)", transform: 'translateY(-2px)' }}
-                  transition="all 0.2s"
-                >
-                  Rent a Car
-                </Button>
-              </Flex>
-            </Box>
-          </Grid>
-        </Container>
-      </Box>
+      {/* Need a car? (Changan UNI-K) */}
+      <NeedACar />
 
       {/* Why Choose Us Section */}
       <Container maxW="container.xl" my={20}>
