@@ -40,6 +40,7 @@ const RentDetail = lazyPage(() => import('./pages/marketplace/rent/RentDetail'))
 const BuyListing = lazyPage(() => import('./pages/marketplace/buy/BuyListing'));
 const BuyDetail = lazyPage(() => import('./pages/marketplace/buy/BuyDetail'));
 const FeaturedCarPage = lazyPage(() => import('./pages/marketplace/FeaturedCar'));
+const BrandPage = lazyPage(() => import('./pages/marketplace/BrandPage'));
 const MechanicSearchPage = lazyPage(() => import('./pages/marketplace/search/MechanicSearch'));
 const CarSearchPage = lazyPage(() => import('./pages/marketplace/search/CarSearch'));
 const MechanicListPage = lazyPage(() => import('./pages/marketplace/mechanics/MechanicsListing'));
@@ -507,6 +508,7 @@ function App() {
                         <Route ErrorBoundary={ErrorBoundary} path='/buy' element={<BuyListing />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/buy/:listingId' element={<BuyDetail />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/featured/:slug' element={<FeaturedCarPage />} />
+                        <Route ErrorBoundary={ErrorBoundary} path='/brands/:slug' element={<BrandPage />} />
                         
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics' element={<MechanicListPage />} />
                         <Route ErrorBoundary={ErrorBoundary} path='/mechanics/book/:mechId' element={<ConfirmMechanicBookingPage />} />
@@ -597,6 +599,8 @@ function App() {
                   <Route ErrorBoundary={ErrorBoundary} path='/parts/orders/*' element={<LoginRedirect />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/parts/:partId' element={<PartDetail />} />
                   {publicTransportRoutes()}
+                  {/* sponsored brand pages are public, like spare parts: buying a car still asks you to log in */}
+                  <Route ErrorBoundary={ErrorBoundary} path='/brands/:slug' element={<BrandPage />} />
                   <Route ErrorBoundary={ErrorBoundary} path='/' element={<LandingPage />} />
                   {/* deep links need an account: send them to login and come back afterwards */}
                   <Route ErrorBoundary={ErrorBoundary} path='/*' element={<LoginRedirect />} />

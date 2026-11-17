@@ -19,7 +19,7 @@
 	@seofiles path /sitemap.xml /llms.txt /llms-full.txt
 
 	@crawlers {
-		path / /home /buy /buy/* /rent /rent/* /search/cars /search/cars/ /featured/* /dealership/* /mechanics /mechanics/* /towing /towing/* /car-haulers /car-haulers/* /parts /parts/* /about /business /features /services /transport /support /privacy-policy /terms-of-service
+		path / /home /buy /buy/* /rent /rent/* /search/cars /search/cars/ /featured/* /brands/* /dealership/* /mechanics /mechanics/* /towing /towing/* /car-haulers /car-haulers/* /parts /parts/* /about /business /features /services /transport /support /privacy-policy /terms-of-service
 		header_regexp User-Agent (?i)(googlebot|google-inspectiontool|storebot-google|googleother|bingbot|bingpreview|msnbot|duckduckbot|yandex|baiduspider|applebot|gptbot|oai-searchbot|chatgpt-user|claudebot|claude-user|claude-searchbot|anthropic-ai|perplexitybot|perplexity-user|mistralai-user|youbot|amazonbot|ccbot|cohere-ai|meta-externalagent|meta-externalfetcher|facebookexternalhit|facebookcatalog|twitterbot|linkedinbot|whatsapp|telegrambot|slackbot|discordbot|pinterest|skypeuripreview|redditbot|petalbot|ahrefsbot|semrushbot)
 	}
 

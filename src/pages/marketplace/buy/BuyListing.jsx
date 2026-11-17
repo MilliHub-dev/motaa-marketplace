@@ -13,6 +13,7 @@ import { AsyncState, EmptyState, InlineError } from "../../../components/states"
 import { useApiQuery } from "../../../hooks/useApi"
 import { asList } from "../../../utils"
 import { CarBrandFilter, PriceFilter, TransmissionFilter, TRANSMISSIONS } from "../../../components/filters"
+import BrandStrip from "../../../components/BrandStrip"
 
 const PAGE_SIZE = 25;
 const CONDITIONS = [
@@ -128,7 +129,8 @@ const BuyListing = () => {
                     </ButtonGroup>
                 </Box>
 
-                <BannerCarousel images={banners} />
+                {/* sponsored brands (managed in the admin); the original banners when there are none */}
+                <BrandStrip fallback={<BannerCarousel images={banners} />} />
             </Flex>
 
             <Flex my={2} py={2} flexWrap={'nowrap'} gap={3} overflowX={'auto'} className="hidden-scroll" alignItems="center">
