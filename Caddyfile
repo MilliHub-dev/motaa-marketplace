@@ -32,6 +32,8 @@
 			rewrite * /seo{path}
 			reverse_proxy {$SEO_BACKEND:https://server.motaa.net} {
 				header_up Host {upstream_hostport}
+				# marks these as the website's pages, so the API's noindex header is left off (motaa_backend NoIndexApiMiddleware)
+				header_up X-Motaa-Website 1
 			}
 		}
 
@@ -39,6 +41,8 @@
 			rewrite * /seo/render{uri}
 			reverse_proxy {$SEO_BACKEND:https://server.motaa.net} {
 				header_up Host {upstream_hostport}
+				# marks these as the website's pages, so the API's noindex header is left off (motaa_backend NoIndexApiMiddleware)
+				header_up X-Motaa-Website 1
 			}
 		}
 
