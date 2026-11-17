@@ -10,6 +10,10 @@
       "destination": "https://server.motaa.net/seo/llms.txt"
     },
     {
+      "source": "/llms-full.txt",
+      "destination": "https://server.motaa.net/seo/llms-full.txt"
+    },
+    {
       "source": "/((?!assets/|sw\\.js$).*)",
       "destination": "/index.html"
     }

@@ -15,8 +15,8 @@
 
 	@assets path /assets/*
 
-	# what Google, Bing and AI assistants read: the sitemap and llms.txt are made by the backend
-	@seofiles path /sitemap.xml /llms.txt
+	# what Google, Bing and AI assistants read: the sitemap, llms.txt and llms-full.txt are made by the backend
+	@seofiles path /sitemap.xml /llms.txt /llms-full.txt
 
 	@crawlers {
 		path / /home /buy /buy/* /rent /rent/* /search/cars /search/cars/ /featured/* /dealership/* /mechanics /mechanics/* /towing /towing/* /car-haulers /car-haulers/* /parts /parts/* /about /business /features /services /transport /support /privacy-policy /terms-of-service
