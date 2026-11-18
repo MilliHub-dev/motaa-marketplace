@@ -91,6 +91,8 @@ export const CAR_BRANDS = [
 
 export const MAX_LISTING_IMAGES = 12;
 export const MAX_IMAGE_MB = 5;
+/** Car photos straight from a phone or camera can be big; the server shrinks them for buyers. */
+export const MAX_VEHICLE_IMAGE_MB = 15;
 
 /** Human label for a choice code (falls back to the raw value). */
 export function optionLabel(field, value) {

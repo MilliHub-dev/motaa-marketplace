@@ -19,6 +19,7 @@ import { BackButton } from '../../../../components/nav';
 import {
   StepIndicator,
   ImageUploader,
+  MAX_VEHICLE_IMAGE_MB,
   ListingDetailsForm,
   ListingReviewCard,
   emptyListingForm,
@@ -30,6 +31,9 @@ import {
 } from '../../../../components/forms';
 import { GlobalStore } from '../../../../App';
 import { toApiError } from '../../../../api/client';
+
+// a 15 MB photo can take a couple of minutes on a slow mobile connection
+const PHOTO_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 import { DealershipContext } from '../Layout';
 
 const STEPS = ['Details', 'Photos', 'Review'];
@@ -52,6 +56,7 @@ export function ListingWizard({ listing = null }) {
   const [form, setForm] = useState(() => (listing ? listingToForm(listing) : emptyListingForm()));
   const [errors, setErrors] = useState({});
   const [images, setImages] = useState(() => imagesFromListing(listing));
+  const [uploadNote, setUploadNote] = useState('');
   const [imageError, setImageError] = useState('');
   const [busy, setBusy] = useState(null); // 'details' | 'photos' | 'publish'
   useRevokePreviews(images);
@@ -115,17 +120,27 @@ export function ListingWizard({ listing = null }) {
         current = current.filter((i) => i.key !== item.key);
         setImages(current);
       }
+      // one photo per request: big photos on a slow connection would time out together, and a photo that
+      // has gone up isn't sent again if a later one fails and the dealer tries again
       const fresh = current.filter((i) => i.file);
       let latest = null;
-      if (fresh.length) {
+      for (const [index, item] of fresh.entries()) {
+        const label = fresh.length > 1 ? `Uploading photo ${index + 1} of ${fresh.length}` : 'Uploading photo';
+        setUploadNote(`${label}…`);
         const payload = new FormData();
         payload.append('action', 'upload-images');
-        for (const item of fresh) payload.append('image', item.file, item.file.name);
-        latest = await api.post(`/admin/dealership/listings/${uuid}/`, payload);
-      } else {
-        latest = await api.get(`/admin/dealership/listings/${uuid}/`);
+        payload.append('image', item.file, item.file.name);
+        latest = await api.post(`/admin/dealership/listings/${uuid}/`, payload, {
+          timeout: PHOTO_UPLOAD_TIMEOUT_MS,
+          onUploadProgress: (event) => {
+            if (event.total) setUploadNote(`${label} · ${Math.min(99, Math.round((event.loaded / event.total) * 100))}%`);
+          },
+        });
+        URL.revokeObjectURL(item.previewUrl);
+        current = [...imagesFromListing(latest?.data), ...fresh.slice(index + 1)];
+        setImages(current);
       }
-      for (const item of fresh) URL.revokeObjectURL(item.previewUrl);
+      if (!latest) latest = await api.get(`/admin/dealership/listings/${uuid}/`);
       setImages(imagesFromListing(latest?.data));
       goTo(2);
     } catch (error) {
@@ -133,6 +148,7 @@ export function ListingWizard({ listing = null }) {
       setImageError(apiError.fieldErrors?.images || apiError.message);
     } finally {
       setBusy(null);
+      setUploadNote('');
     }
   }
 
@@ -226,12 +242,12 @@ export function ListingWizard({ listing = null }) {
 
           {step === 1 && (
             <VStack spacing={8} w="full" maxW="820px" mx="auto" align="stretch">
-              <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} />
+              <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} maxMb={MAX_VEHICLE_IMAGE_MB} />
               <Flex gap={3} direction={{ base: 'column-reverse', sm: 'row' }}>
                 <Button variant="outline" size="lg" flex={{ sm: 1 }} onClick={() => goTo(0)} isDisabled={Boolean(busy)}>Back</Button>
                 <Button
                   bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" flex={{ sm: 2 }}
-                  onClick={savePhotos} isLoading={busy === 'photos'} loadingText="Uploading…"
+                  onClick={savePhotos} isLoading={busy === 'photos'} loadingText={uploadNote || 'Uploading…'}
                   isDisabled={!images.some((i) => !i.removed)}
                 >
                   Save photos and continue
