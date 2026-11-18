@@ -1,4 +1,5 @@
 // /parts-store/parts/add and /parts-store/parts/:partId — add or edit a spare part.
+import { EvToggle } from '../../../components/EvBadge';
 import { useContext, useEffect, useId, useState } from 'react';
 import { Link as RLink, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -209,6 +210,14 @@ function PartEditor({ part, options }) {
             owner="part"
           />
         </Box>
+
+        <EvToggle
+          isChecked={form.is_ev}
+          onChange={(on) => setField('is_ev', on)}
+          title="This is a part for electric vehicles"
+          label="EV part"
+          hint="e.g. a battery pack, charger, charging cable or electric motor. Customers can filter for EV parts."
+        />
 
         <Box id="part-fitments">
           <Card title="Cars this part fits" hint="Customers filter parts by their car, so list every car this fits.">

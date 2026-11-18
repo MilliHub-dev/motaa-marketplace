@@ -1,5 +1,6 @@
 // Shared pieces of the spare-parts marketplace, used by the customer pages
 // (src/pages/marketplace/parts) and the seller pages (src/pages/dashboard/parts).
+import EvBadge from './EvBadge';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Link as RLink } from 'react-router-dom';
 import {
@@ -76,6 +77,7 @@ export function PartCard({ part }) {
       </Box>
       <Stack spacing={1} p={3} flex={1}>
         <HStack spacing={2} flexWrap="wrap">
+          {part?.is_ev && <EvBadge label="EV part" tip="A part for electric vehicles" />}
           {part?.condition_label && <Badge textTransform="none" borderRadius="full" px={2}>{part.condition_label}</Badge>}
           {part?.category?.name && <Text fontSize="xs" color="gray.500" noOfLines={1}>{part.category.name}</Text>}
         </HStack>

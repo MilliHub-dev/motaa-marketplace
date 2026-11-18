@@ -1,3 +1,4 @@
+import EvBadge from '../../../components/EvBadge';
 import { useContext, useEffect, useState } from "react";
 import { GlobalStore } from "../../../App";
 import { useParams, useNavigate } from "react-router-dom";
@@ -145,6 +146,7 @@ export const MechanicDetailPage = () => {
                       <Box flex={1} minW={0}>
                         <Flex align="center" gap={2} flexWrap="wrap">
                           <Heading as="h1" size="lg">{name}</Heading>
+                          {mechanic?.ev && <EvBadge label="EV mechanic" tip="Works on electric vehicles" size="md" />}
                           {mechanic?.verified_business && (
                             <Box as="span" title="Verified business" display="inline-flex">
                               <VerifiedIcon fill="cornflowerblue" color="white" aria-label="Verified business" />

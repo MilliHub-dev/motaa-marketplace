@@ -1,3 +1,4 @@
+import EvBadge, { isElectric } from './EvBadge';
 import { Box, Flex, IconButton, Heading, Badge, Text, Divider, Stack, HStack, VStack, PinInput, PinInputField, Card, CardBody, Button, Input, CardHeader, Image, Icon, Grid, Modal, ModalOverlay, ModalContent, ModalBody, useDisclosure, Tag, AspectRatio, Avatar, Select, useColorModeValue, BreadcrumbItem, BreadcrumbLink, Breadcrumb, SimpleGrid, Popover, PopoverTrigger, PopoverContent, PopoverBody, Progress, List, ListItem, Alert, AlertTitle, AlertIcon, useOutsideClick, ModalCloseButton } from '@chakra-ui/react';
 import { useContext, useEffect, useState, useRef } from 'react';
 import { RiGasStationLine, RiSearch2Line } from 'react-icons/ri'
@@ -1095,6 +1096,9 @@ export const ListingItemCard = ({ listing, linkSearch = '', ...props }) => {
                           fallback={<NoPhoto h="200px" />}
                         />}
                     </Link>
+                    {isElectric(listing) && (
+                        <EvBadge variant="solid" tip="Electric car" position="absolute" top={3} left={3} />
+                    )}
                     {images.length > 1 &&
                         <Flex position="absolute" w="100%" justifyContent="space-between" px={3} top="50%" transform="translateY(-50%)" pointerEvents="none">
                             <IconButton

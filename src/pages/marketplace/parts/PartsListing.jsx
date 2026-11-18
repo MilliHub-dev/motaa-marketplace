@@ -1,5 +1,6 @@
 // /parts — every spare part on sale, with filters kept in the URL
-// (?q=&category=&make=&model=&year=&condition=&brand=&price_min=&price_max=&state=&in_stock=1&sort=&page=).
+// (?q=&category=&make=&model=&year=&condition=&brand=&price_min=&price_max=&state=&in_stock=1&ev=1&sort=&page=).
+import EvBadge from '../../../components/EvBadge';
 import { useContext, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -206,6 +207,13 @@ function FilterFields({ params, update, filters, idPrefix }) {
       <FormControl display="flex" alignItems="center" justifyContent="space-between">
         <FormLabel htmlFor={`${idPrefix}-stock`} mb={0} fontWeight="600">In stock only</FormLabel>
         <Switch id={`${idPrefix}-stock`} isChecked={get('in_stock') === '1'} onChange={(e) => update({ in_stock: e.target.checked ? '1' : null })} />
+      </FormControl>
+
+      <FormControl display="flex" alignItems="center" justifyContent="space-between">
+        <FormLabel htmlFor={`${idPrefix}-ev`} mb={0} fontWeight="600" display="flex" alignItems="center" gap={2}>
+          EV parts only <EvBadge tip="Parts for electric vehicles" />
+        </FormLabel>
+        <Switch id={`${idPrefix}-ev`} colorScheme="green" isChecked={get('ev') === '1'} onChange={(e) => update({ ev: e.target.checked ? '1' : null })} />
       </FormControl>
     </Stack>
   );

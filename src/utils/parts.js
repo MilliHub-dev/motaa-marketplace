@@ -29,6 +29,7 @@ export function partsApiQuery(params, { store, pageSize = PARTS_PAGE_SIZE } = {}
   }
   if (!qs.get('make')) qs.delete('model'); // a model only means something with its make
   if (params.get('in_stock') === '1') qs.set('in_stock', '1');
+  if (params.get('ev') === '1') qs.set('ev', '1');
   const sort = params.get('sort');
   if (sort && sort !== 'newest') qs.set('sort', sort);
   if (store) qs.set('store', store);
@@ -40,7 +41,7 @@ export function partsApiQuery(params, { store, pageSize = PARTS_PAGE_SIZE } = {}
 
 /** True when the URL holds any filter (sorting and paging don't count). */
 export function hasPartsFilters(params) {
-  return LIST_FILTERS.some((key) => (params.get(key) || '').trim()) || params.get('in_stock') === '1';
+  return LIST_FILTERS.some((key) => (params.get(key) || '').trim()) || params.get('in_stock') === '1' || params.get('ev') === '1';
 }
 
 /** Chips for the applied filters: [{ keys: [url params to remove], label }]. */
@@ -70,6 +71,7 @@ export function partsFilterChips(params, filters = {}, commaInt = String) {
   }
   if (get('state')) chips.push({ keys: ['state'], label: `Seller in ${get('state')}` });
   if (params.get('in_stock') === '1') chips.push({ keys: ['in_stock'], label: 'In stock' });
+  if (params.get('ev') === '1') chips.push({ keys: ['ev'], label: 'EV parts only' });
   return chips;
 }
 
@@ -166,7 +168,7 @@ export const emptyFitment = () => ({ make: '', model: '', year_from: '', year_to
 export function emptyPartForm() {
   return {
     name: '', category: '', condition: 'new', brand: '', part_number: '', price: '', stock: '1', warranty: '',
-    description: '', universal: false, active: true, fitments: [emptyFitment()],
+    description: '', universal: false, active: true, is_ev: false, fitments: [emptyFitment()],
   };
 }
 
@@ -187,6 +189,7 @@ export function partToForm(part) {
     warranty: part?.warranty || '',
     description: part?.description || '',
     universal: Boolean(part?.universal),
+    is_ev: Boolean(part?.is_ev),
     active: part?.active !== false,
     fitments: fitments.length ? fitments : [emptyFitment()],
   };
@@ -240,6 +243,7 @@ export function partFormData(form, images = []) {
   body.append('price', cleanAmount(form.price));
   body.append('stock', String(form.stock).trim());
   body.append('universal', form.universal ? 'true' : 'false');
+  body.append('is_ev', form.is_ev ? 'true' : 'false');
   body.append('active', form.active ? 'true' : 'false');
   body.append('fitments', JSON.stringify(form.universal ? [] : cleanFitments(form.fitments)));
   const removed = images.filter((item) => item.uuid && item.removed).map((item) => item.uuid);
@@ -254,7 +258,7 @@ export function partFormData(form, images = []) {
 export function emptyStoreForm() {
   return {
     active: true, delivers: true, delivery_fee: '0', delivers_nationwide: true, delivery_days: '',
-    offers_pickup: false, pickup_address: '', zones: [],
+    offers_pickup: false, pickup_address: '', zones: [], deals_in_evs: false,
   };
 }
 
@@ -268,6 +272,7 @@ export function storeToForm(store) {
     delivery_days: store.delivery_days || '',
     offers_pickup: Boolean(store.offers_pickup),
     pickup_address: store.pickup_address || '',
+    deals_in_evs: Boolean(store.deals_in_evs),
     zones: (Array.isArray(store.zones) ? store.zones : []).map((zone) => ({ state: zone?.state || '', fee: amountField(zone?.fee) })),
   };
 }
@@ -305,6 +310,7 @@ export function storePayload(form) {
     delivery_days: form.delivery_days.trim(),
     offers_pickup: Boolean(form.offers_pickup),
     pickup_address: form.pickup_address.trim(),
+    deals_in_evs: Boolean(form.deals_in_evs),
     zones: form.zones.map((zone) => ({ state: zone.state.trim(), fee: cleanAmount(zone.fee) })),
   };
 }

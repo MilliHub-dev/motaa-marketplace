@@ -1,4 +1,5 @@
 // /parts/stores/:storeId — a seller's parts shop and everything it has on sale.
+import EvBadge from '../../../components/EvBadge';
 import { useContext, useEffect } from 'react';
 import { Link as RLink, useLocation, useParams } from 'react-router-dom';
 import { Avatar, Box, Button, Container, Flex, Heading, HStack, Skeleton, Stack, Text, useDisclosure } from '@chakra-ui/react';
@@ -80,6 +81,7 @@ export default function PartsStore() {
               <HStack spacing={2} flexWrap="wrap">
                 <Heading as="h1" size="md">{store.name}</Heading>
                 {store.verified && <VerifiedSeller />}
+                {store.ev && <EvBadge label="EV parts" tip="This shop sells parts for electric vehicles" />}
               </HStack>
               <Text fontSize="sm" color="gray.600">{[store.kind_label, place].filter(Boolean).join(' · ')}</Text>
               {store.headline && <Text mt={1} color="gray.700">{store.headline}</Text>}

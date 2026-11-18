@@ -1,3 +1,4 @@
+import EvBadge, { EvFilterButton } from '../../../components/EvBadge';
 import {
     Box, Heading, Button, Container, Flex, Input, InputGroup, InputLeftElement, Text, Avatar, Badge,
     Alert, AlertIcon, VStack, HStack, Tag, Divider, useColorModeValue, useDisclosure,
@@ -54,6 +55,7 @@ export const MechanicListPage = () => {
 
     const qs = new URLSearchParams(searchPoint ? { lat: searchPoint.lat.toFixed(5), lng: searchPoint.lng.toFixed(5) } : {});
     if (params.get('services')) qs.set('services', params.get('services'));
+    if (params.get('ev') === '1') qs.set('ev', '1');
     if (params.get('offset')) qs.set('offset', params.get('offset'));
     qs.set('summary', '1');
     const apiQs = qs.toString();
@@ -117,6 +119,7 @@ export const MechanicListPage = () => {
                 <Flex my={2} py={2} gap={3} alignItems="center" flexWrap="wrap">
                     <HStack spacing={1} color="gray.600" aria-hidden="true"><RiFilterLine /><Text>Filters</Text></HStack>
                     <ServiceFilter value={params.get('services')} onChange={({ value }) => update({ services: value })} />
+                    <EvFilterButton label="EV mechanics" isOn={params.get('ev') === '1'} onToggle={(on) => update({ ev: on ? '1' : null })} />
                 </Flex>
 
                 {!picked && (geoStatus === 'denied' || geoStatus === 'unsupported') && (
@@ -174,6 +177,7 @@ export const MechanicListPage = () => {
                                                                             <VerifiedIcon fill="cornflowerblue" color="white" aria-label="Verified business" />
                                                                         </Box>
                                                                     )}
+                                                                    {mechanic?.ev && <EvBadge tip="Works on electric vehicles" />}
                                                                 </Heading>
                                                                 {mechanic?.headline && <Text color="gray.800" fontSize="sm">{mechanic.headline}</Text>}
                                                             </Box>

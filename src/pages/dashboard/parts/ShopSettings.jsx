@@ -1,4 +1,5 @@
 // /parts-store/settings — open/close the shop and say how orders reach customers (PUT /parts/seller/store/).
+import { EvToggle } from '../../../components/EvBadge';
 import { useEffect, useState } from 'react';
 import {
   Box, Button, Flex, FormControl, FormErrorMessage, FormHelperText, FormLabel, Heading, HStack, IconButton, Input, InputGroup,
@@ -182,6 +183,14 @@ export default function PartsShopSettings() {
             )}
           </Stack>
         </Card>
+
+        <EvToggle
+          isChecked={form.deals_in_evs}
+          onChange={(on) => setField('deals_in_evs', on)}
+          title="We sell parts for electric vehicles (EV)"
+          label="EV parts"
+          hint="Shows an EV badge on your shop. You get it automatically once you mark a part as an EV part."
+        />
 
         <Flex justify="flex-end">
           <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving…" w={{ base: 'full', sm: 'auto' }}>

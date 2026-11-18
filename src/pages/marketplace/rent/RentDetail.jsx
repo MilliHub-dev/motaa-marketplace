@@ -1,3 +1,4 @@
+import EvBadge, { isElectric } from '../../../components/EvBadge';
 import { useContext, useEffect, useRef, useState } from "react"
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom"
 import { GlobalStore } from "../../../App";
@@ -87,7 +88,7 @@ export default function RentalDetails() {
                   <ImageCarousel images={vehicle?.images} alt={title} />
                   <Flex justify="space-between" align="flex-start" gap={4} mt={4} flexWrap="wrap">
                     <Box minW={0}>
-                      <Heading as="h1" size="lg">{title}</Heading>
+                      <Heading as="h1" size="lg">{title}{isElectric(vehicle) && <EvBadge tip="Electric car" size="md" ml={3} />}</Heading>
                       <HStack spacing={2} mt={1} color="gray.600" flexWrap="wrap">
                         {/* rentals show no condition */}
                         {Number.isFinite(trips) && <Text>{trips === 0 ? 'No trips yet' : `${trips} trip${trips === 1 ? '' : 's'}`}</Text>}
@@ -143,7 +144,10 @@ export default function RentalDetails() {
                       <Flex gap={4} align="center" flexWrap="wrap">
                         <Avatar size="lg" src={profilePicture(dealer)} name={dealer?.business_name} />
                         <Box flex={1} minW="160px">
-                          <Heading as="p" size="sm">{dealer?.business_name || 'Host'}</Heading>
+                          <HStack spacing={2}>
+                            <Heading as="p" size="sm">{dealer?.business_name || 'Host'}</Heading>
+                            {dealer?.ev && <EvBadge tip="This host deals in electric vehicles" />}
+                          </HStack>
                           <HStack spacing={1} mt={1}>
                             {Number.isFinite(hostRating) && hostRating > 0 ? (
                               <>

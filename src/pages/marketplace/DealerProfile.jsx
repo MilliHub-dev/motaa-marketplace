@@ -1,3 +1,4 @@
+import EvBadge from '../../components/EvBadge';
 import {
   Box, Container, HStack, VStack, Text, Button, Avatar, Badge, Image, Heading, Flex, IconButton,
   Menu, MenuButton, MenuList, MenuItem, Divider, Link as ChakraLink, SimpleGrid, Tabs, TabList, Tab,
@@ -120,6 +121,7 @@ export default function DealerProfile() {
                       {data?.headline && <Text color="gray.700">{data.headline}</Text>}
                       <HStack spacing={3} mt={1} flexWrap="wrap">
                         <Badge variant="subtle" colorScheme="blue">Car Dealership</Badge>
+                        {data?.ev && <EvBadge label="EV dealer" tip="This dealer deals in electric vehicles" />}
                         {data?.location && (
                           <HStack spacing={1} color="gray.600">
                             <MapPin size={16} aria-hidden="true" />

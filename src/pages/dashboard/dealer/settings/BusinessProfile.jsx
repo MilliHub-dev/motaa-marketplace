@@ -1,3 +1,4 @@
+import { EvToggle } from '../../../../components/EvBadge';
 import {
   Avatar,
   Box,
@@ -42,6 +43,7 @@ function toForm(data) {
     services: Array.from(new Set((Array.isArray(data?.services) ? data.services : [])
       .map((s) => (s === 'Sell-Your-Car' ? 'Car Trade-in' : s))
       .filter((s) => SERVICES.includes(s)))),
+    deals_in_evs: Boolean(data?.deals_in_evs),
   };
 }
 
@@ -134,6 +136,7 @@ function ProfileForm({ data, onSaved }) {
       payload.append(key, form[key].trim());
     }
     payload.append('services', JSON.stringify(form.services));
+    payload.append('deals_in_evs', form.deals_in_evs ? 'true' : 'false');
     if (logo?.file) payload.append('new-logo', logo.file, logo.file.name);
     save.mutate(payload);
   }
@@ -237,6 +240,13 @@ function ProfileForm({ data, onSaved }) {
         </Wrap>
         <FormErrorMessage>{errors.services}</FormErrorMessage>
       </FormControl>
+
+      <EvToggle
+        isChecked={form.deals_in_evs}
+        onChange={(on) => change('deals_in_evs', on)}
+        label="EV dealer"
+        hint="Shows an EV badge on your profile and cars. You get it automatically once you list an electric car."
+      />
 
       <Divider />
       <Heading as="h2" size="sm">Customer contact details</Heading>

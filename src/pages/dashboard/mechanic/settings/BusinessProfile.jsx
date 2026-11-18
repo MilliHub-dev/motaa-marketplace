@@ -1,3 +1,4 @@
+import { EvToggle } from '../../../../components/EvBadge';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { Link as RLink } from 'react-router-dom';
 import {
@@ -58,6 +59,7 @@ function ProfileForm({ mechanic, onSaved }) {
   const { commaInt, notifyError } = useContext(GlobalStore);
   const imageRef = useRef();
   const [values, setValues] = useState(() => toForm(mechanic));
+  const [worksOnEvs, setWorksOnEvs] = useState(Boolean(mechanic?.works_on_evs));
   const [logo, setLogo] = useState(null); // { file, preview }
   const [errors, setErrors] = useState({});
 
@@ -95,6 +97,7 @@ function ProfileForm({ mechanic, onSaved }) {
     if (Object.values(found).some(Boolean) || save.loading) return;
     const payload = new FormData();
     Object.entries(values).forEach(([key, value]) => payload.append(key, value.trim()));
+    payload.append('works_on_evs', worksOnEvs ? 'true' : 'false');
     if (logo?.file) payload.append('logo', logo.file, logo.file.name);
     save.mutate(payload);
   }
@@ -188,6 +191,14 @@ function ProfileForm({ mechanic, onSaved }) {
         <Input type="tel" name="contact_phone" value={values.contact_phone} onChange={handleChange} autoComplete="tel" placeholder="+234 803 000 0000" bg="white" />
         <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
       </FormControl>
+
+      <EvToggle
+        isChecked={worksOnEvs}
+        onChange={setWorksOnEvs}
+        title="I work on electric vehicles (EV)"
+        label="EV mechanic"
+        hint="Shows an EV badge on your profile and lists you when customers filter for EV mechanics."
+      />
 
       <HStack>
         <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText="Saving">

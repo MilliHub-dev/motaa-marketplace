@@ -165,15 +165,29 @@ describe('shop settings', () => {
   it('reads the shop into the form and back into a payload', () => {
     const form = storeToForm({
       active: true, delivers: true, delivery_fee: '2500.00', delivers_nationwide: true, delivery_days: '1-3 days', offers_pickup: true,
-      pickup_address: ' 5 Ladipo St ', zones: [{ state: 'Lagos', fee: '1500.00' }],
+      pickup_address: ' 5 Ladipo St ', zones: [{ state: 'Lagos', fee: '1500.00' }], deals_in_evs: true,
     });
     expect(form.delivery_fee).toBe('2500');
     expect(form.zones).toEqual([{ state: 'Lagos', fee: '1500' }]);
     expect(validateStoreForm(form)).toEqual({});
     expect(storePayload({ ...form, delivery_fee: '2,500' })).toEqual({
       active: true, delivers: true, delivery_fee: '2500', delivers_nationwide: true, delivery_days: '1-3 days', offers_pickup: true,
-      pickup_address: '5 Ladipo St', zones: [{ state: 'Lagos', fee: '1500' }],
+      pickup_address: '5 Ladipo St', deals_in_evs: true, zones: [{ state: 'Lagos', fee: '1500' }],
     });
+  });
+
+  it('keeps the EV parts tick and sends the EV part tick', () => {
+    expect(storeToForm(null).deals_in_evs).toBe(false);
+    expect(storePayload({ ...storeToForm({ deals_in_evs: false, zones: [] }) }).deals_in_evs).toBe(false);
+    expect(partToForm({ is_ev: true }).is_ev).toBe(true);
+    expect(emptyPartForm().is_ev).toBe(false);
+  });
+
+  it('filters for EV parts', () => {
+    const params = new URLSearchParams('ev=1&q=battery');
+    expect(partsApiQuery(params)).toContain('ev=1');
+    expect(hasPartsFilters(new URLSearchParams('ev=1'))).toBe(true);
+    expect(partsFilterChips(params).map((chip) => chip.label)).toContain('EV parts only');
   });
 
   it('starts a business without a shop on the defaults', () => {

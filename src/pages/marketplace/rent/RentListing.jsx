@@ -1,3 +1,4 @@
+import { EvFilterButton } from '../../../components/EvBadge';
 import {
     Box, Button, Container, Flex, FormControl, FormErrorMessage, FormLabel,
     Heading, HStack, SimpleGrid, Tag, TagCloseButton, TagLabel, Text,
@@ -25,6 +26,7 @@ function apiQuery(params) {
     if (params.get('make')) qs.set('make', params.get('make'));
     if (params.get('location')) qs.set('location', params.get('location'));
     if (params.get('transmission')) qs.set('transmission', params.get('transmission'));
+    if (params.get('ev') === '1') qs.set('ev', '1');
     if (params.get('min_price')) qs.set('price_min', params.get('min_price'));
     if (params.get('max_price')) qs.set('price_max', params.get('max_price'));
     const page = Math.max(1, parseInt(params.get('page'), 10) || 1);
@@ -85,6 +87,7 @@ export const RentListing = () => {
     const chips = [];
     if (params.get('make')) chips.push({ keys: ['make'], label: `Brand: ${params.get('make').split(',').join(', ')}` });
     if (params.get('location')) chips.push({ keys: ['location'], label: `Location: ${params.get('location')}` });
+    if (params.get('ev') === '1') chips.push({ keys: ['ev'], label: 'Electric cars only' });
     if (params.get('transmission')) chips.push({ keys: ['transmission'], label: `Transmission: ${params.get('transmission').split(',').map((v) => TRANSMISSIONS.find((t) => t.value === v)?.label || v).join(', ')}` });
     if (params.get('min_price') || params.get('max_price')) {
         const min = params.get('min_price'); const max = params.get('max_price');
@@ -154,6 +157,7 @@ export const RentListing = () => {
                 <CarBrandFilter param="make" value={params.get('make')} onChange={applyFilter} />
                 <PriceFilter value={{ min: params.get('min_price'), max: params.get('max_price') }} onChange={applyFilter} />
                 <TransmissionFilter value={params.get('transmission')} onChange={applyFilter} />
+                <EvFilterButton isOn={params.get('ev') === '1'} onToggle={(on) => updateParams({ ev: on ? '1' : null })} />
             </Flex>
 
             {chips.length > 0 && (

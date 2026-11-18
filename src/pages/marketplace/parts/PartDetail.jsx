@@ -1,4 +1,5 @@
 // /parts/:partId — one spare part: photos, price, what it fits, the seller, delivery and the return policy.
+import EvBadge from '../../../components/EvBadge';
 import { useContext, useEffect, useState } from 'react';
 import { Link as RLink, useLocation, useParams } from 'react-router-dom';
 import {
@@ -109,6 +110,7 @@ export default function PartDetail() {
         <Stack spacing={5} minW={0}>
           <Box>
             <HStack spacing={2} flexWrap="wrap" mb={2}>
+              {part.is_ev && <EvBadge label="EV part" tip="A part for electric vehicles" size="md" />}
               {part.condition_label && <Badge textTransform="none" borderRadius="full" px={2} colorScheme="blue">{part.condition_label}</Badge>}
               {part.category?.name && (
                 <Text as={RLink} to={`/parts?category=${part.category.slug}`} fontSize="sm" color="primary">{part.category.name}</Text>
@@ -179,6 +181,7 @@ export default function PartDetail() {
                   <HStack spacing={2} flexWrap="wrap">
                     <Text as={RLink} to={`/parts/stores/${store.uuid}`} fontWeight="600" _hover={{ color: 'primary' }}>{store.name}</Text>
                     {store.verified && <VerifiedSeller />}
+                    {store.ev && <EvBadge tip="This shop sells parts for electric vehicles" />}
                   </HStack>
                   <Text fontSize="sm" color="gray.600">{[store.kind_label, place].filter(Boolean).join(' · ')}</Text>
                 </Box>

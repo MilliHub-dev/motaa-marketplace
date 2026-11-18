@@ -1,3 +1,4 @@
+import { EvFilterButton } from "../../../components/EvBadge"
 import {
     Box, Button, Container, Flex, Heading, HStack,
     ButtonGroup, SimpleGrid, Tag, TagLabel, TagCloseButton, Text,
@@ -25,7 +26,7 @@ const CONDITIONS = [
 /** URL (?brands=&transmission=&min_price=&max_price=&condition=&page=) → /listings/buy/ query string. */
 function apiQuery(params) {
     const qs = new URLSearchParams();
-    for (const key of ['brands', 'transmission', 'condition', 'location']) {
+    for (const key of ['brands', 'transmission', 'condition', 'location', 'ev']) {
         if (params.get(key)) qs.set(key, params.get(key));
     }
     const min = params.get('min_price');
@@ -42,6 +43,7 @@ function appliedChips(params, commaInt) {
     const chips = [];
     if (params.get('brands')) chips.push({ keys: ['brands'], label: `Brand: ${params.get('brands').split(',').join(', ')}` });
     if (params.get('location')) chips.push({ keys: ['location'], label: `Location: ${params.get('location')}` });
+    if (params.get('ev') === '1') chips.push({ keys: ['ev'], label: 'Electric cars only' });
     if (params.get('transmission')) {
         const names = params.get('transmission').split(',').map((v) => TRANSMISSIONS.find((t) => t.value === v)?.label || v);
         chips.push({ keys: ['transmission'], label: `Transmission: ${names.join(', ')}` });
@@ -138,6 +140,7 @@ const BuyListing = () => {
                 <CarBrandFilter param="brands" value={params.get('brands')} onChange={applyFilter} />
                 <PriceFilter value={{ min: params.get('min_price'), max: params.get('max_price') }} onChange={applyFilter} />
                 <TransmissionFilter value={params.get('transmission')} onChange={applyFilter} />
+                <EvFilterButton isOn={params.get('ev') === '1'} onToggle={(on) => updateParams({ ev: on ? '1' : null })} />
             </Flex>
 
             {chips.length > 0 && (

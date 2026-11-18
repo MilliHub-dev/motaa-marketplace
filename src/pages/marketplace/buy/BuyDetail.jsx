@@ -1,3 +1,4 @@
+import EvBadge, { isElectric } from '../../../components/EvBadge';
 import {
     Avatar, Box, Button, Container, Divider, Flex, Heading, Image, List,
     ListItem, Stack, Text, IconButton, SimpleGrid, Tag, HStack, VStack, Tooltip,
@@ -74,7 +75,9 @@ export const BuyDetail = () => {
                         <LocationBreadcrumb label={title} />
 
                         <Box my={5}>
-                            <Heading as="h1" size={'lg'} className="title">{title}</Heading>
+                            <Heading as="h1" size={'lg'} className="title">
+                                {title}{isElectric(vehicle) && <EvBadge tip="Electric car" size="md" ml={3} />}
+                            </Heading>
                             {dealer?.location && <Text color="gray.600">{dealer.location}</Text>}
                         </Box>
 
@@ -95,7 +98,10 @@ export const BuyDetail = () => {
                                     <Flex as={Link} to={`/dealership/${dealer.uuid}`} gap={3} alignItems="center" _hover={{ textDecoration: 'underline' }}>
                                         <Avatar name={dealer?.business_name} src={profilePicture(dealer)} />
                                         <Stack spacing={0} minW={0}>
-                                            <Heading as="p" size={'sm'} noOfLines={1}>{dealer?.business_name || 'Dealer'}</Heading>
+                                            <HStack spacing={2} minW={0}>
+                                                <Heading as="p" size={'sm'} noOfLines={1}>{dealer?.business_name || 'Dealer'}</Heading>
+                                                {dealer?.ev && <EvBadge tip="This dealer deals in electric vehicles" />}
+                                            </HStack>
                                             <Text fontSize="sm" color="gray.600">View dealer profile</Text>
                                         </Stack>
                                     </Flex>
