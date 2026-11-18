@@ -115,7 +115,7 @@ const NavbarShell = ({ children, dark, ...props }) => (
   </Box>
 )
 
-const Brand = ({ to = '/', light }) => (
+export const Brand = ({ to = '/', light }) => (
   <Box as={RLink} to={to} flexShrink={0} w={{ base: '64px', md: '80px' }} aria-label="Motaa home">
     <Image
      loading="eager"
@@ -173,12 +173,12 @@ export const UnauthenticatedNavbar = () => {
 }
 
 
-const NavIconLink = ({ to, label, icon, ...props }) => (
+export const NavIconLink = ({ to, label, icon, ...props }) => (
   <IconButton as={RLink} to={to} aria-label={label} title={label} variant="ghost" icon={icon} fontSize="22px" {...props} />
 )
 
 // The chat icon, with the number of messages waiting to be read.
-const ChatLink = () => {
+export const ChatLink = () => {
   const count = useChatUnread();
   const label = count ? `Messages, ${count} unread` : 'Messages';
   return (

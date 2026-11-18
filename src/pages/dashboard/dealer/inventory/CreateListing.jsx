@@ -29,6 +29,7 @@ import {
   listingPayload,
   useRevokePreviews,
 } from '../../../../components/forms';
+import { DashCard, PageHeader } from '../../../../components/dashboard/ui';
 import { GlobalStore } from '../../../../App';
 import { toApiError } from '../../../../api/client';
 
@@ -177,21 +178,18 @@ export function ListingWizard({ listing = null }) {
   const isRental = form.listing_type === 'rental';
 
   return (
-    <Box ref={topRef} scrollMarginTop="80px">
-      <Container maxW="container.lg" px={0} pb={16} pt={4}>
-        <BackButton
-          to={step === 0 ? '/inventory' : undefined}
-          onClick={step > 0 ? () => goTo(step - 1) : undefined}
-          isDisabled={Boolean(busy)}
-        />
-
-        <VStack spacing={8} align="stretch">
-          <Box textAlign="center">
-            <Heading as="h1" size="lg" className="bold">{isEdit ? 'Edit listing' : 'Add a listing'}</Heading>
-            <Text color="gray.600">
-              {isEdit ? 'Update the details, photos, then review.' : 'List your car in 3 steps: details, photos, then review.'}
-            </Text>
-          </Box>
+    <Box ref={topRef} scrollMarginTop="120px">
+      <BackButton
+        to={step === 0 ? '/inventory' : undefined}
+        onClick={step > 0 ? () => goTo(step - 1) : undefined}
+        isDisabled={Boolean(busy)}
+      />
+      <PageHeader
+        title={isEdit ? 'Edit car' : 'Add a car'}
+        subtitle={isEdit ? 'Update the details, photos, then review.' : 'List your car in 3 steps: details, photos, then review.'}
+      />
+      <DashCard pb={{ base: 8, md: 12 }}>
+        <VStack spacing={8} align="stretch" maxW="900px" mx="auto">
 
           <StepIndicator currentStep={step} steps={STEPS} />
 
@@ -288,7 +286,7 @@ export function ListingWizard({ listing = null }) {
             </VStack>
           )}
         </VStack>
-      </Container>
+      </DashCard>
     </Box>
   );
 }

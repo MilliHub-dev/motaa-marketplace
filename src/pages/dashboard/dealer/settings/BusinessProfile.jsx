@@ -44,6 +44,8 @@ function toForm(data) {
       .map((s) => (s === 'Sell-Your-Car' ? 'Car Trade-in' : s))
       .filter((s) => SERVICES.includes(s)))),
     deals_in_evs: Boolean(data?.deals_in_evs),
+    monthly_revenue_goal: data?.monthly_revenue_goal ? String(Math.round(Number(data.monthly_revenue_goal))) : '',
+    monthly_deals_goal: data?.monthly_deals_goal ? String(data.monthly_deals_goal) : '',
   };
 }
 
@@ -137,6 +139,8 @@ function ProfileForm({ data, onSaved }) {
     }
     payload.append('services', JSON.stringify(form.services));
     payload.append('deals_in_evs', form.deals_in_evs ? 'true' : 'false');
+    payload.append('monthly_revenue_goal', form.monthly_revenue_goal.replace(/[^\d]/g, ''));
+    payload.append('monthly_deals_goal', form.monthly_deals_goal.replace(/[^\d]/g, ''));
     if (logo?.file) payload.append('new-logo', logo.file, logo.file.name);
     save.mutate(payload);
   }
@@ -145,7 +149,7 @@ function ProfileForm({ data, onSaved }) {
   const location = typeof data?.location === 'string' ? data.location : '';
 
   return (
-    <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" py={6} maxW="720px" w="100%">
+    <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" maxW="760px" w="100%">
       <Box bg="white" borderWidth={1} borderColor="gray.200" borderRadius="xl" p={6}>
         <VStack spacing={3}>
           <Avatar size="xl" src={logoSrc} name={form.business_name || 'Dealership'} bg="primary" color="white" />
@@ -261,6 +265,27 @@ function ProfileForm({ data, onSaved }) {
           <FormLabel>Customer care phone</FormLabel>
           <Input type="tel" name="contact_phone" autoComplete="tel" placeholder="+234 801 234 5678" value={form.contact_phone} onChange={(e) => change('contact_phone', e.target.value)} />
           <FormErrorMessage>{errors.contact_phone}</FormErrorMessage>
+        </FormControl>
+      </SimpleGrid>
+
+      <Divider />
+      <Box id="goals" scrollMarginTop="120px">
+        <Heading as="h2" size="sm">Monthly goals</Heading>
+        <Text fontSize="sm" color="gray.600" mt={1}>Only you and your team see these. Your Overview shows how close you are each month.</Text>
+      </Box>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+        <FormControl isInvalid={Boolean(errors.monthly_revenue_goal)}>
+          <FormLabel>Revenue goal (₦ per month)</FormLabel>
+          <Input name="monthly_revenue_goal" inputMode="numeric" placeholder="e.g. 50,000,000"
+            value={form.monthly_revenue_goal ? Number(form.monthly_revenue_goal.replace(/[^\d]/g, '') || 0).toLocaleString('en-NG') : ''}
+            onChange={(e) => change('monthly_revenue_goal', e.target.value.replace(/[^\d]/g, ''))} />
+          {errors.monthly_revenue_goal ? <FormErrorMessage>{errors.monthly_revenue_goal}</FormErrorMessage> : <FormHelperText>What you earn after Motaa's commission. Leave blank for none.</FormHelperText>}
+        </FormControl>
+        <FormControl isInvalid={Boolean(errors.monthly_deals_goal)}>
+          <FormLabel>Cars sold or rented (per month)</FormLabel>
+          <Input name="monthly_deals_goal" inputMode="numeric" placeholder="e.g. 6" value={form.monthly_deals_goal}
+            onChange={(e) => change('monthly_deals_goal', e.target.value.replace(/[^\d]/g, ''))} />
+          {errors.monthly_deals_goal ? <FormErrorMessage>{errors.monthly_deals_goal}</FormErrorMessage> : <FormHelperText>Leave blank for none.</FormHelperText>}
         </FormControl>
       </SimpleGrid>
 

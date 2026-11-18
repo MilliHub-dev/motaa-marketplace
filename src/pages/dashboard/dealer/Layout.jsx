@@ -1,8 +1,8 @@
-import { Suspense, useState, useContext, createContext } from 'react';
+import { Suspense, useContext, createContext } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
 import { GlobalStore } from '../../../App';
-import { DealerDashboardSideBar, DealerNavbar } from '../../../components/nav';
+import DealerShell from '../../../components/dashboard/DealerShell';
 import { VerificationNotice } from '../../../components';
 import InstallAppNotice from '../../../components/InstallAppNotice';
 import { useApiQuery } from '../../../hooks/useApi';
@@ -16,8 +16,6 @@ export const DealershipContext = createContext({
 
 function DealerDashboardLayout({ hideSidebar }) {
   const { notify, authUser } = useContext(GlobalStore);
-  const [sidebarOpen, setSidebarState] = useState(false);
-  const [isMobile] = useMediaQuery('(max-width: 991px)');
 
   const dealershipQuery = useApiQuery(
     (client, signal) => client.get('/admin/dealership/', { signal }),
@@ -67,32 +65,12 @@ function DealerDashboardLayout({ hideSidebar }) {
     );
   }
 
+  // wallet and chat pages (hideSidebar) share the frame but skip the dashboard notices
   return (
     <DealershipContext.Provider value={context}>
-      <Stack>
-        <DealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
-
-        <Flex minH="100vh" position="relative">
-          <DealerDashboardSideBar
-            dealership={dealership || {}}
-            sidebarOpen={sidebarOpen}
-            onClose={() => setSidebarState(false)}
-            setSidebarState={setSidebarState}
-            mode={hideSidebar ? 'drawer' : 'block'}
-          />
-
-          <Box
-            flex={{ md: 1 }}
-            minW={0}
-            w={isMobile || hideSidebar ? '100%' : 'calc(100% - 280px)'}
-            ml={isMobile || hideSidebar ? '0px' : '280px'}
-          >
-            <Container pb={10} maxW="container.xl">
-              {content}
-            </Container>
-          </Box>
-        </Flex>
-      </Stack>
+      <DealerShell dealership={dealership}>
+        <Box maxW="1480px" mx="auto">{content}</Box>
+      </DealerShell>
     </DealershipContext.Provider>
   );
 }
