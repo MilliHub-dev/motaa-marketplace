@@ -30,10 +30,10 @@ import {
   VisuallyHidden,
 } from "@chakra-ui/react";
 import { CloseIcon, CheckIcon } from "@chakra-ui/icons";
-import { AlertTriangle, Zap, Gauge, Settings, Upload, ImageOff, Undo2, Car, DoorOpen, Users } from "lucide-react";
+import { AlertTriangle, Zap, Gauge, Settings, Upload, ImageOff, Undo2, Car, DoorOpen, Users, ShieldCheck } from "lucide-react";
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { GlobalStore } from '../App';
-import { FormSection, WizardStepper } from './dashboard/FormLayout';
+import { ChoiceCards, FormSection, WizardStepper } from './dashboard/FormLayout';
 import { EnhanceAllButton, PhotoAiAction } from './dashboard/AiTools';
 
 // ---------------------------------------------------------------------------
@@ -128,6 +128,7 @@ export function emptyListingForm(listingType = 'sale') {
     condition: '', vehicle_type: '', fuel_system: '', transmission: '', drivetrain: '',
     doors: '4', seats: '5', mileage: '', color: '',
     features: [], notes: '',
+    custom_duty: '', // 'yes' | 'no': must be answered
   };
 }
 
@@ -155,6 +156,7 @@ export function listingToForm(listing) {
     color: text(vehicle.color === 'None' || vehicle.color === 'Not specified' ? '' : vehicle.color),
     features: Array.isArray(vehicle.features) ? vehicle.features.filter((f) => typeof f === 'string' && f.length > 1) : [],
     notes: text(listing?.notes),
+    custom_duty: vehicle.custom_duty === true ? 'yes' : vehicle.custom_duty === false ? 'no' : '',
   };
 }
 
@@ -164,6 +166,8 @@ export function imagesFromListing(listing) {
   return images.filter((img) => img?.url).map((img) => ({ key: `server-${img.uuid || img.id}`, uuid: img.uuid, url: img.url }));
 }
 
+/** Seller notes are compulsory: buyers need a few words about the car. */
+export const MIN_NOTES = 20;
 const REQUIRED = ['title', 'brand', 'model', 'vin', 'price', 'condition', 'vehicle_type', 'fuel_system', 'transmission', 'drivetrain', 'doors', 'seats', 'mileage'];
 
 /** Returns { field: message } for anything that must be fixed before saving. */
@@ -179,7 +183,10 @@ export function validateListingForm(form) {
   if (form?.listing_type !== 'rental' && !errors.mileage && (!Number.isFinite(mileage) || mileage < 0)) errors.mileage = 'Enter the mileage in km (0 or more).';
   if (form?.listing_type === 'rental' && !form?.payment_cycle) errors.payment_cycle = 'Choose how often renters pay.';
   if (String(form?.title || '').length > 200) errors.title = 'Keep the title under 200 characters.';
-  if (String(form?.notes || '').length > 700) errors.notes = 'Keep notes under 700 characters.';
+  const notes = String(form?.notes || '').trim();
+  if (notes.length > 700) errors.notes = 'Keep notes under 700 characters.';
+  else if (notes.length < MIN_NOTES) errors.notes = `Add seller notes for buyers (at least ${MIN_NOTES} characters): condition, service history, papers.`;
+  if (!['yes', 'no'].includes(form?.custom_duty)) errors.custom_duty = 'Say whether customs duty has been paid on this car.';
   return errors;
 }
 
@@ -192,6 +199,7 @@ export function listingPayload(form) {
     payload[key] = typeof form[key] === 'string' ? form[key].trim() : form[key];
   }
   payload.features = Array.isArray(form.features) ? form.features : [];
+  if (form.custom_duty === 'yes' || form.custom_duty === 'no') payload.custom_duty = form.custom_duty === 'yes';
   if (form.listing_type === 'rental') payload.payment_cycle = form.payment_cycle;
   return payload;
 }
@@ -313,6 +321,15 @@ export function ListingDetailsForm({ form, errors = {}, onChange, typePicker }) 
             <FormErrorMessage>{errors.mileage}</FormErrorMessage>
           </FormControl>}
         </SimpleGrid>
+        <FormControl as="fieldset" isRequired isInvalid={Boolean(errors.custom_duty)} mt={6} id="field-custom_duty">
+          <FormLabel as="legend">Customs duty</FormLabel>
+          <ChoiceCards label="Customs duty" value={form.custom_duty} onChange={(value) => onChange('custom_duty', value)} options={[
+            { value: 'yes', label: 'Duty paid', description: 'Customs papers are cleared. Buyers can see the papers.', icon: ShieldCheck },
+            { value: 'no', label: 'Duty not paid', description: 'The buyer will need to clear customs.', icon: AlertTriangle },
+          ]} />
+          {errors.custom_duty ? <FormErrorMessage>{errors.custom_duty}</FormErrorMessage>
+            : <FormHelperText>Buyers filter and decide on this, so it must be answered.</FormHelperText>}
+        </FormControl>
       </FormSection>
 
       <FormSection number={3} title="Specifications" description="The details buyers filter by.">
@@ -336,14 +353,14 @@ export function ListingDetailsForm({ form, errors = {}, onChange, typePicker }) 
         </SimpleGrid>
       </FormSection>
 
-      <FormSection number={4} title="Features and notes" description="Optional, but cars with more detail get more offers.">
+      <FormSection number={4} title="Features and notes" description="Seller notes are required. Cars with more detail get more offers.">
         <VStack spacing={6} align="stretch">
           <FeaturePicker value={form.features} onChange={(features) => onChange('features', features)} />
-          <FormControl isInvalid={Boolean(errors.notes)}>
-            <FormLabel>Seller notes <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
+          <FormControl isRequired isInvalid={Boolean(errors.notes)} id="field-notes">
+            <FormLabel>Seller notes</FormLabel>
             <Textarea name="notes" rows={5} placeholder="Service history, extras, anything a buyer should know…" value={form.notes}
               onChange={(e) => onChange('notes', e.target.value)} maxLength={700} />
-            {errors.notes ? <FormErrorMessage>{errors.notes}</FormErrorMessage> : <FormHelperText>{String(form.notes || '').length}/700 characters</FormHelperText>}
+            {errors.notes ? <FormErrorMessage>{errors.notes}</FormErrorMessage> : <FormHelperText>{String(form.notes || '').trim().length < MIN_NOTES ? `At least ${MIN_NOTES} characters · ` : ''}{String(form.notes || '').length}/700 characters</FormHelperText>}
           </FormControl>
         </VStack>
       </FormSection>
@@ -541,6 +558,7 @@ export function ListingReviewCard({ form, images = [] }) {
               <HStack spacing={2} flexWrap="wrap">
                 <Badge colorScheme={isRental ? 'purple' : 'blue'}>{isRental ? 'Rental' : 'For sale'}</Badge>
                 {form.condition && <Badge colorScheme="gray">{optionLabel('condition', form.condition)}</Badge>}
+                {form.custom_duty && <Badge colorScheme={form.custom_duty === 'yes' ? 'green' : 'orange'}>{form.custom_duty === 'yes' ? 'Duty paid' : 'Duty not paid'}</Badge>}
               </HStack>
               <Text fontSize="sm" color="gray.600">{[form.brand, form.model, form.color].filter(Boolean).join(' · ')}</Text>
             </VStack>
