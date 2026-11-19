@@ -20,11 +20,18 @@ import {
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Wallet, XCircle, Zap } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiQuery } from '../../../hooks/useApi';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { newReference, usePaystack } from '../../../components/wallet';
+import { FORM_CARD, WalletSplit } from './walletUi';
+
+const TIPS = [
+  { icon: Zap, text: 'Card and bank transfer deposits usually land in seconds.' },
+  { icon: ShieldCheck, text: 'Paystack processes the payment. Motaa never sees or stores your card.' },
+  { icon: Wallet, text: 'Pay for cars, rentals, parts and mechanics straight from your balance.' },
+];
 
 const QUICK_AMOUNTS = [5000, 10000, 20000, 50000];
 const MAX_DEPOSIT = 10000000;
@@ -70,7 +77,8 @@ function WalletDepositPage() {
 
   if (result.state !== 'idle') {
     return (
-      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} borderWidth={1} borderRadius="20px" maxW="480px" mx="auto" bg="white">
+      <WalletSplit wallet={wallet.data} tips={TIPS}>
+      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} {...FORM_CARD}>
         {result.state === 'verifying' && (<>
           <Spinner size="xl" color="primary" thickness="4px" />
           <Heading as="h1" size="md">Confirming your payment…</Heading>
@@ -97,11 +105,13 @@ function WalletDepositPage() {
           </Stack>
         </>)}
       </Flex>
+      </WalletSplit>
     );
   }
 
   return (
-    <Box as="form" onSubmit={deposit} noValidate borderWidth={1} borderRadius="20px" p={{ base: 5, md: 8 }} maxW="480px" mx="auto" bg="white">
+    <WalletSplit wallet={wallet.data} tips={TIPS}>
+    <Box as="form" onSubmit={deposit} noValidate {...FORM_CARD}>
       <Heading as="h1" size="lg" mb={1}>Deposit</Heading>
       <Text color="gray.600" mb={6}>Current balance: ₦{commaInt(wallet.data?.balance)}</Text>
 
@@ -139,6 +149,7 @@ function WalletDepositPage() {
         <Text>Pay by card, bank transfer or USSD. Payments are processed securely by Paystack; Motaa never stores your card details.</Text>
       </HStack>
     </Box>
+    </WalletSplit>
   );
 }
 

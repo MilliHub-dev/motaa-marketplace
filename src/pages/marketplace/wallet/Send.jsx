@@ -6,12 +6,19 @@ import {
   Alert, AlertDescription, AlertIcon, Box, Button, Divider, Flex, FormControl, FormErrorMessage, FormHelperText, FormLabel, Heading,
   Icon, Input, InputGroup, InputLeftAddon, Stack, Text, VStack,
 } from '@chakra-ui/react';
-import { CheckCircle2, Send } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, KeyRound, Send, Zap } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { useWalletPin } from '../../../components/walletPin';
 import { MIN_TRANSFER, cleanAmount, cleanEmail, transferErrors, transferServerErrors } from '../../../utils/walletTransfer';
+import { FORM_CARD, WalletSplit } from './walletUi';
+
+const TIPS = [
+  { icon: Zap, text: 'Money arrives in their Motaa wallet straight away, with no fee.' },
+  { icon: AlertTriangle, text: 'Transfers can\'t be reversed. Check the email before you send.' },
+  { icon: KeyRound, text: 'You confirm every transfer with your wallet PIN.' },
+];
 
 function Row({ label, value, bold }) {
   return (
@@ -85,7 +92,8 @@ function WalletSendPage() {
 
   if (result) {
     return (
-      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} borderWidth={1} borderRadius="20px" maxW="480px" mx="auto" bg="white" role="status">
+      <WalletSplit wallet={wallet.data} tips={TIPS}>
+      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} {...FORM_CARD} role="status">
         <Icon as={CheckCircle2} boxSize={14} color="green.500" aria-hidden="true" />
         <Heading as="h1" size="md">Money sent</Heading>
         <Text color="gray.700">{result.message}</Text>
@@ -98,12 +106,13 @@ function WalletSendPage() {
           <Button as={RLink} to="/wallet/transactions" bg="primary" color="white" _hover={{ bg: 'secondary' }}>View transactions</Button>
         </Stack>
       </Flex>
+      </WalletSplit>
     );
   }
 
   return (
-    <Box as="form" onSubmit={step === 0 ? review : (e) => { e.preventDefault(); send.mutate(); }} noValidate
-      borderWidth={1} borderRadius="20px" p={{ base: 5, md: 8 }} maxW="520px" mx="auto" bg="white">
+    <WalletSplit wallet={wallet.data} tips={TIPS}>
+    <Box as="form" onSubmit={step === 0 ? review : (e) => { e.preventDefault(); send.mutate(); }} noValidate {...FORM_CARD}>
       <Heading as="h1" size="lg" mb={1}>Send money</Heading>
       <Text color="gray.600" mb={6}>Available: ₦{commaInt(wallet.data?.balance)} · Step {step + 1} of 2</Text>
 
@@ -131,7 +140,7 @@ function WalletSendPage() {
           </FormControl>
         </VStack>
       ) : (
-        <Box borderWidth={1} borderRadius="lg" p={4} bg="gray.50">
+        <Box borderRadius="16px" p={5} bg="#F3F5F8">
           <Text fontSize="lg" fontWeight="600" mb={3} wordBreak="break-word">Send ₦{commaInt(value)} to {email}?</Text>
           <VStack align="stretch" spacing={2}>
             <Row label="To" value={email} />
@@ -157,6 +166,7 @@ function WalletSendPage() {
         </Button>
       </Stack>
     </Box>
+    </WalletSplit>
   );
 }
 

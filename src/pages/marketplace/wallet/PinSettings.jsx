@@ -361,7 +361,7 @@ function PinHero({ info }) {
       ? (changed && !Number.isNaN(changed.getTime()) ? `Last changed ${naturalDate(changed)}` : 'Your wallet payments are protected.')
       : 'Create one to pay, transfer and withdraw from your wallet.';
   return (
-    <Flex bgGradient="linear(to-br, #0065B5, #003D70)" color="white" px={{ base: 5, md: 6 }} py={{ base: 5, md: 6 }}
+    <Flex bg="#0B1220" color="white" px={{ base: 5, md: 6 }} py={{ base: 5, md: 6 }}
       gap={4} align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }}>
       <Flex w={12} h={12} borderRadius="full" bg="whiteAlpha.200" align="center" justify="center" flexShrink={0}>
         <Icon as={state === 'on' ? ShieldCheck : state === 'locked' ? ShieldAlert : ShieldPlus} boxSize={6} aria-hidden="true" />
@@ -416,7 +416,7 @@ export function WalletPinSettings() {
             <ActionRow icon={Mail} title="Forgot PIN?" description="We'll email you a code to reset it" onClick={() => setFlow('reset')} />
           )}
         </VStack>
-        <Box bg="gray.50" borderTopWidth={1} px={{ base: 4, md: 6 }} py={4}>
+        <Box bg="#F3F5F8" px={{ base: 4, md: 6 }} py={4}>
           <Text fontWeight="600" fontSize="sm" mb={3}>Keep your wallet safe</Text>
           <List spacing={2.5}>
             {TIPS.map((tip) => (
@@ -432,7 +432,7 @@ export function WalletPinSettings() {
   }
 
   return (
-    <Box as="section" aria-labelledby="wallet-pin-heading" aria-busy={status.loading} borderWidth={1} borderRadius="2xl" overflow="hidden" bg="white">
+    <Box as="section" aria-labelledby="wallet-pin-heading" aria-busy={status.loading} borderRadius={{ base: '18px', md: '24px' }} overflow="hidden" bg="white">
       {!info && <Heading as="h2" size="md" id="wallet-pin-heading" px={6} pt={5}>Wallet PIN</Heading>}
       {body}
       {flow && (

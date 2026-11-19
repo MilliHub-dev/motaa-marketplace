@@ -13,6 +13,7 @@ import {
   Button,
   Divider,
   Flex,
+  Grid,
   Heading,
   HStack,
   Icon,
@@ -26,6 +27,7 @@ import { AsyncState, EmptyState } from '../../../components/states';
 import { BankAccountFields } from '../../../components/wallet';
 import { asList } from '../../../utils';
 import { WalletPinSettings } from './PinSettings';
+import { DASH, PageHeader } from '../../../components/dashboard/ui';
 
 const EMPTY_ACCOUNT = { bank_code: '', bank_name: '', account_number: '', account_name: '' };
 
@@ -63,16 +65,19 @@ function WalletSettingsPage() {
   }
 
   return (
-    <Box maxW="640px">
-      <Heading as="h1" size="lg" mb={1}>Wallet settings</Heading>
-      <Text color="gray.600" mb={6}>Your wallet PIN and the bank accounts you withdraw to.</Text>
-      <WalletPinSettings />
+    <Box>
+      <PageHeader title="Wallet settings" subtitle="Your wallet PIN and the bank accounts you withdraw to." />
+      <Grid templateColumns={{ base: '1fr', xl: 'minmax(0, 1.3fr) minmax(320px, 1fr)' }} gap={{ base: 4, md: 5 }} alignItems="start">
+      <Box as="section" aria-labelledby="payout-heading" bg="white" borderRadius={DASH.radius} p={{ base: 4, md: 6 }} order={{ base: 2, xl: 1 }}>
+        <HStack spacing={3} mb={4} align="flex-start">
+          <Flex w={10} h={10} borderRadius="full" bg={DASH.blueWash} color={DASH.blue} align="center" justify="center" flexShrink={0}><Landmark size={18} /></Flex>
+          <Box>
+            <Heading as="h2" fontSize="xl" fontWeight="600" id="payout-heading">Payout accounts</Heading>
+            <Text color={DASH.muted} fontSize="sm">Withdrawals are sent to these bank accounts. We check every account name with your bank.</Text>
+          </Box>
+        </HStack>
 
-      <Box as="section" aria-labelledby="payout-heading" mt={10}>
-        <Heading as="h2" size="md" mb={1} id="payout-heading">Payout accounts</Heading>
-        <Text color="gray.600" fontSize="sm" mb={4}>Withdrawals are sent to these bank accounts. We check every account name with your bank.</Text>
-
-        <Box borderWidth={1} borderRadius="2xl" px={{ base: 4, md: 6 }} bg="white">
+        <Box borderRadius="18px" px={{ base: 3, md: 4 }} bg={DASH.page}>
           <AsyncState
             query={accounts}
             loadingLabel="Loading your accounts…"
@@ -83,7 +88,7 @@ function WalletSettingsPage() {
               <VStack align="stretch" spacing={0} divider={<Divider />}>
                 {items.map((account) => (
                   <Flex key={account.uuid} py={4} gap={3} align="center">
-                    <Icon as={Landmark} color="primary" boxSize={5} aria-hidden="true" flexShrink={0} />
+                    <Flex w={10} h={10} borderRadius="full" bg="white" color={DASH.blue} align="center" justify="center" flexShrink={0} aria-hidden="true"><Landmark size={18} /></Flex>
                     <Box flex={1} minW={0}>
                       <HStack spacing={2}>
                         <Text className="bold" noOfLines={1}>{account.account_name}</Text>
@@ -106,7 +111,7 @@ function WalletSettingsPage() {
         </Box>
 
         {adding ? (
-          <Box as="form" onSubmit={submit} noValidate borderWidth={1} borderRadius="2xl" p={{ base: 4, md: 6 }} mt={4} bg="white">
+          <Box as="form" onSubmit={submit} noValidate borderWidth="1px" borderColor={DASH.line} borderRadius="18px" p={{ base: 4, md: 5 }} mt={4} bg="white">
             <Heading as="h2" size="sm" mb={4}>Add a bank account</Heading>
             <BankAccountFields banks={banks.data || []} banksLoading={banks.loading} banksError={banks.error}
               value={draft} onChange={(partial) => setDraft((d) => ({ ...d, ...partial }))} submitted={submitted} />
@@ -121,6 +126,8 @@ function WalletSettingsPage() {
           </Button>
         )}
       </Box>
+      <Box order={{ base: 1, xl: 2 }} minW={0}><WalletPinSettings /></Box>
+      </Grid>
 
       <AlertDialog isOpen={Boolean(removing)} leastDestructiveRef={cancelRef} onClose={() => setRemoving(null)} isCentered>
         <AlertDialogOverlay>

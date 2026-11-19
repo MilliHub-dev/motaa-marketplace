@@ -19,13 +19,20 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, KeyRound, Landmark, XCircle } from 'lucide-react';
 import { GlobalStore } from '../../../App';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { BankAccountFields, withdrawalFee } from '../../../components/wallet';
 import { useWalletPin } from '../../../components/walletPin';
 import { asList } from '../../../utils';
+import { FORM_CARD, WalletSplit } from './walletUi';
+
+const TIPS = [
+  { icon: Landmark, text: 'Money goes to a Nigerian bank account in your name.' },
+  { icon: Clock, text: 'Most transfers arrive within minutes; some banks take a few hours.' },
+  { icon: KeyRound, text: 'You confirm every withdrawal with your wallet PIN.' },
+];
 
 const NEW_ACCOUNT = 'new';
 
@@ -112,7 +119,8 @@ function WalletWithdrawalPage() {
       : status === 'pending' ? { icon: Clock, color: 'yellow.500', title: 'Withdrawal processing' }
         : { icon: XCircle, color: 'red.500', title: 'Withdrawal failed' };
     return (
-      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} borderWidth={1} borderRadius="20px" maxW="480px" mx="auto" bg="white">
+      <WalletSplit wallet={wallet.data} tips={TIPS}>
+      <Flex direction="column" align="center" textAlign="center" gap={4} py={12} px={4} {...FORM_CARD}>
         <Icon as={view.icon} boxSize={14} color={view.color} aria-hidden="true" />
         <Heading as="h1" size="md">{view.title}</Heading>
         <Text color="gray.700">
@@ -128,11 +136,13 @@ function WalletWithdrawalPage() {
           <Button as={RLink} to="/wallet/transactions" bg="primary" color="white" _hover={{ bg: 'secondary' }}>View transactions</Button>
         </Stack>
       </Flex>
+      </WalletSplit>
     );
   }
 
   return (
-    <Box as="form" onSubmit={next} noValidate borderWidth={1} borderRadius="20px" p={{ base: 5, md: 8 }} maxW="520px" mx="auto" bg="white">
+    <WalletSplit wallet={wallet.data} tips={TIPS}>
+    <Box as="form" onSubmit={next} noValidate {...FORM_CARD}>
       <Heading as="h1" size="lg" mb={1}>Withdraw</Heading>
       <Text color="gray.600" mb={6}>Available: ₦{commaInt(available)} · Step {step + 1} of 2</Text>
 
@@ -183,6 +193,7 @@ function WalletWithdrawalPage() {
         {step === 0 ? 'Continue' : 'Review withdrawal'}
       </Button>
     </Box>
+    </WalletSplit>
   );
 }
 

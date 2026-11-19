@@ -2,7 +2,7 @@
 // notifications, profile) and a sidebar of grouped links, both as white rounded cards on a soft grey page. Phones
 // get the sidebar as a drawer. Team members only see the links their role can use (utils/team.js; the server
 // enforces the same rules).
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Link as RLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar, Box, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerOverlay, Flex, HStack, IconButton, Image, Input, InputGroup,
@@ -90,7 +90,7 @@ function SideLink({ item, count, onNavigate }) {
   const on = isCurrent(item.path, item.end);
   const Icon = item.icon;
   return (
-    <Flex as={NavLink} to={item.path} onClick={onNavigate} aria-current={on ? 'page' : undefined} align="center" gap={3} px={4} h="48px"
+    <Flex as={NavLink} className="side-link" to={item.path} onClick={onNavigate} aria-current={on ? 'page' : undefined} align="center" gap={3} px={4} h="48px"
       borderRadius="full" bg={on ? DASH.ink : 'transparent'} color={on ? 'white' : '#4B5563'} fontWeight={on ? 600 : 500}
       transition="background .15s" _hover={{ bg: on ? DASH.ink : DASH.page, color: on ? 'white' : DASH.ink }}>
       <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
@@ -103,29 +103,70 @@ function SideLink({ item, count, onNavigate }) {
   );
 }
 
+// The links scroll on their own when they don't fit (short laptop screens, lots of groups); Help and Log out stay
+// pinned at the bottom. Soft fades at the top/bottom edge show there is more to scroll to.
+const SIDEBAR_SCROLL_SX = {
+  overscrollBehavior: 'contain',
+  scrollbarWidth: 'thin',
+  scrollbarColor: '#D5DBE3 transparent',
+  '&::-webkit-scrollbar': { width: '6px' },
+  '&::-webkit-scrollbar-track': { background: 'transparent !important', boxShadow: 'none' },
+  '&::-webkit-scrollbar-thumb': { background: '#D5DBE3 !important', borderRadius: '6px' },
+  '@media (max-height: 760px)': { '.side-link': { height: '42px' } },
+};
+
+function useScrollEdges() {
+  const ref = useRef(null);
+  const [edges, setEdges] = useState({ top: false, bottom: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const update = () => setEdges({ top: el.scrollTop > 4, bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 4 });
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(el);
+    if (el.firstElementChild) observer?.observe(el.firstElementChild);
+    window.addEventListener('resize', update);
+    return () => { el.removeEventListener('scroll', update); observer?.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
+  return [ref, edges];
+}
+
+const Fade = ({ side, show }) => (
+  <Box position="absolute" left={0} right="6px" h="28px" pointerEvents="none" zIndex={1} transition="opacity .2s" opacity={show ? 1 : 0}
+    {...(side === 'top' ? { top: 0, bgGradient: 'linear(to-b, white, transparent)' } : { bottom: 0, bgGradient: 'linear(to-t, white, transparent)' })} />
+);
+
 function SidebarContent({ groups, counts, onNavigate }) {
   const { authUser, logout } = useContext(GlobalStore);
+  const [scrollRef, edges] = useScrollEdges();
   return (
-    <Flex direction="column" h="100%" justify="space-between" gap={8}>
-      <Stack as="nav" aria-label="Dashboard" spacing={6}>
-        {groups.map((group) => {
-          const links = visibleLinks(group.links, authUser);
-          if (!links.length) return null;
-          return (
-            <Box key={group.title}>
-              <Text px={4} mb={2} fontSize="xs" letterSpacing="0.08em" textTransform="uppercase" color="#9CA3AF">{group.title}</Text>
-              <Stack spacing={1}>
-                {links.map((item) => <SideLink key={item.path} item={item} count={item.badge ? counts?.[item.badge] : 0} onNavigate={onNavigate} />)}
-              </Stack>
-            </Box>
-          );
-        })}
-      </Stack>
-      <Box>
-        <Text px={4} mb={2} fontSize="xs" letterSpacing="0.08em" textTransform="uppercase" color="#9CA3AF">Support</Text>
+    <Flex direction="column" h="100%" minH={0}>
+      <Box position="relative" flex={1} minH={0}>
+        <Fade side="top" show={edges.top} />
+        <Box ref={scrollRef} h="100%" overflowY="auto" pr={1} mr={-1} sx={SIDEBAR_SCROLL_SX}>
+          <Stack as="nav" aria-label="Dashboard" spacing={6} pb={2}>
+            {groups.map((group) => {
+              const links = visibleLinks(group.links, authUser);
+              if (!links.length) return null;
+              return (
+                <Box key={group.title}>
+                  <Text px={4} mb={2} fontSize="xs" letterSpacing="0.08em" textTransform="uppercase" color="#9CA3AF">{group.title}</Text>
+                  <Stack spacing={1}>
+                    {links.map((item) => <SideLink key={item.path} item={item} count={item.badge ? counts?.[item.badge] : 0} onNavigate={onNavigate} />)}
+                  </Stack>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Box>
+        <Fade side="bottom" show={edges.bottom} />
+      </Box>
+      <Box flexShrink={0} pt={3} mt={2} borderTopWidth="1px" borderColor={DASH.line} sx={{ '@media (max-height: 760px)': { '.side-link': { height: '42px' } } }}>
         <Stack spacing={1}>
           <SideLink item={{ icon: HelpCircle, label: 'Help centre', path: '/support' }} onNavigate={onNavigate} />
-          <Flex as="button" type="button" onClick={logout} align="center" gap={3} px={4} h="48px" borderRadius="full" color="#DC2626"
+          <Flex as="button" type="button" className="side-link" onClick={logout} align="center" gap={3} px={4} h="48px" borderRadius="full" color="#DC2626"
             fontWeight="500" _hover={{ bg: '#FDECEC' }}>
             <LogOut size={20} strokeWidth={1.8} aria-hidden="true" />
             <Text>Log out</Text>
@@ -217,7 +258,7 @@ export function BusinessShell({ kind = 'dealer', business, counts, children }) {
 
       <Flex gap={{ base: 0, lg: 5 }} mt={{ base: 3, md: 5 }} align="flex-start">
         <Box as="aside" display={{ base: 'none', lg: 'block' }} w="260px" flexShrink={0} bg="white" borderRadius={DASH.radius} p={4}
-          position="sticky" top="112px" h="calc(100vh - 132px)" overflowY="auto">
+          position="sticky" top="112px" h="calc(100vh - 132px)" sx={{ '@supports (height: 100dvh)': { height: 'calc(100dvh - 132px)' } }} overflow="hidden">
           <SidebarContent groups={shell.groups} counts={counts} />
         </Box>
         <Box as="main" id="main" flex={1} minW={0}>{children}</Box>
@@ -227,7 +268,7 @@ export function BusinessShell({ kind = 'dealer', business, counts, children }) {
         <DrawerOverlay />
         <DrawerContent borderRightRadius="24px" bg="white">
           <DrawerCloseButton mt={2} />
-          <DrawerBody pt={14} pb={6}>
+          <DrawerBody pt={14} pb={6} display="flex" flexDirection="column" overflow="hidden">
             <SidebarContent groups={shell.groups} counts={counts} onNavigate={() => setOpen(false)} />
           </DrawerBody>
         </DrawerContent>
