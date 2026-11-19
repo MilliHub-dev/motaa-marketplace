@@ -6,8 +6,9 @@ import { Link, useParams } from 'react-router-dom';
 import {
   Box, Button, Container, Flex, Heading, HStack, Image, LinkBox, LinkOverlay, SimpleGrid, Skeleton, Stack, Text,
 } from '@chakra-ui/react';
-import { ArrowRight, Car, Check, ExternalLink, Sparkles } from 'lucide-react';
+import { ArrowRight, Car, Check, ExternalLink, Package, Sparkles } from 'lucide-react';
 import { ListingItemCard, LocationBreadcrumb } from '../../components';
+import { PartCard } from '../../components/parts';
 import { BrandLogo } from '../../components/BrandStrip';
 import { EmptyState, ErrorState } from '../../components/states';
 import { useApiQuery } from '../../hooks/useApi';
@@ -48,9 +49,10 @@ function ModelCard({ car, color }) {
   );
 }
 
-function OtherBrands({ current }) {
-  const query = useApiQuery((api, signal) => api.get('/listings/brands/', { signal, cacheTTL: 60000 }), [],
-    { select: (body) => asList(body?.data), keepAs: 'sponsored-brands' });
+function OtherBrands({ current, kind }) {
+  const parts = kind === 'parts';
+  const query = useApiQuery((api, signal) => api.get(parts ? '/listings/brands/?kind=parts' : '/listings/brands/', { signal, cacheTTL: 60000 }), [kind],
+    { select: (body) => asList(body?.data), keepAs: parts ? 'sponsored-part-brands' : 'sponsored-brands' });
   const others = asList(query.data).filter((brand) => brand?.slug && brand.slug !== current);
   if (!others.length) return null;
   return (
@@ -82,8 +84,8 @@ export default function BrandPage() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [slug]);
   useEffect(() => {
-    if (brand?.name) document.title = `${brand.name} cars in Nigeria | Motaa`;
-  }, [brand?.name]);
+    if (brand?.name) document.title = brand.kind === 'parts' ? `${brand.name} parts in Nigeria | Motaa` : `${brand.name} cars in Nigeria | Motaa`;
+  }, [brand?.name, brand?.kind]);
 
   if (query.error && !brand) {
     return (
@@ -112,7 +114,9 @@ export default function BrandPage() {
   const facts = asList(brand.facts);
   const highlights = asList(brand.highlights);
   const paragraphs = asList(brand.paragraphs).length ? asList(brand.paragraphs) : [brand.about].filter(Boolean);
-  const available = sale.length + rentals.length;
+  const isParts = brand.kind === 'parts';
+  const parts = asList(query.data?.parts);
+  const available = isParts ? parts.length : sale.length + rentals.length;
 
   return (
     <Box minH="100vh" pb={16}>
@@ -145,7 +149,9 @@ export default function BrandPage() {
               <Stack direction={{ base: 'column', sm: 'row' }} spacing={3} mt={6}>
                 <Button as="a" href="#available" size="lg" h="52px" borderRadius="14px" bg="white" color={shade(color, 0.35)} fontWeight="700"
                   rightIcon={<ArrowRight size={18} />} _hover={{ bg: tint(color, 0.9), transform: 'translateY(-1px)' }}>
-                  {available ? `See ${available} car${available === 1 ? '' : 's'}` : 'Cars on Motaa'}
+                  {isParts
+                    ? (available ? `See ${available} part${available === 1 ? '' : 's'}` : 'Parts on Motaa')
+                    : (available ? `See ${available} car${available === 1 ? '' : 's'}` : 'Cars on Motaa')}
                 </Button>
                 {brand.website && (
                   <Button as="a" href={brand.website} target="_blank" rel="noopener noreferrer" size="lg" h="52px" borderRadius="14px"
@@ -215,8 +221,20 @@ export default function BrandPage() {
 
         <Box id="available" mt={16} scrollMarginTop="90px">
           <Text fontSize="sm" fontWeight="700" color={shade(color, 0.15)} textTransform="uppercase" letterSpacing="wider">On Motaa now</Text>
-          <Heading as="h2" size="lg" mt={1}>{brand.name} cars for sale and rent</Heading>
-          {available === 0 ? (
+          <Heading as="h2" size="lg" mt={1}>{isParts ? `${brand.name} parts` : `${brand.name} cars for sale and rent`}</Heading>
+          {isParts ? (available === 0 ? (
+            <EmptyState
+              icon={Package}
+              title="None listed right now"
+              description={`No seller has ${brand.name} parts listed at the moment. Check back soon.`}
+              action={{ label: 'Browse all parts', to: '/parts' }}
+              borderWidth="1px" borderRadius="24px" mt={5} bg={tint(color, 0.97)}
+            />
+          ) : (
+            <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={{ base: 3, md: 5 }} mt={6}>
+              {parts.map((part) => <PartCard key={part.uuid} part={part} />)}
+            </SimpleGrid>
+          )) : available === 0 ? (
             <EmptyState
               icon={Car}
               title="None listed right now"
@@ -232,7 +250,7 @@ export default function BrandPage() {
           )}
         </Box>
 
-        <OtherBrands current={brand.slug} />
+        <OtherBrands current={brand.slug} kind={brand.kind} />
       </Container>
     </Box>
   );

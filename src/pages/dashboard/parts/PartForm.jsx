@@ -11,6 +11,7 @@ import { PageHeader } from '../../../components/dashboard/ui';
 import { Checklist, FormActions, FormSection, FormWithAside, PreviewCard } from '../../../components/dashboard/FormLayout';
 import { GlobalStore } from '../../../App';
 import { CAR_BRANDS, ImageUploader, useRevokePreviews } from '../../../components/forms';
+import { AiQuickStart, applyDraft } from '../../../components/dashboard/AiTools';
 import { BackButton } from '../../../components/nav';
 import { ErrorState, LoadingState } from '../../../components/states';
 import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
@@ -143,6 +144,24 @@ function PartEditor({ part, options }) {
           ]} />
         </>
       )}>
+        {!part && (
+          <AiQuickStart
+            kind="part"
+            onApply={(fields) => {
+              const [next, filled] = applyDraft('part', form, fields);
+              setForm(next);
+              setErrors({});
+              return filled;
+            }}
+            onPhotos={(files) => setImages((prev) => {
+              const known = new Set(prev.map((item) => item.file && `${item.file.name}-${item.file.size}`));
+              const room = Math.max(0, MAX_PART_PHOTOS - prev.filter((item) => !item.removed).length);
+              const added = files.filter((file) => !known.has(`${file.name}-${file.size}`)).slice(0, room)
+                .map((file) => ({ key: `ai-${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`, file, previewUrl: URL.createObjectURL(file) }));
+              return [...prev, ...added];
+            })}
+          />
+        )}
         <Card number={1} title="About the part" hint="What it is and who made it.">
           <Stack spacing={4}>
             <FormControl isRequired isInvalid={Boolean(errors.name)}>
@@ -220,6 +239,7 @@ function PartEditor({ part, options }) {
             title="Photos of the part"
             subject="Part"
             owner="part"
+            aiTool="background"
           />
           </Card>
         </Box>

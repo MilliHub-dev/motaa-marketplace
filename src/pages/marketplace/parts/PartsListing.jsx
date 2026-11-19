@@ -17,6 +17,7 @@ import { useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { NIGERIAN_STATES } from '../../../data/nigeria';
 import { FIRST_FITMENT_YEAR, PARTS_PAGE_SIZE, hasPartsFilters, partsApiQuery, partsFilterChips } from '../../../utils/parts';
+import BrandStrip from '../../../components/BrandStrip';
 
 export function PartsGridSkeleton({ count = 8 }) {
   return (
@@ -274,6 +275,7 @@ export default function PartsListing() {
     <Container maxW="container.xl" py={{ base: 4, md: 6 }}>
       <Heading as="h1" size="lg" className="subtitle">Spare parts</Heading>
       <Text color="gray.600" mt={1} mb={4}>Genuine and used parts from verified sellers. Your payment is held by Motaa until your order arrives.</Text>
+      {!hasPartsFilters(params) && <BrandStrip kind="parts" mb={5} flex="unset" h={{ base: '170px', md: '190px' }} />}
 
       <Flex gap={3} align="center" flexWrap="wrap" mb={3}>
         <PartsSearch value={params.get('q')} onSearch={(q) => update({ q })} />

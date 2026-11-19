@@ -23,6 +23,7 @@ import { canChangeSettings, canUseWallet, isOwner } from './utils/team';
 // else is split into its own chunk and fetched when first visited.
 const HomePage = lazyPage(() => import('./pages/marketplace/HomePage'));
 import LandingPage from './pages/LandingPage';
+import AssistantLauncher from './components/assistant/AssistantLauncher';
 const ComingSoon = lazyPage(() => import('./pages/ComingSoon'));
 const PrivacyPolicyPage = lazyPage(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazyPage(() => import('./pages/TermsOfServicePage'));
@@ -445,6 +446,7 @@ function App() {
       <Router ErrorBoundary={ErrorBoundary}>
         <GlobalStore.Provider value={context}>
           <VisitPing />
+          <AssistantLauncher />
           <WalletPinProvider>
            <Suspense fallback={<LoadingState minH="70vh" label="Loading…" />}>
            <Routes ErrorBoundary={ErrorBoundary}>

@@ -69,11 +69,13 @@ function BrandCard({ brand, hidden }) {
   );
 }
 
-export default function BrandStrip({ fallback = null, ...props }) {
+/** kind: 'cars' (the Buy page) or 'parts' (spare-part brands on the Parts page). */
+export default function BrandStrip({ fallback = null, kind = 'cars', ...props }) {
+  const parts = kind === 'parts';
   const query = useApiQuery(
-    (api, signal) => api.get('/listings/brands/', { signal, cacheTTL: 60000 }),
-    [],
-    { select: (body) => asList(body?.data), keepAs: 'sponsored-brands' }
+    (api, signal) => api.get(parts ? '/listings/brands/?kind=parts' : '/listings/brands/', { signal, cacheTTL: 60000 }),
+    [kind],
+    { select: (body) => asList(body?.data), keepAs: parts ? 'sponsored-part-brands' : 'sponsored-brands' }
   );
   const brands = asList(query.data).filter((brand) => brand?.slug && brand?.name);
   if (!brands.length) {
@@ -90,7 +92,7 @@ export default function BrandStrip({ fallback = null, ...props }) {
   return (
     <Box
       as="section"
-      aria-label="Sponsored car brands"
+      aria-label={parts ? 'Sponsored spare-part brands' : 'Sponsored car brands'}
       {...SLOT}
       position="relative"
       overflow="hidden"
@@ -106,9 +108,9 @@ export default function BrandStrip({ fallback = null, ...props }) {
           <Flex w={6} h={6} borderRadius="full" bg="tertiary" color="secondary" align="center" justify="center" aria-hidden="true">
             <Sparkles size={13} />
           </Flex>
-          <Text fontWeight="700" fontSize="sm" color="secondary">Sponsored brands</Text>
+          <Text fontWeight="700" fontSize="sm" color="secondary">{parts ? 'Sponsored parts brands' : 'Sponsored brands'}</Text>
         </HStack>
-        <Text fontSize="xs" color="gray.500" display={{ base: 'none', sm: 'block' }}>Official partners on Motaa</Text>
+        <Text fontSize="xs" color="gray.500" display={{ base: 'none', sm: 'block' }}>{parts ? 'Trusted manufacturers on Motaa' : 'Official partners on Motaa'}</Text>
       </Flex>
 
       <Box

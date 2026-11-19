@@ -30,7 +30,9 @@ import {
   listingPayload,
   useRevokePreviews,
   optionLabel,
+  MAX_LISTING_IMAGES,
 } from '../../../../components/forms';
+import { AiQuickStart, applyDraft } from '../../../../components/dashboard/AiTools';
 import { DASH, PageHeader } from '../../../../components/dashboard/ui';
 import { Checklist, ChoiceCards, FormActions, FormSection, FormWithAside, PreviewCard } from '../../../../components/dashboard/FormLayout';
 import { ArrowLeft, ArrowRight, Camera, ClipboardCheck, KeyRound, Tag } from 'lucide-react';
@@ -224,6 +226,24 @@ export function ListingWizard({ listing = null }) {
       {step === 0 && (
         <Box as="form" noValidate onSubmit={(e) => { e.preventDefault(); saveDetails(); }}>
           <FormWithAside aside={<>{preview}{checklist}</>}>
+            {!isEdit && (
+              <AiQuickStart
+                kind="car"
+                onApply={(fields) => {
+                  const [next, filled] = applyDraft('car', form, fields);
+                  setForm(next);
+                  setErrors({});
+                  return filled;
+                }}
+                onPhotos={(files) => setImages((prev) => {
+                  const known = new Set(prev.map((item) => item.file && `${item.file.name}-${item.file.size}`));
+                  const room = Math.max(0, MAX_LISTING_IMAGES - prev.filter((item) => !item.removed).length);
+                  const added = files.filter((file) => !known.has(`${file.name}-${file.size}`)).slice(0, room)
+                    .map((file) => ({ key: `ai-${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`, file, previewUrl: URL.createObjectURL(file) }));
+                  return [...prev, ...added];
+                })}
+              />
+            )}
             <ListingDetailsForm
               form={form}
               errors={errors}
@@ -255,7 +275,7 @@ export function ListingWizard({ listing = null }) {
       {step === 1 && (
         <FormWithAside aside={<>{preview}{checklist}</>}>
           <FormSection icon={Camera} title="Photos" description="The first photo is the cover buyers see in search.">
-            <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} maxMb={MAX_VEHICLE_IMAGE_MB} />
+            <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} maxMb={MAX_VEHICLE_IMAGE_MB} aiTool="enhance" />
             <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={3} mt={5}>
               {[['Daylight', 'Shoot outside in daylight, not at night.'], ['All angles', 'Front, back, both sides, interior and dashboard.'], ['Clean car', 'Wash it first. Clean cars sell faster.']].map(([title, body]) => (
                 <Box key={title} p={3} borderRadius="14px" bg={DASH.page}><Text fontWeight="600" fontSize="sm">{title}</Text><Text fontSize="xs" color={DASH.muted}>{body}</Text></Box>

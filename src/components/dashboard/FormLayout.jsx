@@ -155,7 +155,7 @@ export function FormWithAside({ children, aside }) {
 export function FormActions({ children }) {
   return (
     <Flex bg="white" borderRadius={DASH.radius} p={{ base: 3, md: 4 }} gap={3} justify="flex-end" direction={{ base: 'column-reverse', sm: 'row' }}
-      position="sticky" bottom={3} zIndex={5} boxShadow="0 -4px 24px rgba(16,24,40,0.06)">
+      position="sticky" bottom={3} zIndex={5} boxShadow="0 -4px 24px rgba(16,24,40,0.06)" data-motaa-sticky-actions="">
       {children}
     </Flex>
   );

@@ -34,6 +34,7 @@ import { AlertTriangle, Zap, Gauge, Settings, Upload, ImageOff, Undo2, Car, Door
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { GlobalStore } from '../App';
 import { FormSection, WizardStepper } from './dashboard/FormLayout';
+import { EnhanceAllButton, PhotoAiAction } from './dashboard/AiTools';
 
 // ---------------------------------------------------------------------------
 // Options (values = backend choice codes)
@@ -360,7 +361,8 @@ export function ListingDetailsForm({ form, errors = {}, onChange, typePicker }) 
  * marks it (`removed: true`) — the page deletes it when the dealer saves the step.
  * `title`, `subject` and `owner` word it for something other than a car listing (e.g. a spare part).
  */
-export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error, title = 'Photos of the car', subject = 'Car', owner = 'listing' }) {
+/** aiTool: 'enhance' (car photos) or 'background' (spare parts) adds a Motaa AI button to each new photo. */
+export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error, title = 'Photos of the car', subject = 'Car', owner = 'listing', aiTool }) {
   const inputId = useId();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);
@@ -401,12 +403,20 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
 
   return (
     <VStack spacing={3} align="stretch" w="full">
-      <Box>
-        <Text fontWeight="600">{title}</Text>
-        <Text fontSize="sm" color="gray.600">
-          Add up to {limit} clear photos (JPG, PNG or WebP, max {maxMb} MB each). The first photo is the cover.
-        </Text>
-      </Box>
+      <Flex justify="space-between" align={{ base: 'flex-start', sm: 'center' }} gap={3} direction={{ base: 'column', sm: 'row' }}>
+        <Box>
+          <Text fontWeight="600">{title}</Text>
+          <Text fontSize="sm" color="gray.600">
+            Add up to {limit} clear photos (JPG, PNG or WebP, max {maxMb} MB each). The first photo is the cover.
+          </Text>
+          {aiTool && (
+            <Text fontSize="xs" color="primary" mt={1}>
+              {aiTool === 'background' ? '✨ Tap “White background” on a photo to put the part on a clean white background.' : '✨ Tap “Enhance” on a photo for better light and colour (nothing is added or removed).'}
+            </Text>
+          )}
+        </Box>
+        {aiTool === 'enhance' && <EnhanceAllButton items={items} onChange={onChange} />}
+      </Flex>
 
       <Box
         as="label"
@@ -463,6 +473,9 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
                   <Badge position="absolute" top={2} left={2} borderRadius="full" px={2} bg={position === 1 ? '#0B1220' : 'whiteAlpha.900'} color={position === 1 ? 'white' : 'gray.800'} textTransform="none">
                     {position === 1 ? 'Cover' : position}
                   </Badge>
+                )}
+                {aiTool && item.file && !item.removed && (
+                  <PhotoAiAction item={item} tool={aiTool} onReplace={(next) => onChange(items.map((i) => (i.key === item.key ? next : i)))} />
                 )}
                 {item.removed ? (
                   <Button size="xs" position="absolute" bottom={2} left={2} right={2} leftIcon={<Undo2 size={12} />} onClick={() => restore(item)}>
