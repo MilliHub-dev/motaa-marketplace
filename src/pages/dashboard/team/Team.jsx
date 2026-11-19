@@ -209,14 +209,14 @@ export default function TeamPage() {
   }
 
   return (
-    <Box minH="70vh" pt={5} maxW="1000px">
+    <Box minH="70vh" maxW="1100px">
       <Flex justify="space-between" align={{ base: 'stretch', sm: 'center' }} gap={3} mb={5} direction={{ base: 'column', sm: 'row' }}>
         <Box>
-          <Heading as="h1" size="md">Team</Heading>
+          <Heading as="h1" fontSize={{ base: '2xl', md: '4xl' }} fontWeight="600" letterSpacing="-0.02em">Team</Heading>
           <Text color="gray.600" fontSize="sm">Give the people who work with you their own login to your dashboard.</Text>
         </Box>
         {team.data && (
-          <Button leftIcon={<UserPlus size={18} />} bg="primary" color="white" _hover={{ bg: 'secondary' }} flexShrink={0} onClick={() => setInviting(true)}>
+          <Button leftIcon={<UserPlus size={18} />} h="48px" borderRadius="full" bg="#0B1220" color="white" _hover={{ bg: '#1F2937' }} flexShrink={0} onClick={() => setInviting(true)}>
             Invite a team member
           </Button>
         )}

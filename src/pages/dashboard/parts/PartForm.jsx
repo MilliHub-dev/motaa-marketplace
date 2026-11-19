@@ -6,7 +6,9 @@ import {
   Alert, AlertDescription, AlertIcon, Box, Button, Flex, FormControl, FormErrorMessage, FormHelperText, FormLabel, Heading,
   IconButton, Input, InputGroup, InputLeftAddon, Radio, RadioGroup, Select, SimpleGrid, Stack, Switch, Text, Textarea,
 } from '@chakra-ui/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Eye, Plus, Trash2 } from 'lucide-react';
+import { PageHeader } from '../../../components/dashboard/ui';
+import { Checklist, FormActions, FormSection, FormWithAside, PreviewCard } from '../../../components/dashboard/FormLayout';
 import { GlobalStore } from '../../../App';
 import { CAR_BRANDS, ImageUploader, useRevokePreviews } from '../../../components/forms';
 import { BackButton } from '../../../components/nav';
@@ -20,14 +22,8 @@ import { usePartsShop } from './shop';
 
 const MAX_FITMENTS = 60;
 
-function Card({ title, hint, children }) {
-  return (
-    <Box borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 4, md: 6 }} bg="white">
-      <Heading as="h2" size="sm">{title}</Heading>
-      {hint && <Text fontSize="sm" color="gray.600" mt={1}>{hint}</Text>}
-      <Box mt={4}>{children}</Box>
-    </Box>
-  );
+function Card({ title, hint, number, icon, children }) {
+  return <FormSection number={number} icon={icon} title={title} description={hint}>{children}</FormSection>;
 }
 
 /** One "this part fits" row: make, model (optional), from year, to year (optional). */
@@ -78,6 +74,8 @@ function PartEditor({ part, options }) {
   const categories = asList(options?.categories);
   const conditions = asList(options?.conditions);
   const photoCount = images.filter((item) => !item.removed).length;
+  const coverItem = images.find((item) => !item.removed);
+  const coverImage = coverItem?.previewUrl || coverItem?.url;
 
   function setField(name, value) {
     setForm((f) => ({ ...f, [name]: value }));
@@ -120,19 +118,32 @@ function PartEditor({ part, options }) {
   }
 
   return (
-    <Box as="form" noValidate onSubmit={submit} w="100%" maxW="860px" py={6}>
+    <Box as="form" noValidate onSubmit={submit} w="100%">
       <BackButton to="/parts-store/parts" />
-      <Heading as="h1" size="lg">{editing ? 'Edit part' : 'Add a part'}</Heading>
-      <Text color="gray.600" mt={1} mb={5}>
-        {editing ? 'Changes show to customers as soon as you save.' : 'Clear photos, the exact part number and the cars it fits help customers buy with confidence.'}
-      </Text>
+      <PageHeader title={editing ? 'Edit part' : 'Add a part'}
+        subtitle={editing ? 'Changes show to customers as soon as you save.' : 'Clear photos, the exact part number and the cars it fits help customers buy with confidence.'} />
 
       {!editing && shop && !shop.verified && (
-        <Alert status="info" borderRadius="md" mb={5}><AlertIcon /><AlertDescription>You can add parts now. Customers will see them once your business is verified.</AlertDescription></Alert>
+        <Alert status="info" borderRadius="16px" mb={5}><AlertIcon /><AlertDescription>You can add parts now. Customers will see them once your business is verified.</AlertDescription></Alert>
       )}
 
-      <Stack spacing={5}>
-        <Card title="About the part">
+      <FormWithAside aside={(
+        <>
+          <PreviewCard label="How customers see it" image={coverImage} title={form.name}
+            price={Number(String(form.price || '').replace(/[^\d.]/g, '')) > 0 ? `₦${Number(String(form.price).replace(/[^\d.]/g, '')).toLocaleString('en-NG')}` : ''}
+            facts={[conditions.find((c) => c.value === form.condition)?.label, categories.find((c) => c.slug === form.category)?.name, form.brand,
+              form.is_ev && 'EV part', form.stock !== '' && form.stock !== undefined && `${form.stock} in stock`]} placeholder="Your part's name shows here" />
+          <Checklist title="Ready to sell?" items={[
+            { label: 'Name', done: Boolean(form.name?.trim()) },
+            { label: 'Category', done: Boolean(form.category) },
+            { label: 'Price', done: Number(String(form.price || '').replace(/[^\d.]/g, '')) > 0 },
+            { label: 'Stock', done: String(form.stock ?? '').trim() !== '' },
+            { label: 'At least one photo', done: photoCount > 0 },
+            { label: 'Cars it fits', done: form.universal || asList(form.fitments).some((row) => row.make) },
+          ]} />
+        </>
+      )}>
+        <Card number={1} title="About the part" hint="What it is and who made it.">
           <Stack spacing={4}>
             <FormControl isRequired isInvalid={Boolean(errors.name)}>
               <FormLabel htmlFor="part-name">Name</FormLabel>
@@ -176,7 +187,7 @@ function PartEditor({ part, options }) {
           </Stack>
         </Card>
 
-        <Card title="Price and stock">
+        <Card number={2} title="Price and stock" hint="What it costs, how many you have and any warranty.">
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
             <FormControl isRequired isInvalid={Boolean(errors.price)}>
               <FormLabel htmlFor="part-price">Price</FormLabel>
@@ -199,7 +210,8 @@ function PartEditor({ part, options }) {
           </SimpleGrid>
         </Card>
 
-        <Box id="part-images" borderWidth="1px" borderColor={errors.images ? 'red.300' : 'gray.200'} borderRadius="xl" p={{ base: 4, md: 6 }} bg="white">
+        <Box id="part-images">
+          <Card number={3} title="Photos" hint="Show the part clearly, including any part number or label.">
           <ImageUploader
             items={images}
             onChange={(next) => { setImages(next); setErrors((e) => ({ ...e, images: '' })); }}
@@ -209,18 +221,12 @@ function PartEditor({ part, options }) {
             subject="Part"
             owner="part"
           />
+          </Card>
         </Box>
 
-        <EvToggle
-          isChecked={form.is_ev}
-          onChange={(on) => setField('is_ev', on)}
-          title="This is a part for electric vehicles"
-          label="EV part"
-          hint="e.g. a battery pack, charger, charging cable or electric motor. Customers can filter for EV parts."
-        />
 
         <Box id="part-fitments">
-          <Card title="Cars this part fits" hint="Customers filter parts by their car, so list every car this fits.">
+          <Card number={4} title="Cars this part fits" hint="Customers filter parts by their car, so list every car this fits.">
             <RadioGroup value={form.universal ? 'any' : 'listed'} onChange={(value) => { setField('universal', value === 'any'); setErrors((e) => ({ ...e, fitments: '' })); }}>
               <Stack direction={{ base: 'column', sm: 'row' }} spacing={{ base: 2, sm: 6 }}>
                 <Radio value="listed">It fits the cars I list</Radio>
@@ -254,20 +260,29 @@ function PartEditor({ part, options }) {
           </Card>
         </Box>
 
-        <Card title="On sale">
+        <Card icon={Eye} title="On sale and EV">
+          <Box mb={4}>
+          <EvToggle
+            isChecked={form.is_ev}
+            onChange={(on) => setField('is_ev', on)}
+            title="This is a part for electric vehicles"
+            label="EV part"
+            hint="e.g. a battery pack, charger, charging cable or electric motor. Customers can filter for EV parts."
+          />
+          </Box>
           <FormControl display="flex" alignItems="center" gap={3}>
             <Switch id="part-active" isChecked={form.active} onChange={(e) => setField('active', e.target.checked)} />
             <FormLabel htmlFor="part-active" mb={0}>{form.active ? 'Customers can see and buy this part' : 'Hidden from customers'}</FormLabel>
           </FormControl>
         </Card>
 
-        <Flex gap={3} justify="flex-end" direction={{ base: 'column-reverse', sm: 'row' }}>
-          <Button as={RLink} to="/parts-store/parts" variant="ghost">Cancel</Button>
-          <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText={editing ? 'Saving' : 'Adding part'}>
+        <FormActions>
+          <Button as={RLink} to="/parts-store/parts" h="52px" px={6} borderRadius="full" variant="outline" borderColor="#D6DBE3">Cancel</Button>
+          <Button type="submit" h="52px" px={8} borderRadius="full" bg="#0B1220" color="white" _hover={{ bg: '#1F2937' }} isLoading={save.loading} loadingText={editing ? 'Saving' : 'Adding part'}>
             {editing ? 'Save changes' : 'Add part'}
           </Button>
-        </Flex>
-      </Stack>
+        </FormActions>
+      </FormWithAside>
     </Box>
   );
 }

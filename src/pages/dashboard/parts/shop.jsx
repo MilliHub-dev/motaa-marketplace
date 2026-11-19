@@ -42,10 +42,10 @@ const TABS = [
 function ShopTabs() {
   const { authUser } = useContext(GlobalStore);
   return (
-    <HStack as="nav" aria-label="Parts shop" spacing={2} py={3} overflowX="auto" className="hidden-scroll" borderBottomWidth="1px" mb={2}>
+    <HStack as="nav" aria-label="Parts shop" spacing={2} p={2} overflowX="auto" className="hidden-scroll" bg="white" borderRadius="full" mb={5} w="fit-content" maxW="100%">
       {visibleLinks(TABS, authUser).map((tab) => (
-        <Button key={tab.to} as={NavLink} to={tab.to} end={tab.end} size="sm" variant="ghost" flexShrink={0}
-          _activeLink={{ bg: 'primary', color: 'white' }}>
+        <Button key={tab.to} as={NavLink} to={tab.to} end={tab.end} flexShrink={0} h="40px" px={5} borderRadius="full" variant="ghost" fontWeight="500"
+          _activeLink={{ bg: '#0B1220', color: 'white' }}>
           {tab.label}
         </Button>
       ))}
@@ -65,7 +65,7 @@ function OpenShop({ shop, onOpened }) {
   );
   return (
     <Flex justify="center" py={{ base: 8, md: 14 }}>
-      <Box maxW="560px" w="100%" borderWidth="1px" borderColor="gray.200" borderRadius="2xl" p={{ base: 5, md: 8 }} textAlign="center">
+      <Box maxW="600px" w="100%" bg="white" borderRadius="24px" p={{ base: 6, md: 10 }} textAlign="center">
         <Flex w={16} h={16} rounded="full" bg="blue.50" color="primary" align="center" justify="center" mx="auto" mb={4}>
           <Icon as={Package} boxSize={8} aria-hidden="true" />
         </Flex>

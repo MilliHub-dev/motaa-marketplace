@@ -4,6 +4,7 @@ import {
   VStack,
   Flex,
   Text,
+  SimpleGrid,
   Button,
   ButtonGroup,
   FormControl,
@@ -14,7 +15,7 @@ import {
   AlertDescription,
 } from "@chakra-ui/react";
 import { useContext, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RLink, useNavigate } from "react-router-dom";
 import { BackButton } from '../../../../components/nav';
 import {
   StepIndicator,
@@ -28,8 +29,11 @@ import {
   validateListingForm,
   listingPayload,
   useRevokePreviews,
+  optionLabel,
 } from '../../../../components/forms';
-import { DashCard, PageHeader } from '../../../../components/dashboard/ui';
+import { DASH, PageHeader } from '../../../../components/dashboard/ui';
+import { Checklist, ChoiceCards, FormActions, FormSection, FormWithAside, PreviewCard } from '../../../../components/dashboard/FormLayout';
+import { ArrowLeft, ArrowRight, Camera, ClipboardCheck, KeyRound, Tag } from 'lucide-react';
 import { GlobalStore } from '../../../../App';
 import { toApiError } from '../../../../api/client';
 
@@ -177,6 +181,33 @@ export function ListingWizard({ listing = null }) {
 
   const isRental = form.listing_type === 'rental';
 
+  const kept = images.filter((i) => !i.removed);
+  const cover = kept[0]?.previewUrl || kept[0]?.url;
+  const preview = (
+    <PreviewCard
+      label="How buyers see it"
+      image={cover}
+      title={form.title}
+      price={form.price ? `₦${Number(form.price).toLocaleString('en-NG')}${isRental ? ` ${optionLabel('payment_cycle', form.payment_cycle).toLowerCase()}` : ''}` : ''}
+      facts={[isRental ? 'Rental' : 'For sale', !isRental && form.condition && optionLabel('condition', form.condition),
+        form.transmission && optionLabel('transmission', form.transmission), form.fuel_system && optionLabel('fuel_system', form.fuel_system),
+        !isRental && form.mileage && `${Number(form.mileage).toLocaleString('en-NG')} km`]}
+    />
+  );
+  const checklist = (
+    <Checklist title="Ready to publish?" items={[
+      { label: 'Title', done: Boolean(form.title?.trim()) },
+      { label: 'Make and model', done: Boolean(form.brand && form.model?.trim()) },
+      { label: 'Price', done: Number(form.price) > 0 },
+      { label: isRental ? 'Rental period' : 'Condition and mileage', done: isRental ? Boolean(form.payment_cycle) : Boolean(form.condition && form.mileage !== '') },
+      { label: 'Body, fuel and transmission', done: Boolean(form.vehicle_type && form.fuel_system && form.transmission) },
+      { label: 'At least one photo', done: kept.length > 0 },
+      { label: '4 or more photos (recommended)', done: kept.length >= 4 },
+    ]} />
+  );
+  const primary = { h: '52px', px: 8, borderRadius: 'full', bg: DASH.ink, color: 'white', _hover: { bg: '#1F2937' } };
+  const secondary = { h: '52px', px: 6, borderRadius: 'full', variant: 'outline', borderColor: '#D6DBE3' };
+
   return (
     <Box ref={topRef} scrollMarginTop="120px">
       <BackButton
@@ -186,107 +217,89 @@ export function ListingWizard({ listing = null }) {
       />
       <PageHeader
         title={isEdit ? 'Edit car' : 'Add a car'}
-        subtitle={isEdit ? 'Update the details, photos, then review.' : 'List your car in 3 steps: details, photos, then review.'}
+        subtitle={isEdit ? 'Update the details and photos, then review.' : 'Three quick steps: details, photos, then review and publish.'}
       />
-      <DashCard pb={{ base: 8, md: 12 }}>
-        <VStack spacing={8} align="stretch" maxW="900px" mx="auto">
+      <StepIndicator currentStep={step} steps={STEPS} onStep={busy ? undefined : goTo} />
 
-          <StepIndicator currentStep={step} steps={STEPS} />
-
-          {step === 0 && (
-            <Box as="form" noValidate onSubmit={(e) => { e.preventDefault(); saveDetails(); }} w="full" maxW="820px" mx="auto">
-              <VStack spacing={8} align="stretch">
+      {step === 0 && (
+        <Box as="form" noValidate onSubmit={(e) => { e.preventDefault(); saveDetails(); }}>
+          <FormWithAside aside={<>{preview}{checklist}</>}>
+            <ListingDetailsForm
+              form={form}
+              errors={errors}
+              onChange={onChange}
+              typePicker={(
                 <FormControl as="fieldset" isRequired>
                   <FormLabel as="legend">Listing type</FormLabel>
-                  <ButtonGroup isAttached w="full" role="radiogroup" aria-label="Listing type">
-                    {[['sale', 'Direct sale'], ['rental', 'Rental']].map(([value, label]) => {
-                      const on = form.listing_type === value;
-                      return (
-                        <Button
-                          key={value}
-                          role="radio"
-                          aria-checked={on}
-                          flex={1}
-                          py={6}
-                          variant={on ? 'solid' : 'outline'}
-                          bg={on ? 'primary' : 'white'}
-                          color={on ? 'white' : 'primary'}
-                          borderColor="primary"
-                          _hover={{ bg: on ? 'secondary' : 'blue.50' }}
-                          onClick={() => onChange('listing_type', value)}
-                        >
-                          {label}
-                        </Button>
-                      );
-                    })}
-                  </ButtonGroup>
+                  <ChoiceCards label="Listing type" value={form.listing_type} onChange={(value) => onChange('listing_type', value)} options={[
+                    { value: 'sale', label: 'For sale', description: 'Buyers pay in full or after inspection.', icon: Tag },
+                    { value: 'rental', label: 'For rent', description: 'Customers book it by the day, week or month.', icon: KeyRound },
+                  ]} />
                 </FormControl>
-
-                <ListingDetailsForm form={form} errors={errors} onChange={onChange} />
-
-                {Object.values(errors).some(Boolean) && (
-                  <Alert status="error" borderRadius="md">
-                    <AlertIcon />
-                    <AlertDescription>Please fix the highlighted fields.</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" isLoading={busy === 'details'} loadingText="Saving…">
-                  Save and continue
-                </Button>
-              </VStack>
-            </Box>
-          )}
-
-          {step === 1 && (
-            <VStack spacing={8} w="full" maxW="820px" mx="auto" align="stretch">
-              <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} maxMb={MAX_VEHICLE_IMAGE_MB} />
-              <Flex gap={3} direction={{ base: 'column-reverse', sm: 'row' }}>
-                <Button variant="outline" size="lg" flex={{ sm: 1 }} onClick={() => goTo(0)} isDisabled={Boolean(busy)}>Back</Button>
-                <Button
-                  bg="primary" color="white" _hover={{ bg: 'secondary' }} size="lg" flex={{ sm: 2 }}
-                  onClick={savePhotos} isLoading={busy === 'photos'} loadingText={uploadNote || 'Uploading…'}
-                  isDisabled={!images.some((i) => !i.removed)}
-                >
-                  Save photos and continue
-                </Button>
-              </Flex>
-            </VStack>
-          )}
-
-          {step === 2 && (
-            <VStack spacing={6} w="full" align="stretch">
-              <ListingReviewCard form={form} images={images} />
-              {!published && !canPublish && (
-                <Alert status="warning" borderRadius="md" maxW="640px" mx="auto">
-                  <AlertIcon />
-                  <AlertDescription fontSize="sm">
-                    Your listing is saved as a draft. Complete your business verification (see the banner at the top) to publish it.
-                  </AlertDescription>
-                </Alert>
               )}
-              <Flex gap={3} direction={{ base: 'column-reverse', sm: 'row' }} maxW="640px" mx="auto" w="full">
-                <Button variant="outline" flex={{ sm: 1 }} onClick={() => goTo(1)} isDisabled={Boolean(busy)}>Back</Button>
-                {published ? (
-                  <Button flex={{ sm: 2 }} bg="primary" color="white" _hover={{ bg: 'secondary' }} onClick={finish}>Done</Button>
-                ) : (
-                  <>
-                    <Button flex={{ sm: 1 }} variant="outline" borderColor="primary" color="primary" onClick={finish} isDisabled={Boolean(busy)}>
-                      Save as draft
-                    </Button>
-                    <Button
-                      flex={{ sm: 2 }} bg="primary" color="white" _hover={{ bg: 'secondary' }}
-                      onClick={publish} isLoading={busy === 'publish'} loadingText="Publishing…" isDisabled={!canPublish}
-                    >
-                      {isRental ? 'Publish rental' : 'Publish listing'}
-                    </Button>
-                  </>
-                )}
-              </Flex>
-            </VStack>
+            />
+            {Object.values(errors).some(Boolean) && (
+              <Alert status="error" borderRadius="16px">
+                <AlertIcon />
+                <AlertDescription>Please fix the highlighted fields.</AlertDescription>
+              </Alert>
+            )}
+            <FormActions>
+              <Button {...secondary} as={RLink} to="/inventory" isDisabled={Boolean(busy)}>Cancel</Button>
+              <Button type="submit" {...primary} isLoading={busy === 'details'} loadingText="Saving…" rightIcon={<ArrowRight size={18} />}>Save and continue</Button>
+            </FormActions>
+          </FormWithAside>
+        </Box>
+      )}
+
+      {step === 1 && (
+        <FormWithAside aside={<>{preview}{checklist}</>}>
+          <FormSection icon={Camera} title="Photos" description="The first photo is the cover buyers see in search.">
+            <ImageUploader items={images} onChange={(next) => { setImages(next); setImageError(''); }} error={imageError} maxMb={MAX_VEHICLE_IMAGE_MB} />
+            <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={3} mt={5}>
+              {[['Daylight', 'Shoot outside in daylight, not at night.'], ['All angles', 'Front, back, both sides, interior and dashboard.'], ['Clean car', 'Wash it first. Clean cars sell faster.']].map(([title, body]) => (
+                <Box key={title} p={3} borderRadius="14px" bg={DASH.page}><Text fontWeight="600" fontSize="sm">{title}</Text><Text fontSize="xs" color={DASH.muted}>{body}</Text></Box>
+              ))}
+            </SimpleGrid>
+          </FormSection>
+          <FormActions>
+            <Button {...secondary} onClick={() => goTo(0)} isDisabled={Boolean(busy)} leftIcon={<ArrowLeft size={18} />}>Back</Button>
+            <Button {...primary} onClick={savePhotos} isLoading={busy === 'photos'} loadingText={uploadNote || 'Uploading…'}
+              isDisabled={!images.some((i) => !i.removed)} rightIcon={<ArrowRight size={18} />}>
+              Save photos and continue
+            </Button>
+          </FormActions>
+        </FormWithAside>
+      )}
+
+      {step === 2 && (
+        <FormWithAside aside={checklist}>
+          <FormSection icon={ClipboardCheck} title="Review" description="Check everything looks right before you publish.">
+            <ListingReviewCard form={form} images={images} />
+          </FormSection>
+          {!published && !canPublish && (
+            <Alert status="warning" borderRadius="16px">
+              <AlertIcon />
+              <AlertDescription fontSize="sm">
+                Your listing is saved as a draft. Complete your business verification (see the banner at the top) to publish it.
+              </AlertDescription>
+            </Alert>
           )}
-        </VStack>
-      </DashCard>
+          <FormActions>
+            <Button {...secondary} onClick={() => goTo(1)} isDisabled={Boolean(busy)} leftIcon={<ArrowLeft size={18} />}>Back</Button>
+            {published ? (
+              <Button {...primary} onClick={finish}>Done</Button>
+            ) : (
+              <>
+                <Button {...secondary} onClick={finish} isDisabled={Boolean(busy)}>Save as draft</Button>
+                <Button {...primary} bg={DASH.blue} _hover={{ bg: '#00539A' }} onClick={publish} isLoading={busy === 'publish'} loadingText="Publishing…" isDisabled={!canPublish}>
+                  {isRental ? 'Publish rental' : 'Publish car'}
+                </Button>
+              </>
+            )}
+          </FormActions>
+        </FormWithAside>
+      )}
     </Box>
   );
 }

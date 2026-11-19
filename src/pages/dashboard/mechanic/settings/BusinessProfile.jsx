@@ -29,6 +29,7 @@ import { AsyncState } from '../../../../components/states';
 import BusinessLocation from '../../../../components/BusinessLocation';
 import { asList } from '../../../../utils';
 import { MechanicContext } from '../Layout';
+import { DashCard, PageHeader } from '../../../../components/dashboard/ui';
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const ABOUT_MAX = 1000;
@@ -216,9 +217,9 @@ export const BusinessProfile = () => {
   });
 
   return (
-    <Box py={6} w="100%">
-      <Heading as="h1" size="lg" mb={1}>Business profile</Heading>
-      <Text color="gray.600" mb={6}>This is how your business appears to customers on Motaa.</Text>
+    <Box w="100%">
+      <PageHeader title="Settings" subtitle="How your business appears to customers on Motaa." />
+      <DashCard>
       <AsyncState query={settings} loadingLabel="Loading your profile…">
         {(mechanic) => (
           <ProfileForm
@@ -232,6 +233,7 @@ export const BusinessProfile = () => {
         )}
       </AsyncState>
       <BusinessLocation mt={8} />
+      </DashCard>
     </Box>
   );
 };

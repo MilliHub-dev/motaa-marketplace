@@ -111,16 +111,16 @@ export default function MyTransport() {
 
   return (
     <Box w="100%">
-      <Flex py={6} borderBottom="2px solid lavender" justify="space-between" align="center" gap={3} flexWrap="wrap">
+      <Flex mb={6} justify="space-between" align={{ base: 'flex-start', lg: 'flex-end' }} gap={3} flexWrap="wrap">
         <Box>
-          <Heading as="h1" size="md">{words.plural}</Heading>
+          <Heading as="h1" fontSize={{ base: '2xl', md: '4xl' }} fontWeight="600" letterSpacing="-0.02em">{words.plural}</Heading>
           <Text color="gray.600" fontSize="sm">
             {towing ? 'Customers near you find your tow trucks, request a tow and pay in the app.' : 'Customers request quotes for moving cars and pay in the app.'}
           </Text>
         </Box>
         <HStack gap={2}>
           {authUser?.user_type === 'dealer' && (
-            <HStack spacing={2} border="1px" borderColor="gray.200" borderRadius="md" p={1} bg="white">
+            <HStack spacing={1} borderRadius="full" p={1.5} bg="white">
               <Button
                 variant={kindSelector === 'hauler' ? 'solid' : 'ghost'}
                 colorScheme={kindSelector === 'hauler' ? 'blue' : 'gray'}

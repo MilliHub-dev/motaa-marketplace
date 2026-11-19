@@ -1,7 +1,7 @@
 // /parts-store/orders — the seller's parts orders (?status=new|to-send|sent|returns|done&page=).
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Badge, Box, Button, Heading, HStack, Stack, Text } from '@chakra-ui/react';
+import { Badge, Box, Button, Heading, HStack, Stack, Text , SimpleGrid } from '@chakra-ui/react';
 import { Receipt } from 'lucide-react';
 import { PageControls } from '../../../components';
 import { OrderListSkeleton, PartsOrderRow } from '../../../components/parts';
@@ -9,6 +9,8 @@ import { AsyncState, EmptyState } from '../../../components/states';
 import { useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { usePartsShop } from './shop';
+import { Clock, Package, RotateCcw, Truck } from 'lucide-react';
+import { DASH, DashCard, IconBubble, PageHeader } from '../../../components/dashboard/ui';
 
 const PAGE_SIZE = 25;
 const TABS = [
@@ -45,20 +47,30 @@ export default function PartsShopOrders() {
 
   return (
     <Box w="100%">
-      <Box py={6} borderBottom="2px solid lavender">
-        <Heading as="h1" size="md">Parts orders</Heading>
-        <Text color="gray.600" fontSize="sm">{tab.hint}</Text>
-      </Box>
+      <PageHeader title="Orders" subtitle="Parts customers have bought from your shop." />
 
-      <HStack role="group" aria-label="Which orders to show" spacing={2} my={4} overflowX="auto" className="hidden-scroll">
+      <SimpleGrid columns={{ base: 2, lg: 4 }} spacing={{ base: 3, md: 5 }} mb={{ base: 4, md: 5 }}>
+        {[['New', shop?.stats?.new_orders, DASH.amber, Clock], ['To send', shop?.stats?.to_send, DASH.blue, Package],
+          ['On the way', shop?.stats?.on_the_way, DASH.violet, Truck], ['Returns', shop?.stats?.returns, '#DC2626', RotateCcw]].map(([label, value, color, Icon]) => (
+          <DashCard key={label} p={{ base: 4, md: 5 }}>
+            <HStack spacing={3}><IconBubble icon={Icon} color={color} size={10} />
+              <Box><Text fontSize="sm" color={DASH.muted}>{label}</Text><Text fontSize="2xl" fontWeight="600" lineHeight={1.2}>{Number(value) || 0}</Text></Box>
+            </HStack>
+          </DashCard>
+        ))}
+      </SimpleGrid>
+
+      <DashCard>
+      <Text color={DASH.muted} fontSize="sm" mb={3}>{tab.hint}</Text>
+      <HStack role="group" aria-label="Which orders to show" spacing={2} mb={5} overflowX="auto" className="hidden-scroll" pb={1}>
         {TABS.map((item) => {
           const selected = item.value === tab.value;
           const count = item.stat ? Number(shop?.stats?.[item.stat]) || 0 : 0;
           return (
-            <Button key={item.value} size="sm" flexShrink={0} aria-pressed={selected} onClick={() => go({ status: item.value, page: null })}
-              variant={selected ? 'solid' : 'outline'} bg={selected ? 'primary' : 'white'} color={selected ? 'white' : 'gray.700'} _hover={{ bg: selected ? 'primary' : 'gray.50' }}>
+            <Button key={item.value} flexShrink={0} aria-pressed={selected} onClick={() => go({ status: item.value, page: null })}
+              h="40px" px={4} borderRadius="full" fontWeight="500" bg={selected ? DASH.ink : DASH.page} color={selected ? 'white' : DASH.ink} _hover={{ bg: selected ? DASH.ink : '#E7EAF0' }}>
               {item.label}
-              {count > 0 && <Badge ml={2} borderRadius="full" px={2} colorScheme={selected ? 'yellow' : 'blue'}>{count}</Badge>}
+              {count > 0 && <Box as="span" ml={2} minW="22px" px={1.5} borderRadius="full" fontSize="xs" bg={selected ? 'whiteAlpha.300' : 'white'}>{count}</Box>}
             </Button>
           );
         })}
@@ -85,6 +97,7 @@ export default function PartsShopOrders() {
           </Box>
         )}
       </AsyncState>
+      </DashCard>
     </Box>
   );
 }

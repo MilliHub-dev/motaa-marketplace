@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Flex,
+  SimpleGrid,
   Heading,
   HStack,
   IconButton,
@@ -34,6 +35,7 @@ import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
 import { AsyncState, EmptyState } from '../../../../components/states';
 import { asList } from '../../../../utils';
 import { canDelete } from '../../../../utils/team';
+import { CardEmpty, DASH, DashCard, IconBubble, PageHeader, PillButton, StatusPill } from '../../../../components/dashboard/ui';
 
 const RATE_LABELS = { flat: 'Flat rate', hourly: 'Per hour' };
 
@@ -83,95 +85,60 @@ export const ServiceOfferings = () => {
   }
 
   return (
-    <Box py={4} maxW="1200px" mx="auto">
-      <Flex justify="space-between" align={{ base: 'stretch', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={4} mb={6}>
-        <Box>
-          <Heading as="h1" size="lg" mb={1}>My services</Heading>
-          <Text color="gray.600">Active services and prices are shown on your public profile.</Text>
-        </Box>
-        <Button as={RLink} to="/services/add" bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<Plus size={18} />} flexShrink={0}>
-          Add service
-        </Button>
-      </Flex>
+    <Box>
+      <PageHeader title="Services" subtitle="What you offer and your prices. Active services show on your public profile."
+        actions={<PillButton dark icon={Plus} as={RLink} to="/services/add">Add a service</PillButton>} />
 
       <AsyncState
         query={offerings}
         loadingLabel="Loading your services…"
         isEmpty={(list) => !list?.length}
         empty={
-          <EmptyState
-            icon={Wrench}
-            title="You haven't added any services"
-            description="Add the services you offer with your prices so customers can book you."
-            action={{ label: 'Add your first service', to: '/services/add' }}
-          />
+          <DashCard>
+            <CardEmpty icon={Wrench} title="You haven't added any services" body="Add the services you offer with your prices so customers can book you."
+              action={{ label: 'Add your first service', to: '/services/add' }} />
+          </DashCard>
         }
       >
         {(list) => (
-          <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="white">
-            <Table variant="simple" size="sm">
-              <Thead bg="gray.50">
-                <Tr>
-                  <Th py={3} px={{ base: 3, md: 4 }}>Service</Th>
-                  <Th isNumeric>Charge</Th>
-                  <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>Hires</Th>
-                  <Th>Visible</Th>
-                  <Th><Box as="span" srOnly>Options</Box></Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {list.map((offering) => (
-                  <Tr key={offering?.uuid}>
-                    <Td py={3} whiteSpace="normal" minW="120px">
-                      <Text fontWeight="medium">{offering?.service || 'Untitled service'}</Text>
-                      <Text fontSize="xs" color="gray.500" display={{ base: 'block', md: 'none' }}>
-                        {commaInt(offering?.hires)} hire{Number(offering?.hires) === 1 ? '' : 's'}
-                      </Text>
-                    </Td>
-                    <Td isNumeric>
-                      <Text>₦{commaInt(offering?.charge)}</Text>
-                      <Badge colorScheme="blue" borderRadius="full" px={2} textTransform="none">
-                        {RATE_LABELS[offering?.charge_rate] || offering?.charge_rate || 'Flat rate'}
-                      </Badge>
-                    </Td>
-                    <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>{commaInt(offering?.hires)}</Td>
-                    <Td>
-                      <HStack>
-                        <Switch
-                          isChecked={!!offering?.is_active}
-                          isDisabled={toggling === offering?.uuid}
-                          onChange={(e) => handleToggle(offering, e.target.checked)}
-                          aria-label={`Show ${offering?.service} to customers`}
-                        />
-                        <Text fontSize="xs" color="gray.500" display={{ base: 'none', md: 'block' }}>{offering?.is_active ? 'Active' : 'Hidden'}</Text>
-                      </HStack>
-                    </Td>
-                    <Td>
-                      <Menu placement="bottom-end">
-                        <MenuButton
-                          as={IconButton}
-                          aria-label={`Options for ${offering?.service}`}
-                          icon={<MoreVertical size={16} />}
-                          variant="ghost"
-                          size="sm"
-                        />
-                        <MenuList>
-                          <MenuItem as={RLink} to={`/services/edit/${offering?.uuid}`} icon={<Pencil size={14} />}>
-                            Edit
-                          </MenuItem>
-                          {mayDelete && (
-                          <MenuItem color="red.600" icon={<Trash2 size={14} />} onClick={() => setDeleting(offering)}>
-                            Delete
-                          </MenuItem>
-                          )}
-                        </MenuList>
-                      </Menu>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </TableContainer>
+          <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={{ base: 4, md: 5 }}>
+            {list.map((offering) => (
+              <DashCard key={offering?.uuid} p={{ base: 4, md: 5 }} opacity={offering?.is_active ? 1 : 0.7}>
+                <Flex justify="space-between" align="flex-start" gap={3}>
+                  <HStack spacing={3} minW={0}>
+                    <IconBubble icon={Wrench} color={offering?.is_active ? DASH.blue : '#9CA3AF'} size={12} />
+                    <Box minW={0}>
+                      <Text fontWeight="600" fontSize="lg" noOfLines={2}>{offering?.service || 'Untitled service'}</Text>
+                      <Text fontSize="sm" color={DASH.muted}>{commaInt(offering?.hires)} hire{Number(offering?.hires) === 1 ? '' : 's'}</Text>
+                    </Box>
+                  </HStack>
+                  <Menu placement="bottom-end">
+                    <MenuButton as={IconButton} aria-label={`Options for ${offering?.service}`} icon={<MoreVertical size={16} />} isRound size="sm" bg={DASH.page} />
+                    <MenuList>
+                      <MenuItem as={RLink} to={`/services/edit/${offering?.uuid}`} icon={<Pencil size={14} />}>Edit</MenuItem>
+                      {mayDelete && <MenuItem color="red.600" icon={<Trash2 size={14} />} onClick={() => setDeleting(offering)}>Delete</MenuItem>}
+                    </MenuList>
+                  </Menu>
+                </Flex>
+                <Flex align="flex-end" justify="space-between" mt={5} gap={3}>
+                  <Box>
+                    <Text fontSize="2xl" fontWeight="600">₦{commaInt(offering?.charge)}</Text>
+                    <StatusPill tone="blue">{RATE_LABELS[offering?.charge_rate] || offering?.charge_rate || 'Flat rate'}</StatusPill>
+                  </Box>
+                  <HStack as="label" spacing={2} cursor="pointer">
+                    <Text fontSize="sm" color={DASH.muted}>{offering?.is_active ? 'Visible' : 'Hidden'}</Text>
+                    <Switch colorScheme="blue" isChecked={!!offering?.is_active} isDisabled={toggling === offering?.uuid}
+                      onChange={(e) => handleToggle(offering, e.target.checked)} aria-label={`Show ${offering?.service} to customers`} />
+                  </HStack>
+                </Flex>
+              </DashCard>
+            ))}
+            <Flex as={RLink} to="/services/add" borderRadius={DASH.radius} border="2px dashed" borderColor="#D6DBE3" minH="170px" align="center" justify="center"
+              direction="column" gap={2} color={DASH.muted} _hover={{ borderColor: DASH.blue, color: DASH.blue, bg: 'white' }} transition="all .15s">
+              <Plus size={26} />
+              <Text fontWeight="600">Add a service</Text>
+            </Flex>
+          </SimpleGrid>
         )}
       </AsyncState>
 

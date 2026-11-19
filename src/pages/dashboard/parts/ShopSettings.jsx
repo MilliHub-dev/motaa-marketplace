@@ -10,15 +10,13 @@ import { useApiMutation } from '../../../hooks/useApi';
 import { NIGERIAN_STATES } from '../../../data/nigeria';
 import { storePayload, storeToForm, validateStoreForm } from '../../../utils/parts';
 import { usePartsShop } from './shop';
+import { DashCard, PageHeader } from '../../../components/dashboard/ui';
 
 const MAX_ZONES = 40;
 
 function Card({ title, children }) {
   return (
-    <Box borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 4, md: 6 }} bg="white">
-      <Heading as="h2" size="sm" mb={4}>{title}</Heading>
-      {children}
-    </Box>
+    <DashCard title={title}>{children}</DashCard>
   );
 }
 
@@ -79,11 +77,8 @@ export default function PartsShopSettings() {
   const usedStates = form.zones.map((zone) => zone.state).filter(Boolean);
 
   return (
-    <Box as="form" noValidate onSubmit={submit} w="100%" maxW="760px">
-      <Box py={6} borderBottom="2px solid lavender" mb={5}>
-        <Heading as="h1" size="md">Shop settings</Heading>
-        <Text color="gray.600" fontSize="sm">Open or close your parts shop and choose how orders reach your customers.</Text>
-      </Box>
+    <Box as="form" noValidate onSubmit={submit} w="100%" maxW="860px">
+      <PageHeader title="Shop settings" subtitle="Open or close your parts shop and choose how orders reach your customers." />
 
       <Stack spacing={5}>
         <Card title="Your shop">

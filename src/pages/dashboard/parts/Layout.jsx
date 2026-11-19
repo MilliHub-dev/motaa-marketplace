@@ -1,8 +1,8 @@
-import { Suspense, useState, useContext } from 'react';
+import { Suspense, useContext } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Container, Flex, Stack, useMediaQuery } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
 import { GlobalStore } from '../../../App';
-import { PartsDealerDashboardSideBar, PartsDealerNavbar } from '../../../components/nav';
+import { BusinessShell } from '../../../components/dashboard/DealerShell';
 import { VerificationNotice } from '../../../components';
 import InstallAppNotice from '../../../components/InstallAppNotice';
 import { useVerificationUpdates } from '../../../hooks/useVerificationUpdates';
@@ -12,8 +12,6 @@ import { PartsShopContext, usePartsShopQuery } from './shop';
 /** Dashboard shell for parts dealers (user_type `parts_dealer`), modelled on the dealer one. */
 function PartsDealerDashboardLayout({ hideSidebar }) {
   const { notify, notifyError, authUser } = useContext(GlobalStore);
-  const [sidebarOpen, setSidebarState] = useState(false);
-  const [isMobile] = useMediaQuery('(max-width: 991px)');
   const value = usePartsShopQuery();
   const { shop, query } = value;
   const store = shop?.store;
@@ -53,30 +51,10 @@ function PartsDealerDashboardLayout({ hideSidebar }) {
 
   return (
     <PartsShopContext.Provider value={value}>
-      <Stack>
-        <PartsDealerNavbar sidebarOpen={sidebarOpen} setSidebarState={setSidebarState} hideSidebar={hideSidebar} />
-
-        <Flex minH="100vh" position="relative">
-          <PartsDealerDashboardSideBar
-            business={store ? { business_name: store.name, logo: store.logo } : null}
-            sidebarOpen={sidebarOpen}
-            onClose={() => setSidebarState(false)}
-            setSidebarState={setSidebarState}
-            mode={hideSidebar ? 'drawer' : 'block'}
-          />
-
-          <Box
-            flex={{ md: 1 }}
-            minW={0}
-            w={isMobile || hideSidebar ? '100%' : 'calc(100% - 280px)'}
-            ml={isMobile || hideSidebar ? '0px' : '280px'}
-          >
-            <Container pb={10} maxW="container.xl">
-              {content}
-            </Container>
-          </Box>
-        </Flex>
-      </Stack>
+      <BusinessShell kind="parts" counts={shop?.stats}
+        business={{ name: store?.name || shop?.business?.business_name, logo: store?.logo || shop?.business?.logo, publicUrl: store?.uuid ? `/parts/stores/${store.uuid}` : null }}>
+        <Box maxW="1480px" mx="auto">{content}</Box>
+      </BusinessShell>
     </PartsShopContext.Provider>
   );
 }

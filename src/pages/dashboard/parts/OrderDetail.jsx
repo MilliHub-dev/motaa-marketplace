@@ -132,11 +132,11 @@ export default function PartsShopOrderDetail() {
   const config = actionConfig(action, order);
 
   return (
-    <Box w="100%" py={6}>
+    <Box w="100%">
       <BackButton to="/parts-store/orders" />
 
-      <HStack spacing={3} flexWrap="wrap">
-        <Heading as="h1" size="lg">Order {order.number}</Heading>
+      <HStack spacing={3} flexWrap="wrap" mt={3}>
+        <Heading as="h1" fontSize={{ base: '2xl', md: '3xl' }} fontWeight="600" letterSpacing="-0.02em">Order {order.number}</Heading>
         <PartsOrderBadge order={order} fontSize="sm" />
       </HStack>
       <Text color="gray.600" mt={1} mb={4}>Placed {format(order.date)}</Text>

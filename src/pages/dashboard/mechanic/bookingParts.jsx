@@ -44,6 +44,7 @@ import { useApiMutation } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { bookingDeadline, cleanStars, hasServiceCharge, mechanicPayoutAmount, mechanicReceives, payoutNote } from '../../../utils/bookings';
 import { ShareLiveLocation } from '../../../components/tracking';
+import { DASH, StatusPill } from '../../../components/dashboard/ui';
 
 export const STATUS_COLORS = {
   requested: 'cyan',
@@ -67,13 +68,13 @@ export const STATUS_LABELS = {
   canceled: 'Cancelled',
 };
 
+const STATUS_TONES = {
+  requested: 'blue', pending: 'blue', accepted: 'violet', working: 'amber', completed: 'green', declined: 'grey', expired: 'grey', canceled: 'red',
+};
+
 export function StatusBadge({ status }) {
   const key = String(status || '').toLowerCase();
-  return (
-    <Badge colorScheme={STATUS_COLORS[key] || 'gray'} px={2} py={1} borderRadius="full" textTransform="none">
-      {STATUS_LABELS[key] || status || 'Unknown'}
-    </Badge>
-  );
+  return <StatusPill tone={STATUS_TONES[key] || 'grey'}>{STATUS_LABELS[key] || status || 'Unknown'}</StatusPill>;
 }
 
 export function ClientInfo({ customer, location }) {
@@ -365,7 +366,7 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
     return (
       <VStack as="ul" listStyleType="none" spacing={3} align="stretch">
         {bookings.map((booking) => (
-          <Box as="li" key={booking?.uuid} borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="white" p={4}>
+          <Box as="li" key={booking?.uuid} borderWidth="1px" borderColor={DASH.line} borderRadius="18px" bg="white" p={4}>
             <Flex justify="space-between" align="start" gap={3}>
               <ClientInfo customer={booking?.customer} location={booking?.location} />
               {showStatus && <StatusBadge status={booking?.status} />}
@@ -392,21 +393,21 @@ export function BookingTable({ bookings, actions, onDetails, showStatus }) {
   }
 
   return (
-    <TableContainer borderWidth="1px" borderColor="gray.200" borderRadius="lg" bg="white">
-      <Table variant="simple" size="sm">
-        <Thead bg="gray.50">
-          <Tr>
-            <Th py={3}>Client</Th>
-            <Th>Services</Th>
-            <Th isNumeric>Total</Th>
-            <Th>Date</Th>
-            {showStatus && <Th>Status</Th>}
+    <TableContainer>
+      <Table variant="unstyled" size="md">
+        <Thead>
+          <Tr color={DASH.muted} fontSize="xs" textTransform="uppercase" letterSpacing="0.06em">
+            <Th py={2} color="inherit">Client</Th>
+            <Th color="inherit">Services</Th>
+            <Th color="inherit" isNumeric>Total</Th>
+            <Th color="inherit">Date</Th>
+            {showStatus && <Th color="inherit">Status</Th>}
             <Th><Box as="span" srOnly>Actions</Box></Th>
           </Tr>
         </Thead>
         <Tbody>
           {bookings.map((booking) => (
-            <Tr key={booking?.uuid}>
+            <Tr key={booking?.uuid} borderTopWidth="1px" borderColor={DASH.line} _hover={{ bg: '#FAFBFC' }}>
               <Td py={3}><ClientInfo customer={booking?.customer} location={booking?.location} /></Td>
               <Td>{servicesSummary(booking)}</Td>
               <Td isNumeric>

@@ -17,15 +17,13 @@ import {
   MAX_TRANSPORT_PHOTOS, TRANSPORT_STATES, emptyServiceForm, matchState, serviceFormData, serviceToForm, validateServiceForm,
 } from '../../../utils/transport';
 import { useTransportWords } from './MyTransport';
+import { Banknote, Camera, Eye, Info, MapPin, Truck } from 'lucide-react';
+import { PageHeader } from '../../../components/dashboard/ui';
+import { FormActions, FormSection } from '../../../components/dashboard/FormLayout';
 
+const SECTION_ICONS = { 'About it': Info, Price: Banknote, 'The truck': Truck, "Where it's based": MapPin, Photos: Camera, 'Shown to customers': Eye };
 function Card({ title, hint, children, id }) {
-  return (
-    <Box id={id} borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 4, md: 6 }} bg="white">
-      <Heading as="h2" size="sm">{title}</Heading>
-      {hint && <Text fontSize="sm" color="gray.600" mt={1}>{hint}</Text>}
-      <Box mt={4}>{children}</Box>
-    </Box>
-  );
+  return <FormSection id={id} icon={SECTION_ICONS[title] || Truck} title={title} description={hint}>{children}</FormSection>;
 }
 
 /** The states a car hauler covers: a checkbox per state, with "all" and "none". */
@@ -110,14 +108,12 @@ function ServiceEditor({ service, options }) {
   const hasPoint = form.base_lat !== null && form.base_lat !== '' && form.base_lng !== null && form.base_lng !== '';
 
   return (
-    <Box as="form" noValidate onSubmit={submit} w="100%" maxW="860px" py={6}>
+    <Box as="form" noValidate onSubmit={submit} w="100%" maxW="960px">
       <BackButton to="/transport" />
-      <Heading as="h1" size="lg">{editing ? `Edit ${words.one}` : words.add}</Heading>
-      <Text color="gray.600" mt={1} mb={5}>
-        {editing ? 'Changes show to customers as soon as you save.' : towing
+      <PageHeader title={editing ? `Edit ${words.one}` : words.add}
+        subtitle={editing ? 'Changes show to customers as soon as you save.' : towing
           ? 'Customers nearby see your tow truck, its price and how far away it is.'
-          : 'Customers see your car carrier, its price, how many cars it takes and the states it covers.'}
-      </Text>
+          : 'Customers see your car carrier, its price, how many cars it takes and the states it covers.'} />
 
       {!editing && options?.verified === false && (
         <Alert status="info" borderRadius="md" mb={5}><AlertIcon /><AlertDescription>You can add it now. Customers will see it once your business is verified.</AlertDescription></Alert>
@@ -256,12 +252,12 @@ function ServiceEditor({ service, options }) {
 
         {refusal && <Alert status="error" borderRadius="md" role="alert"><AlertIcon /><AlertDescription>{refusal}</AlertDescription></Alert>}
 
-        <Flex gap={3} justify="flex-end" direction={{ base: 'column-reverse', sm: 'row' }}>
-          <Button as={RLink} to="/transport" variant="ghost">Cancel</Button>
-          <Button type="submit" bg="primary" color="white" _hover={{ bg: 'secondary' }} isLoading={save.loading} loadingText={editing ? 'Saving' : 'Adding'}>
+        <FormActions>
+          <Button as={RLink} to="/transport" h="52px" px={6} borderRadius="full" variant="outline" borderColor="#D6DBE3">Cancel</Button>
+          <Button type="submit" h="52px" px={8} borderRadius="full" bg="#0B1220" color="white" _hover={{ bg: '#1F2937' }} isLoading={save.loading} loadingText={editing ? 'Saving' : 'Adding'}>
             {editing ? 'Save changes' : words.add}
           </Button>
-        </Flex>
+        </FormActions>
       </Stack>
     </Box>
   );

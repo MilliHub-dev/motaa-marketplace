@@ -11,6 +11,7 @@ import { useApiMutation } from '../../../hooks/useApi';
 import { storePlace } from '../../../utils/parts';
 import { PartsShopContext } from './shop';
 import BusinessLocation from '../../../components/BusinessLocation';
+import { DashCard, PageHeader } from '../../../components/dashboard/ui';
 
 const MAX_LOGO_MB = 2;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,12 +93,10 @@ export default function PartsDealerBusinessProfile() {
   const place = (typeof business.location === 'string' && business.location) || storePlace(store);
 
   return (
-    <Box w="100%" maxW="720px" pb={8}>
-      <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" py={6} maxW="720px" w="100%">
-        <Box>
-          <Heading as="h1" size="md">Business profile</Heading>
-          <Text color="gray.600" fontSize="sm">What customers see on your parts shop.</Text>
-        </Box>
+    <Box w="100%" pb={8}>
+      <PageHeader title="Business profile" subtitle="What customers see on your parts shop." />
+      <DashCard>
+      <VStack as="form" noValidate onSubmit={submit} spacing={6} align="stretch" maxW="760px" w="100%">
 
         <Box bg="white" borderWidth={1} borderColor="gray.200" borderRadius="xl" p={6}>
           <VStack spacing={3}>
@@ -162,7 +161,8 @@ export default function PartsDealerBusinessProfile() {
           </Button>
         </Flex>
       </VStack>
-      <BusinessLocation />
+      </DashCard>
+      <DashCard mt={5}><BusinessLocation /></DashCard>
     </Box>
   );
 }

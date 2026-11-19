@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Heading, Text } from '@chakra-ui/react';
+import { Box } from '@chakra-ui/react';
+import { BackButton } from '../../../../components/nav';
+import { PageHeader } from '../../../../components/dashboard/ui';
 import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
 import { asList } from '../../../../utils';
 import { ServiceForm } from './ServiceForm';
@@ -20,9 +22,9 @@ export const CreateServiceOffering = () => {
   });
 
   return (
-    <Box py={4} maxW="1200px" mx="auto">
-      <Heading as="h1" size="lg" mb={1}>Add a service</Heading>
-      <Text color="gray.600" mb={6}>Customers see your active services and prices when they book you.</Text>
+    <Box>
+      <BackButton to="/services" />
+      <PageHeader title="Add a service" subtitle="Customers see your active services and prices when they book you." />
       <ServiceForm
         catalogue={catalogue.data}
         submitLabel="Add service"

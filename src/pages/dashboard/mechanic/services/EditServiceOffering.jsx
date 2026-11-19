@@ -5,6 +5,8 @@ import { useApiMutation, useApiQuery } from '../../../../hooks/useApi';
 import { AsyncState } from '../../../../components/states';
 import { asList } from '../../../../utils';
 import { ServiceForm } from './ServiceForm';
+import { BackButton } from '../../../../components/nav';
+import { PageHeader } from '../../../../components/dashboard/ui';
 
 export default function EditServiceOffering() {
   const { serviceId } = useParams();
@@ -26,9 +28,9 @@ export default function EditServiceOffering() {
   });
 
   return (
-    <Box py={4} maxW="1200px" mx="auto">
-      <Heading as="h1" size="lg" mb={1}>Edit service</Heading>
-      <Text color="gray.600" mb={6}>Update the name, price or visibility of this service.</Text>
+    <Box>
+      <BackButton to="/services" />
+      <PageHeader title="Edit service" subtitle="Update the name, price or visibility of this service." />
       <AsyncState query={offering} loadingLabel="Loading service…" errorTitle="We couldn't load this service">
         {(data) => (
           <ServiceForm

@@ -1,79 +1,76 @@
-import { useContext } from 'react';
-import { Box, Heading, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber, Text } from '@chakra-ui/react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
-import { GlobalStore } from '../../../App';
+// The mechanic's analytics: earnings by month and how their requests turn into jobs.
+// Data: /admin/mechanics/analytics/.
+import { Box, Flex, Grid, SimpleGrid, Skeleton, Stack, Text } from '@chakra-ui/react';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from 'chart.js';
+import { Banknote, BadgeCheck, Timer, XCircle } from 'lucide-react';
 import { useApiQuery } from '../../../hooks/useApi';
-import { AsyncState } from '../../../components/states';
-import { SafeChart } from '../../../components/charts';
+import { ErrorState } from '../../../components/states';
+import { CardEmpty, chartOptions, compactNumber, DASH, DashCard, LegendDot, naira, PageHeader, StatTile } from '../../../components/dashboard/ui';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
-
-function StatBox({ label, value, help }) {
-  return (
-    <Stat borderColor="gray.200" bg="white" px={5} py={4} borderRadius="lg" borderWidth="1px">
-      <StatLabel color="gray.600">{label}</StatLabel>
-      <StatNumber>{value}</StatNumber>
-      {help && <StatHelpText mb={0}>{help}</StatHelpText>}
-    </Stat>
-  );
-}
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip);
 
 export default function MechanicAnalytics() {
-  const { commaInt } = useContext(GlobalStore);
-  const analytics = useApiQuery((api, signal) => api.get('/admin/mechanics/analytics/', { signal }), [], {
-    select: (body) => body?.data || {},
-  });
+  const analytics = useApiQuery((api, signal) => api.get('/admin/mechanics/analytics/', { signal }), [], { select: (body) => body?.data || {} });
+  const data = analytics.data;
+  const loading = analytics.loading && !data;
+  const header = <PageHeader title="Analytics" subtitle="Your earnings and how your requests turn into jobs." />;
+  if (analytics.error && !data) return <>{header}<ErrorState error={analytics.error} onRetry={analytics.reload} /></>;
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { callbacks: { label: (ctx) => `₦${commaInt(ctx.parsed.y)}` } },
-    },
-    scales: {
-      x: { grid: { display: false } },
-      y: { beginAtZero: true, ticks: { callback: (value) => `₦${commaInt(value)}` } },
-    },
-    elements: { bar: { borderRadius: 8 } },
-  };
+  const chart = data?.revenue?.chart_data;
+  const hasRevenue = (chart?.datasets?.[0]?.data || []).some((v) => Number(v) > 0);
+  const jobs = data?.jobs || {};
+  const rows = [
+    { label: 'Completed', value: Number(jobs.completed) || 0, color: DASH.green },
+    { label: 'In progress', value: Math.max(0, (Number(jobs.hires) || 0) - (Number(jobs.completed) || 0)), color: DASH.blue },
+    { label: 'Waiting for you', value: Number(jobs.pending) || 0, color: DASH.amber },
+    { label: 'Cancelled / declined', value: Number(jobs.canceled) || 0, color: '#D1D5DB' },
+  ];
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  const acceptance = (Number(jobs.hires) || 0) + (Number(jobs.canceled) || 0)
+    ? Math.round(((Number(jobs.hires) || 0) / ((Number(jobs.hires) || 0) + (Number(jobs.canceled) || 0))) * 100) : null;
 
   return (
-    <Box py={4}>
-      <Heading as="h1" size="lg" mb={1}>Analytics</Heading>
-      <Text color="gray.600" mb={6}>Your earnings and job activity.</Text>
+    <Box>
+      {header}
+      <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={{ base: 4, md: 5 }} mb={{ base: 4, md: 5 }}>
+        <StatTile loading={loading} icon={Banknote} color={DASH.blue} label="Revenue" value={naira(data?.revenue?.amount, { short: true })} progress={null} footnote="From completed jobs" />
+        <StatTile loading={loading} icon={BadgeCheck} color={DASH.green} label="Hires" value={compactNumber(jobs.hires)} progress={null} footnote={`${compactNumber(jobs.completed)} completed`} />
+        <StatTile loading={loading} icon={Timer} color={DASH.amber} label="Pending requests" value={compactNumber(jobs.pending)} progress={null} footnote="Waiting for your answer" />
+        <StatTile loading={loading} icon={XCircle} color="#9CA3AF" label="Accepted" value={acceptance === null ? '—' : `${acceptance}%`}
+          progress={acceptance} progressLabel="Requests you took on" footnote={`${compactNumber(jobs.canceled)} cancelled or declined`} />
+      </SimpleGrid>
 
-      <AsyncState query={analytics} loadingLabel="Loading analytics…">
-        {(data) => {
-          const chart = data?.revenue?.chart_data;
-          const hasRevenue = (chart?.datasets?.[0]?.data || []).some((v) => Number(v) > 0);
-          return (
-            <>
-              <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4} mb={8}>
-                <StatBox label="Total revenue" value={`₦${commaInt(data?.revenue?.amount)}`} help="From completed jobs" />
-                <StatBox label="Hires" value={commaInt(data?.jobs?.hires)} help={`${commaInt(data?.jobs?.completed)} completed`} />
-                <StatBox label="Pending requests" value={commaInt(data?.jobs?.pending)} />
-                <StatBox label="Canceled / declined" value={commaInt(data?.jobs?.canceled)} />
-              </SimpleGrid>
-
-              <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="lg" p={4}>
-                <Heading as="h2" size="sm" mb={4}>Revenue this year</Heading>
-                <Box height="300px">
-                  <SafeChart
-                    as={Bar}
-                    data={hasRevenue ? chart : null}
-                    options={chartOptions}
-                    emptyText="Revenue from completed jobs will be charted here."
-                    aria-label="Monthly revenue chart"
-                    role="img"
-                  />
-                </Box>
+      <Grid templateColumns={{ base: '1fr', xl: 'minmax(0, 2fr) minmax(300px, 1fr)' }} gap={{ base: 4, md: 5 }}>
+        <DashCard title="Earnings" subtitle="Completed jobs by month, this year.">
+          <Box h={{ base: '240px', md: '320px' }}>
+            {loading ? <Skeleton h="100%" borderRadius="16px" /> : hasRevenue ? (
+              <Bar options={chartOptions({ money: true })} data={{
+                labels: chart.labels,
+                datasets: [{ label: 'Earnings', data: chart.datasets[0].data, backgroundColor: DASH.blue, hoverBackgroundColor: DASH.blueSoft, borderRadius: 10, borderSkipped: false, maxBarThickness: 40 }],
+              }} />
+            ) : <CardEmpty icon={Banknote} title="No completed jobs yet" body="Revenue from completed jobs will be charted here." />}
+          </Box>
+        </DashCard>
+        <DashCard title="Jobs" subtitle="All your bookings by status.">
+          {total ? (
+            <Flex direction="column" align="center" gap={5}>
+              <Box position="relative" w="200px" h="200px">
+                <Doughnut data={{ labels: rows.map((r) => r.label), datasets: [{ data: rows.map((r) => r.value), backgroundColor: rows.map((r) => r.color), borderWidth: 0, borderRadius: 6, spacing: 3 }] }}
+                  options={{ cutout: '72%', plugins: { legend: { display: false }, tooltip: { backgroundColor: DASH.ink, cornerRadius: 12, padding: 10 } } }} />
+                <Stack position="absolute" inset={0} align="center" justify="center" spacing={0} pointerEvents="none">
+                  <Text fontSize="3xl" fontWeight="600">{total}</Text><Text fontSize="xs" color={DASH.muted}>bookings</Text>
+                </Stack>
               </Box>
-            </>
-          );
-        }}
-      </AsyncState>
+              <Stack w="100%" spacing={3}>
+                {rows.map((row) => (
+                  <Flex key={row.label} justify="space-between"><LegendDot color={row.color}>{row.label}</LegendDot><Text fontWeight="600">{row.value}</Text></Flex>
+                ))}
+              </Stack>
+            </Flex>
+          ) : loading ? <Skeleton h="260px" borderRadius="16px" /> : <CardEmpty icon={BadgeCheck} title="No bookings yet" />}
+        </DashCard>
+      </Grid>
     </Box>
   );
 }

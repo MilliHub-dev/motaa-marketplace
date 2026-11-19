@@ -33,6 +33,7 @@ import { CloseIcon, CheckIcon } from "@chakra-ui/icons";
 import { AlertTriangle, Zap, Gauge, Settings, Upload, ImageOff, Undo2, Car, DoorOpen, Users } from "lucide-react";
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { GlobalStore } from '../App';
+import { FormSection, WizardStepper } from './dashboard/FormLayout';
 
 // ---------------------------------------------------------------------------
 // Options (values = backend choice codes)
@@ -198,33 +199,8 @@ export function listingPayload(form) {
 // Step indicator
 // ---------------------------------------------------------------------------
 
-export function StepIndicator({ steps, currentStep }) {
-  return (
-    <Box w="full" maxW="600px" mx="auto" mb={4} as="nav" aria-label="Progress">
-      <HStack as="ol" justify="space-between" mb={2} listStyleType="none" spacing={2}>
-        {steps.map((step, index) => {
-          const done = index < currentStep;
-          const active = index === currentStep;
-          return (
-            <VStack as="li" key={step} spacing={2} flex={1} aria-current={active ? 'step' : undefined}>
-              <Flex
-                w="28px" h="28px" borderRadius="full" align="center" justify="center"
-                borderWidth="2px" borderColor={index <= currentStep ? 'primary' : 'gray.300'}
-                bg={done ? 'primary' : 'white'} color="white" fontSize="xs"
-              >
-                {done ? <CheckIcon boxSize={3} aria-hidden="true" /> : <Box w={3} h={3} borderRadius="full" bg={active ? 'primary' : 'gray.300'} />}
-              </Flex>
-              <Text fontSize="sm" textAlign="center" color={index <= currentStep ? 'gray.800' : 'gray.500'} fontWeight={active ? '600' : 'normal'}>
-                {step}
-                <VisuallyHidden>{done ? ' (completed)' : active ? ' (current step)' : ''}</VisuallyHidden>
-              </Text>
-            </VStack>
-          );
-        })}
-      </HStack>
-      <Progress value={steps.length > 1 ? (currentStep / (steps.length - 1)) * 100 : 100} size="xs" colorScheme="blue" borderRadius="full" aria-hidden="true" />
-    </Box>
-  );
+export function StepIndicator({ steps, currentStep, onStep }) {
+  return <WizardStepper steps={steps} current={currentStep} onStep={onStep} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,112 +261,91 @@ function FeaturePicker({ value, onChange }) {
 }
 
 /** One form for both sale and rental listings. `onChange(field, value)`. */
-export function ListingDetailsForm({ form, errors = {}, onChange }) {
+export function ListingDetailsForm({ form, errors = {}, onChange, typePicker }) {
   const isRental = form.listing_type === 'rental';
   const brands = form.brand && !CAR_BRANDS.includes(form.brand) ? [form.brand, ...CAR_BRANDS] : CAR_BRANDS;
 
   return (
-    <VStack spacing={6} align="stretch" w="full">
-      <FormControl isRequired isInvalid={Boolean(errors.title)}>
-        <FormLabel>Listing title</FormLabel>
-        <Input
-          name="title"
-          placeholder="e.g. 2019 Toyota Camry XLE"
-          maxLength={200}
-          value={form.title}
-          onChange={(e) => onChange('title', e.target.value)}
-        />
-        <FormErrorMessage>{errors.title}</FormErrorMessage>
-      </FormControl>
+    <VStack spacing={{ base: 4, md: 5 }} align="stretch" w="full">
+      <FormSection number={1} title="The car" description="What you're listing and what buyers search for.">
+        <VStack spacing={6} align="stretch">
+          {typePicker}
+          <FormControl isRequired isInvalid={Boolean(errors.title)}>
+            <FormLabel>Listing title</FormLabel>
+            <Input name="title" placeholder="e.g. 2019 Toyota Camry XLE" maxLength={200} value={form.title} onChange={(e) => onChange('title', e.target.value)} />
+            {errors.title ? <FormErrorMessage>{errors.title}</FormErrorMessage> : <FormHelperText>Year, make, model and trim work best.</FormHelperText>}
+          </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <SelectField field="brand" label="Make" placeholder="Select make" form={form} errors={errors} onChange={onChange}
+              options={brands.map((b) => ({ value: b, label: b }))} />
+            <FormControl isRequired isInvalid={Boolean(errors.model)}>
+              <FormLabel>Model</FormLabel>
+              <Input name="model" placeholder="e.g. Camry" value={form.model} onChange={(e) => onChange('model', e.target.value)} />
+              <FormErrorMessage>{errors.model}</FormErrorMessage>
+            </FormControl>
+          </SimpleGrid>
+        </VStack>
+      </FormSection>
 
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-        <SelectField
-          field="brand" label="Make" placeholder="Select make" form={form} errors={errors} onChange={onChange}
-          options={brands.map((b) => ({ value: b, label: b }))}
-        />
+      <FormSection number={2} title={isRental ? 'Price' : 'Price and condition'} description={isRental ? 'What customers pay and how often.' : 'Buyers see this first.'}>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          <FormControl isRequired isInvalid={Boolean(errors.price)}>
+            <FormLabel>{isRental ? 'Rental price' : 'Price'}</FormLabel>
+            <InputGroup>
+              <InputLeftAddon>₦</InputLeftAddon>
+              <Input name="price" type="number" inputMode="numeric" min={1} placeholder={isRental ? 'e.g. 45000' : 'e.g. 18500000'}
+                value={form.price} onChange={(e) => onChange('price', e.target.value)} />
+            </InputGroup>
+            {errors.price ? <FormErrorMessage>{errors.price}</FormErrorMessage>
+              : form.price ? <FormHelperText>₦{Number(form.price || 0).toLocaleString('en-NG')}</FormHelperText> : null}
+          </FormControl>
+          {isRental && (
+            <SelectField field="payment_cycle" label="Rental period" form={form} errors={errors} onChange={onChange} helper="How often the rental price is charged." />
+          )}
+          <SelectField field="condition" label="Condition" placeholder="Choose condition" form={form} errors={errors} onChange={onChange} />
+          {!isRental && <FormControl isRequired isInvalid={Boolean(errors.mileage)}>
+            <FormLabel>Mileage</FormLabel>
+            <InputGroup>
+              <Input name="mileage" type="number" inputMode="numeric" min={0} placeholder="e.g. 45000" value={form.mileage} onChange={(e) => onChange('mileage', e.target.value)} />
+              <InputRightAddon>km</InputRightAddon>
+            </InputGroup>
+            <FormErrorMessage>{errors.mileage}</FormErrorMessage>
+          </FormControl>}
+        </SimpleGrid>
+      </FormSection>
 
-        <FormControl isRequired isInvalid={Boolean(errors.model)}>
-          <FormLabel>Model</FormLabel>
-          <Input name="model" placeholder="e.g. Camry" value={form.model} onChange={(e) => onChange('model', e.target.value)} />
-          <FormErrorMessage>{errors.model}</FormErrorMessage>
-        </FormControl>
+      <FormSection number={3} title="Specifications" description="The details buyers filter by.">
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {!isRental && <FormControl isRequired isInvalid={Boolean(errors.vin)}>
+            <FormLabel>VIN / chassis number</FormLabel>
+            <Input name="vin" placeholder="17-character VIN" value={form.vin} onChange={(e) => onChange('vin', e.target.value.toUpperCase())} fontFamily="mono" letterSpacing="0.04em" />
+            {errors.vin ? <FormErrorMessage>{errors.vin}</FormErrorMessage> : <FormHelperText>Buyers can check the car's history with it.</FormHelperText>}
+          </FormControl>}
+          <SelectField field="vehicle_type" label="Body type" placeholder="Select body type" form={form} errors={errors} onChange={onChange} />
+          <SelectField field="fuel_system" label="Fuel" placeholder="Select fuel type" form={form} errors={errors} onChange={onChange} />
+          <SelectField field="transmission" label="Transmission" placeholder="Select transmission" form={form} errors={errors} onChange={onChange} />
+          {!isRental && <SelectField field="drivetrain" label="Drive train" placeholder="Select drive train" form={form} errors={errors} onChange={onChange} />}
+          <SelectField field="doors" label="Doors" form={form} errors={errors} onChange={onChange} />
+          <SelectField field="seats" label="Seats" form={form} errors={errors} onChange={onChange} />
+          <FormControl isInvalid={Boolean(errors.color)}>
+            <FormLabel>Colour <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
+            <Input name="color" placeholder="e.g. Silver" value={form.color} onChange={(e) => onChange('color', e.target.value)} />
+            <FormErrorMessage>{errors.color}</FormErrorMessage>
+          </FormControl>
+        </SimpleGrid>
+      </FormSection>
 
-        <FormControl isRequired isInvalid={Boolean(errors.price)}>
-          <FormLabel>{isRental ? 'Rental price' : 'Price'}</FormLabel>
-          <InputGroup>
-            <InputLeftAddon>₦</InputLeftAddon>
-            <Input
-              name="price"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              placeholder={isRental ? 'e.g. 45000' : 'e.g. 18500000'}
-              value={form.price}
-              onChange={(e) => onChange('price', e.target.value)}
-            />
-          </InputGroup>
-          <FormErrorMessage>{errors.price}</FormErrorMessage>
-        </FormControl>
-
-        {isRental && (
-          <SelectField field="payment_cycle" label="Rental period" form={form} errors={errors} onChange={onChange}
-            helper="How often the rental price is charged." />
-        )}
-
-        <SelectField field="condition" label="Condition" placeholder="Choose condition" form={form} errors={errors} onChange={onChange} />
-
-        {!isRental && <FormControl isRequired isInvalid={Boolean(errors.vin)}>
-          <FormLabel>VIN / chassis number</FormLabel>
-          <Input name="vin" placeholder="17-character VIN" value={form.vin} onChange={(e) => onChange('vin', e.target.value.toUpperCase())} />
-          <FormErrorMessage>{errors.vin}</FormErrorMessage>
-        </FormControl>}
-
-        <SelectField field="vehicle_type" label="Body type" placeholder="Select body type" form={form} errors={errors} onChange={onChange} />
-        <SelectField field="fuel_system" label="Fuel" placeholder="Select fuel type" form={form} errors={errors} onChange={onChange} />
-        <SelectField field="transmission" label="Transmission" placeholder="Select transmission" form={form} errors={errors} onChange={onChange} />
-        {!isRental && <SelectField field="drivetrain" label="Drive train" placeholder="Select drive train" form={form} errors={errors} onChange={onChange} />}
-        <SelectField field="doors" label="Doors" form={form} errors={errors} onChange={onChange} />
-        <SelectField field="seats" label="Seats" form={form} errors={errors} onChange={onChange} />
-
-        {!isRental && <FormControl isRequired isInvalid={Boolean(errors.mileage)}>
-          <FormLabel>Mileage</FormLabel>
-          <InputGroup>
-            <Input
-              name="mileage"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              placeholder="e.g. 45000"
-              value={form.mileage}
-              onChange={(e) => onChange('mileage', e.target.value)}
-            />
-            <InputRightAddon>km</InputRightAddon>
-          </InputGroup>
-          <FormErrorMessage>{errors.mileage}</FormErrorMessage>
-        </FormControl>}
-
-        <FormControl isInvalid={Boolean(errors.color)}>
-          <FormLabel>Colour <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
-          <Input name="color" placeholder="e.g. Silver" value={form.color} onChange={(e) => onChange('color', e.target.value)} />
-          <FormErrorMessage>{errors.color}</FormErrorMessage>
-        </FormControl>
-      </SimpleGrid>
-
-      <FeaturePicker value={form.features} onChange={(features) => onChange('features', features)} />
-
-      <FormControl isInvalid={Boolean(errors.notes)}>
-        <FormLabel>Seller notes <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
-        <Textarea
-          name="notes"
-          placeholder="Service history, extras, anything a buyer should know…"
-          value={form.notes}
-          onChange={(e) => onChange('notes', e.target.value)}
-          maxLength={700}
-        />
-        {errors.notes
-          ? <FormErrorMessage>{errors.notes}</FormErrorMessage>
-          : <FormHelperText>{String(form.notes || '').length}/700 characters</FormHelperText>}
-      </FormControl>
+      <FormSection number={4} title="Features and notes" description="Optional, but cars with more detail get more offers.">
+        <VStack spacing={6} align="stretch">
+          <FeaturePicker value={form.features} onChange={(features) => onChange('features', features)} />
+          <FormControl isInvalid={Boolean(errors.notes)}>
+            <FormLabel>Seller notes <Text as="span" color="gray.500" fontWeight="normal" fontSize="sm">(optional)</Text></FormLabel>
+            <Textarea name="notes" rows={5} placeholder="Service history, extras, anything a buyer should know…" value={form.notes}
+              onChange={(e) => onChange('notes', e.target.value)} maxLength={700} />
+            {errors.notes ? <FormErrorMessage>{errors.notes}</FormErrorMessage> : <FormHelperText>{String(form.notes || '').length}/700 characters</FormHelperText>}
+          </FormControl>
+        </VStack>
+      </FormSection>
     </VStack>
   );
 }
@@ -458,13 +413,15 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
         htmlFor={inputId}
         display="block"
         w="full"
-        py={8}
+        py={10}
         px={4}
         borderWidth={2}
         borderStyle="dashed"
-        borderRadius="lg"
-        borderColor={dragging ? 'primary' : message ? 'red.300' : 'gray.300'}
-        bg={dragging ? 'blue.50' : 'gray.50'}
+        borderRadius="18px"
+        borderColor={dragging ? 'primary' : message ? 'red.300' : '#D6DBE3'}
+        bg={dragging ? 'blue.50' : '#F7F9FC'}
+        transition="all .15s"
+        _hover={remaining ? { borderColor: 'primary', bg: '#F0F6FD' } : undefined}
         cursor={remaining ? 'pointer' : 'not-allowed'}
         opacity={remaining ? 1 : 0.6}
         textAlign="center"
@@ -473,8 +430,10 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); if (remaining) addFiles(e.dataTransfer.files); }}
       >
-        <VStack spacing={1}>
-          <Upload size={24} aria-hidden="true" />
+        <VStack spacing={2}>
+          <Flex w={14} h={14} borderRadius="full" bg="white" color="primary" align="center" justify="center" boxShadow="0 6px 16px rgba(0,101,181,0.15)">
+            <Upload size={24} aria-hidden="true" />
+          </Flex>
           <Text color="primary" fontWeight="600">{remaining ? 'Click to choose photos' : 'Photo limit reached'}</Text>
           <Text fontSize="sm" color="gray.600">{remaining ? `or drag and drop · ${remaining} of ${limit} left` : `Remove a photo to add another.`}</Text>
         </VStack>
@@ -497,10 +456,11 @@ export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, max
           {items.map((item) => {
             const position = kept.indexOf(item) + 1;
             return (
-              <Box key={item.key} position="relative" borderRadius="lg" overflow="hidden" borderWidth={1} opacity={item.removed ? 0.45 : 1}>
-                <Image src={item.previewUrl || item.url} alt={item.removed ? 'Photo marked for removal' : `${subject} photo ${position}`} h="110px" w="100%" objectFit="cover" />
+              <Box key={item.key} position="relative" borderRadius="14px" overflow="hidden" opacity={item.removed ? 0.45 : 1}
+                outline={position === 1 && !item.removed ? '3px solid' : 'none'} outlineColor="primary" outlineOffset="2px">
+                <Image src={item.previewUrl || item.url} alt={item.removed ? 'Photo marked for removal' : `${subject} photo ${position}`} h="130px" w="100%" objectFit="cover" />
                 {!item.removed && (
-                  <Badge position="absolute" top={2} left={2} borderRadius="full" px={2} bg="whiteAlpha.900" color="gray.800">
+                  <Badge position="absolute" top={2} left={2} borderRadius="full" px={2} bg={position === 1 ? '#0B1220' : 'whiteAlpha.900'} color={position === 1 ? 'white' : 'gray.800'} textTransform="none">
                     {position === 1 ? 'Cover' : position}
                   </Badge>
                 )}

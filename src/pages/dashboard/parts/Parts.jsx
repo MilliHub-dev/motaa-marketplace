@@ -13,6 +13,7 @@ import { useApiMutation, useApiQuery } from '../../../hooks/useApi';
 import { asList } from '../../../utils';
 import { canDelete } from '../../../utils/team';
 import { usePartsShop } from './shop';
+import { DASH, DashCard, PageHeader, PillButton, StatusPill } from '../../../components/dashboard/ui';
 
 const PAGE_SIZE = 25;
 const FILTERS = [
@@ -113,28 +114,25 @@ export default function PartsShopParts() {
 
   return (
     <Box w="100%">
-      <Flex py={6} borderBottom="2px solid lavender" justify="space-between" align="center" gap={3} flexWrap="wrap">
-        <Box>
-          <Heading as="h1" size="md">Parts</Heading>
-          <Text color="gray.600" fontSize="sm">The spare parts in your shop.</Text>
-        </Box>
-        <Button as={RLink} to="/parts-store/parts/add" bg="primary" color="white" _hover={{ bg: 'secondary' }} leftIcon={<Plus size={16} />}>Add a part</Button>
-      </Flex>
+      <PageHeader title="Parts" subtitle="The spare parts in your shop."
+        actions={<PillButton dark icon={Plus} as={RLink} to="/parts-store/parts/add">Add a part</PillButton>} />
 
-      <Flex gap={3} my={4} flexWrap="wrap" align="center">
+      <DashCard>
+      <Flex gap={3} mb={5} flexWrap="wrap" align="center" justify="space-between">
         <HStack as="form" role="search" flex="1 1 260px" onSubmit={(e) => { e.preventDefault(); go({ q: search.trim(), page: null }); }}>
           <InputGroup>
-            <InputLeftElement pointerEvents="none" color="gray.500"><Search size={18} aria-hidden="true" /></InputLeftElement>
-            <Input type="search" aria-label="Search your parts" placeholder="Search by name, part number or brand" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <InputLeftElement h="44px" pointerEvents="none" color="gray.500"><Search size={18} aria-hidden="true" /></InputLeftElement>
+            <Input type="search" aria-label="Search your parts" placeholder="Search by name, part number or brand" value={search} onChange={(e) => setSearch(e.target.value)}
+              h="44px" borderRadius="full" bg={DASH.page} border="none" />
           </InputGroup>
-          <Button type="submit" variant="outline" flexShrink={0}>Search</Button>
+          <Button type="submit" flexShrink={0} h="44px" borderRadius="full" bg={DASH.ink} color="white" _hover={{ bg: '#1F2937' }}>Search</Button>
         </HStack>
         <HStack role="group" aria-label="Show" spacing={2} overflowX="auto" className="hidden-scroll">
           {FILTERS.map((filter) => {
             const selected = filter.value === status;
             return (
-              <Button key={filter.value || 'all'} size="sm" flexShrink={0} aria-pressed={selected} onClick={() => go({ status: filter.value, page: null })}
-                variant={selected ? 'solid' : 'outline'} bg={selected ? 'primary' : 'white'} color={selected ? 'white' : 'gray.700'} _hover={{ bg: selected ? 'primary' : 'gray.50' }}>
+              <Button key={filter.value || 'all'} flexShrink={0} aria-pressed={selected} onClick={() => go({ status: filter.value, page: null })}
+                h="40px" px={4} borderRadius="full" fontWeight="500" bg={selected ? DASH.ink : DASH.page} color={selected ? 'white' : DASH.ink} _hover={{ bg: selected ? DASH.ink : '#E7EAF0' }}>
                 {filter.label}
               </Button>
             );
@@ -164,18 +162,15 @@ export default function PartsShopParts() {
               {asList(data?.results).map((part) => {
                 const working = busy === part.uuid;
                 return (
-                  <Box as="li" key={part.uuid} p={4} borderWidth="1px" borderColor="gray.200" borderRadius="xl" bg="white" opacity={working ? 0.7 : 1}>
+                  <Box as="li" key={part.uuid} p={4} borderWidth="1px" borderColor={DASH.line} borderRadius="18px" bg="white" opacity={working ? 0.7 : 1} _hover={{ borderColor: '#DCE3EC' }}>
                     <Flex gap={3} align="start">
                       <PartPhoto src={part.image} alt={part.name} boxSize={{ base: '64px', md: '80px' }} borderRadius="md" iconSize={6} />
                       <Box flex={1} minW={0}>
                         <HStack spacing={2} flexWrap="wrap" mb={1}>
-                          {!part.active
-                            ? <Badge colorScheme="gray" textTransform="none" borderRadius="full" px={2}>Hidden</Badge>
-                            : !part.in_stock
-                              ? <Badge colorScheme="orange" textTransform="none" borderRadius="full" px={2}>Out of stock</Badge>
-                              : <Badge colorScheme="green" textTransform="none" borderRadius="full" px={2}>Live</Badge>}
-                          {!part.active && !part.in_stock && <Badge colorScheme="orange" textTransform="none" borderRadius="full" px={2}>Out of stock</Badge>}
-                          {part.condition_label && <Badge textTransform="none" borderRadius="full" px={2}>{part.condition_label}</Badge>}
+                          {!part.active ? <StatusPill tone="grey">Hidden</StatusPill>
+                            : !part.in_stock ? <StatusPill tone="amber">Out of stock</StatusPill> : <StatusPill tone="green">Live</StatusPill>}
+                          {!part.active && !part.in_stock && <StatusPill tone="amber">Out of stock</StatusPill>}
+                          {part.condition_label && <StatusPill tone="blue">{part.condition_label}</StatusPill>}
                         </HStack>
                         <Text as={RLink} to={`/parts-store/parts/${part.uuid}`} fontWeight="600" noOfLines={2} _hover={{ color: 'primary' }}>{part.name}</Text>
                         <Text fontSize="sm" color="gray.600" noOfLines={1}>
@@ -214,6 +209,7 @@ export default function PartsShopParts() {
           </Box>
         )}
       </AsyncState>
+      </DashCard>
 
       <ActionDialog
         isOpen={Boolean(toDelete)}
