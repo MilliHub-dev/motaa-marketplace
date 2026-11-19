@@ -86,7 +86,30 @@ export default function AssistantPanel({ isOpen, onClose }) {
 
   useEffect(() => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify(messages.slice(-40))); } catch { /* private mode */ } }, [messages]);
   useEffect(() => { if (isOpen) setTimeout(() => endRef.current?.scrollIntoView({ block: 'end' }), 30); }, [messages, busy, isOpen]);
-  useEffect(() => { if (isOpen) setTimeout(() => inputRef.current?.focus(), 150); }, [isOpen]);
+  // desktops only: on phones focusing opens the keyboard at once, and iOS then shifts the page and cuts off the header
+  useEffect(() => {
+    let fine = false;
+    try { fine = window.matchMedia('(pointer: fine)').matches; } catch { /* old browser */ }
+    if (isOpen && fine) setTimeout(() => inputRef.current?.focus(), 150);
+  }, [isOpen]);
+
+  // phones: fit the panel to the part of the screen that is visible (above the keyboard) and stop the page scrolling behind it
+  const [viewport, setViewport] = useState(null);
+  useEffect(() => {
+    if (!isOpen || window.innerWidth >= 768) return undefined;
+    const vv = window.visualViewport;
+    const update = () => setViewport(vv ? { top: vv.offsetTop, height: vv.height } : null);
+    update();
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+      document.body.style.overflow = overflow;
+    };
+  }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -117,8 +140,9 @@ export default function AssistantPanel({ isOpen, onClose }) {
   return (
     <Portal>
       <Flex role="dialog" aria-modal="false" aria-label="Motaa AI assistant" direction="column" position="fixed" zIndex={1450}
-        inset={{ base: 0, md: 'auto' }} right={{ md: 6 }} bottom={{ md: '100px' }} w={{ base: '100%', md: '410px' }}
-        h={{ base: '100%', md: 'min(680px, calc(100vh - 130px))' }} bg="#F4F7FB" borderRadius={{ base: 0, md: '26px' }} overflow="hidden"
+        top={{ base: viewport ? `${viewport.top}px` : 0, md: 'auto' }} left={{ base: 0, md: 'auto' }} right={{ base: 0, md: 6 }} bottom={{ base: 'auto', md: '100px' }}
+        w={{ base: '100%', md: '410px' }}
+        h={{ base: viewport ? `${viewport.height}px` : '100dvh', md: 'min(680px, calc(100vh - 130px))' }} bg="#F4F7FB" borderRadius={{ base: 0, md: '26px' }} overflow="hidden"
         boxShadow={{ md: '0 24px 70px rgba(11,18,32,0.28)' }} borderWidth={{ md: '1px' }} borderColor="rgba(11,18,32,0.06)"
         sx={{ '@media (prefers-reduced-motion: no-preference)': { animation: `${rise} .22s ease-out` } }}>
 
@@ -199,7 +223,8 @@ export default function AssistantPanel({ isOpen, onClose }) {
           <Flex align="flex-end" gap={2} bg="white" borderRadius="22px" p={1.5} pl={4} boxShadow="0 2px 12px rgba(16,24,40,0.08)" borderWidth="1px" borderColor="gray.100"
             _focusWithin={{ borderColor: 'primary' }}>
             <Textarea ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} rows={1} resize="none" border="none" px={0} py={2.5} minH="40px" maxH="120px"
-              placeholder="Ask about cars, parts, prices…" aria-label="Message Motaa AI" _focusVisible={{ boxShadow: 'none' }} fontSize="sm"
+              placeholder="Ask about cars, parts, prices…" aria-label="Message Motaa AI" _focusVisible={{ boxShadow: 'none' }}
+              fontSize={{ base: '16px', md: 'sm' }} /* under 16px, iPhones zoom the page in when you tap the box */
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <IconButton type="submit" aria-label="Send" icon={<ArrowUp size={18} />} isRound bg="primary" color="white" _hover={{ bg: 'secondary' }}
               isDisabled={!text.trim()} isLoading={busy} />
