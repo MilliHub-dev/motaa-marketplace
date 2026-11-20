@@ -94,6 +94,7 @@ const TransportForm = lazyPage(() => import('./pages/dashboard/transport/Transpo
 const PartsListing = lazyPage(() => import('./pages/marketplace/parts/PartsListing'));
 const PartDetail = lazyPage(() => import('./pages/marketplace/parts/PartDetail'));
 const PartsStorePage = lazyPage(() => import('./pages/marketplace/parts/PartsStore'));
+const PublicPreview = lazyPage(() => import('./components/PublicPreview'));
 const PartsCart = lazyPage(() => import('./pages/marketplace/parts/PartsCart'));
 const PartsCheckout = lazyPage(() => import('./pages/marketplace/parts/PartsCheckout'));
 const PartsOrderPlaced = lazyPage(() => import('./pages/marketplace/parts/PartsOrderPlaced'));
@@ -550,6 +551,15 @@ function App() {
                       </Route>
                     )
                   }
+
+                  {/* a business opening "View my public page" from its dashboard: the public page, in a preview frame */}
+                  {isBusinessLogin && (
+                    <Route ErrorBoundary={ErrorBoundary} element={<PublicPreview />}>
+                      <Route ErrorBoundary={ErrorBoundary} path='/dealership/:dealerId' element={<DealerProfile />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/mechanics/:mechId' element={<MechanicDetailPage />} />
+                      <Route ErrorBoundary={ErrorBoundary} path='/parts/stores/:storeId' element={<PartsStorePage />} />
+                    </Route>
+                  )}
 
                   {/* Wallet Routes */}
                   <Route ErrorBoundary={ErrorBoundary} element={
