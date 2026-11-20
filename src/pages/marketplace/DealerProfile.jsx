@@ -97,6 +97,8 @@ export default function DealerProfile() {
         const name = data?.business_name || data?.user?.name || 'Dealer';
         const reviews = asList(data?.reviews);
         const listings = asList(data?.listings);
+        // cars customers can see right now (from the API); the old `listings` list is a fallback for older servers
+        const liveCount = Number.isFinite(Number(data?.live_listings?.total)) ? Number(data.live_listings.total) : listings.length;
         const services = asList(data?.services);
         const rating = Number(data?.avg_rating);
         const reportHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Report dealer: ${name}`)}&body=${encodeURIComponent(`Dealer profile: ${window.location.href}\n\nWhat happened:\n`)}`;
@@ -146,7 +148,7 @@ export default function DealerProfile() {
                   </Flex>
 
                   <HStack spacing={8} mb={6}>
-                    <Stats number={listings.length} label={listings.length === 1 ? 'Listing' : 'Listings'} />
+                    <Stats number={liveCount} label={liveCount === 1 ? 'Listing' : 'Listings'} />
                     <Stats number={reviews.length} label={reviews.length === 1 ? 'Review' : 'Reviews'} />
                     {Number.isFinite(rating) && rating > 0 && (
                       <Stats number={<HStack as="span" spacing={1}><span>{rating.toFixed(1)}</span><Star size={16} fill="orange" color="orange" aria-hidden="true" /></HStack>} label="Rating" />
