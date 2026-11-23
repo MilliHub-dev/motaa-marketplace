@@ -125,7 +125,8 @@ export default function AssistantPanel({ isOpen, onClose }) {
     setMessages((list) => [...list, { role: 'user', content: message }]);
     setBusy(true);
     try {
-      const body = await api.post('/assistant/chat/', { message, history, page: pathname });
+      // the AI can take a while (searching, then answering): wait up to 3 minutes, not the usual 30 seconds
+      const body = await api.post('/assistant/chat/', { message, history, page: pathname }, { timeout: 180000 });
       const data = body?.data || {};
       setRemaining(data.remaining ?? null);
       setMessages((list) => [...list, { role: 'assistant', content: data.answer || 'Sorry, I have no answer for that.', cards: data.cards || [] }]);

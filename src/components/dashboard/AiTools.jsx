@@ -85,7 +85,7 @@ export function AiQuickStart({ kind = 'car', onApply, onPhotos }) {
     form.append('kind', kind);
     photos.forEach((file) => form.append('images', file));
     try {
-      const body = await api.post('/assistant/listing-draft/', form, { timeout: 120000 });
+      const body = await api.post('/assistant/listing-draft/', form, { timeout: 180000 });
       const fields = body?.data?.fields || {};
       const filled = onApply(fields) || [];
       onPhotos?.(photos);
