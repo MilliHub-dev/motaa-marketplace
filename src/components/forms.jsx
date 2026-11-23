@@ -34,7 +34,7 @@ import { AlertTriangle, Zap, Gauge, Settings, Upload, ImageOff, Undo2, Car, Door
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { GlobalStore } from '../App';
 import { ChoiceCards, FormSection, WizardStepper } from './dashboard/FormLayout';
-import { EnhanceAllButton, PhotoAiAction } from './dashboard/AiTools';
+import { EnhanceAllButton, PhotoAiAction, useAiStatus } from './dashboard/AiTools';
 
 // ---------------------------------------------------------------------------
 // Options (values = backend choice codes)
@@ -379,7 +379,10 @@ export function ListingDetailsForm({ form, errors = {}, onChange, typePicker }) 
  * `title`, `subject` and `owner` word it for something other than a car listing (e.g. a spare part).
  */
 /** aiTool: 'enhance' (car photos) or 'background' (spare parts) adds a Motaa AI button to each new photo. */
-export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error, title = 'Photos of the car', subject = 'Car', owner = 'listing', aiTool }) {
+export function ImageUploader({ items, onChange, limit = MAX_LISTING_IMAGES, maxMb = MAX_IMAGE_MB, error, title = 'Photos of the car', subject = 'Car', owner = 'listing', aiTool: requestedTool }) {
+  // "White background" needs photo editing switched on at the server; "Enhance" works without any AI key
+  const aiStatus = useAiStatus();
+  const aiTool = requestedTool === 'background' && !aiStatus?.white_background ? undefined : requestedTool;
   const inputId = useId();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);

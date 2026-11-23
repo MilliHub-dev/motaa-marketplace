@@ -2,10 +2,24 @@
 // - AiQuickStart: pick a few photos and the AI fills in the listing form (the seller checks it before posting).
 // - PhotoAiAction: on each new photo, "Enhance" (cars: light/colour/sharpness, nothing added or removed) or
 //   "White background" (parts: the part cut out onto clean white), with undo.
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Box, Button, Flex, HStack, Image, List, ListIcon, ListItem, Spinner, Text, Tooltip, Wrap, WrapItem } from '@chakra-ui/react';
 import { AlertCircle, CheckCircle2, ImagePlus, Sparkles, Undo2, Wand2 } from 'lucide-react';
 import { GlobalStore } from '../../App';
+
+// Which AI tools the server has switched on (white background needs a photo-editing key). Asked once per page load.
+let statusPromise = null;
+export function useAiStatus() {
+  const { api } = useContext(GlobalStore);
+  const [status, setStatus] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    statusPromise = statusPromise || api.get('/assistant/status/').then((body) => body?.data || {}).catch(() => ({}));
+    statusPromise.then((value) => { if (alive) setStatus(value); });
+    return () => { alive = false; };
+  }, [api]);
+  return status;
+}
 
 export function dataUrlToFile(dataUrl, name) {
   const [head, body] = String(dataUrl).split(',', 2);
