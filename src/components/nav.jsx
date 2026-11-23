@@ -20,6 +20,7 @@ import { HelpCircle, Settings, ArrowLeft, ArrowRight, Package, Receipt, Shopping
 import { Home3, Shop, Coin, User } from 'iconsax-react';
 import { NavLink, Link as RLink, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalStore } from '../App';
+import VisitorNav from './VisitorNav';
 import { CustomerSearchBar } from '.';
 import { usePartsCartCount } from './parts';
 import { useChatUnread } from '../hooks/useChatUnread';
@@ -142,35 +143,8 @@ const TopLink = ({ to, children, end }) => (
 )
 
 
-export const UnauthenticatedNavbar = () => {
-  const [navIsOpen, setNavState] = useState(false);
-
-  return (
-    <NavbarShell dark>
-      <Brand light />
-
-      <HStack as="nav" aria-label="Main" display={{ base: 'none', md: 'flex' }} spacing={{ md: 5, lg: 10 }}>
-        {PUBLIC_NAV.map((item) => <TopLink key={item.to} to={item.to} end={item.to === '/'}>{item.label}</TopLink>)}
-      </HStack>
-
-      <HStack spacing={{ base: 2, sm: 4 }}>
-        <Button as={RLink} to="/signup" display={{ base: 'none', sm: 'inline-flex' }} color="white" leftIcon={<RiAccountCircleFill className="icon" />} variant="link">Sign up</Button>
-        <Button as={RLink} to="/login" borderWidth={2} _hover={{ bgColor: 'white', color: 'primary' }} w={{ base: '88px', sm: '100px' }} color="white" borderColor="white" variant="outline">Login</Button>
-        <IconButton
-         display={{ base: 'inline-flex', md: 'none' }}
-         onClick={() => setNavState(true)}
-         aria-label="Open menu"
-         variant="ghost"
-         color="white"
-         _hover={{ bg: 'whiteAlpha.200' }}
-         icon={<RiMenuLine size={24} />}
-        />
-      </HStack>
-
-      <Sidebar onClose={() => setNavState(false)} show={navIsOpen} />
-    </NavbarShell>
-  )
-}
+/** Signed-out visitors: see VisitorNav (transparent over the landing hero, a floating bar elsewhere). */
+export const UnauthenticatedNavbar = () => <VisitorNav />;
 
 
 export const NavIconLink = ({ to, label, icon, ...props }) => (

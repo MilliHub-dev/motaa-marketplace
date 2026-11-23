@@ -54,7 +54,11 @@ export default function AssistantLauncher() {
           transition="transform .2s, box-shadow .2s" _hover={{ transform: 'translateY(-2px) scale(1.04)', boxShadow: '0 16px 36px rgba(0,101,181,0.55)' }}
           _focusVisible={{ outline: '3px solid #FDD153', outlineOffset: '3px' }}
           // a form's sticky Save bar is at the bottom: sit above it so it's never covered
-          sx={{ 'body:has([data-motaa-sticky-actions]) &': { bottom: { base: '150px', md: '104px' } } }}>
+          sx={{
+            'body:has([data-motaa-sticky-actions]) &': { bottom: { base: '150px', md: '104px' } },
+            // never float over an open menu or dialog (e.g. the phone navigation menu)
+            'body:has(.chakra-modal__content-container) &': { display: 'none' },
+          }}>
           {!seen && !open && (
             <Box position="absolute" inset={0} borderRadius="full" bg="#4C9BE0" aria-hidden="true"
               sx={{ '@media (prefers-reduced-motion: no-preference)': { animation: `${pulse} 1.8s ease-out infinite` } }} />

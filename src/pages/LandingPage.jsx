@@ -143,6 +143,8 @@ function Hero(){
       className="header hero-bg"
       display="flex"
       alignItems="center"
+      // the visitor nav floats over the top of the hero: run the photo under it and keep the text clear of it
+      style={{ minHeight: '100svh', paddingTop: 72 }}
     >
       <Container maxW="800px" px={{ base: 4, md: 6 }} py={{ base: 10, md: 16 }} textAlign="center">
         <Heading as="h1" id="hero-title" fontWeight={700} fontSize={{ base: '34px', sm: '43px', md: '56px' }} lineHeight={1.1} mb={4} className="animate__animated animate__fadeInUp">
