@@ -23,8 +23,10 @@ import {
   Text,
   Textarea,
 } from '@chakra-ui/react';
-import { AtSign, CheckCircle, LifeBuoy, Mail, MapPin, Phone } from 'lucide-react';
+import { AtSign, CheckCircle, ChevronRight, LifeBuoy, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import TicketThread from '../components/support/TicketThread';
 import { GlobalStore } from '../App';
 import { useApiMutation, useApiQuery } from '../hooks/useApi';
 import { EmptyState, ErrorState } from '../components/states';
@@ -225,7 +227,7 @@ function RequestForm({ loggedIn, onCreated }) {
   );
 }
 
-function TicketList({ query }) {
+function TicketList({ query, onOpen }) {
   const { naturalDate } = useContext(GlobalStore);
   if (query.loading && query.data === undefined) {
     return <Stack spacing={3} role="status" aria-label="Loading your requests">{[0, 1].map((i) => <Skeleton key={i} h="72px" borderRadius="lg" />)}</Stack>;
@@ -235,7 +237,7 @@ function TicketList({ query }) {
   }
   const tickets = asList(query.data);
   if (!tickets.length) {
-    return <EmptyState icon={LifeBuoy} title="No requests yet" description="Requests you submit will appear here with their status." minH="160px" />;
+    return <EmptyState icon={LifeBuoy} title="No requests yet" description="Requests you submit will appear here. Open one to chat with our support team." minH="160px" />;
   }
   return (
     <Stack as="ul" spacing={3} listStyleType="none">
@@ -243,19 +245,31 @@ function TicketList({ query }) {
         const status = TICKET_STATUS[ticket?.status] || { label: ticket?.status_display || 'Open', color: 'gray' };
         const date = ticket?.date_created ? new Date(ticket.date_created) : null;
         return (
-          <Box as="li" key={ticket?.uuid || ticket?.id} p={4} borderWidth="1px" borderColor="gray.100" borderRadius="lg" bg="white">
-            <Flex justify="space-between" gap={3} align="flex-start">
-              <Box minW={0}>
-                <Text fontWeight="600" noOfLines={1}>{ticket?.subject || 'Support request'}</Text>
-                <Text fontSize="sm" color="gray.500">
-                  #{ticket?.id}
-                  {ticket?.category ? ` · ${ticket.category}` : ''}
-                  {date && !Number.isNaN(date.getTime()) ? ` · ${naturalDate(date)}` : ''}
-                </Text>
-              </Box>
-              <Badge colorScheme={status.color} borderRadius="full" px={2} textTransform="none" flexShrink={0}>{status.label}</Badge>
-            </Flex>
-            {ticket?.message && <Text fontSize="sm" color="gray.600" mt={2} noOfLines={2}>{ticket.message}</Text>}
+          <Box as="li" key={ticket?.uuid || ticket?.id}>
+            <Box as="button" type="button" onClick={() => onOpen(ticket)} w="100%" textAlign="left" p={4} borderWidth="1px"
+              borderColor={ticket?.support_replied_last && ticket?.status !== 'resolved' ? 'blue.200' : 'gray.100'} borderRadius="lg" bg="white"
+              _hover={{ borderColor: 'blue.200', boxShadow: 'sm' }} _focusVisible={{ outline: '2px solid', outlineColor: 'blue.400' }} transition="all .15s">
+              <Flex justify="space-between" gap={3} align="flex-start">
+                <Box minW={0}>
+                  <Text fontWeight="600" noOfLines={1}>{ticket?.subject || 'Support request'}</Text>
+                  <Text fontSize="sm" color="gray.500">
+                    #{ticket?.id}
+                    {ticket?.category ? ` · ${ticket.category}` : ''}
+                    {date && !Number.isNaN(date.getTime()) ? ` · ${naturalDate(date)}` : ''}
+                  </Text>
+                </Box>
+                <Badge colorScheme={status.color} borderRadius="full" px={2} textTransform="none" flexShrink={0}>{status.label}</Badge>
+              </Flex>
+              {ticket?.message && <Text fontSize="sm" color="gray.600" mt={2} noOfLines={2}>{ticket.message}</Text>}
+              <Flex mt={3} align="center" justify="space-between" fontSize="sm">
+                {ticket?.support_replied_last ? (
+                  <Flex align="center" gap={1.5} color="primary" fontWeight="600"><Icon as={MessageCircle} boxSize={4} aria-hidden="true" />Support replied</Flex>
+                ) : (
+                  <Text color="gray.500">{ticket?.replies ? `${ticket.replies} ${ticket.replies === 1 ? 'reply' : 'replies'}` : 'Waiting for support'}</Text>
+                )}
+                <Flex align="center" color="gray.500">Open chat<Icon as={ChevronRight} boxSize={4} aria-hidden="true" /></Flex>
+              </Flex>
+            </Box>
           </Box>
         );
       })}
@@ -274,6 +288,23 @@ export default function SupportPage() {
     [loggedIn],
     { enabled: loggedIn, select: (body) => asList(body?.data) }
   );
+  const [params, setParams] = useSearchParams();
+  const [openTicket, setOpenTicket] = useState(null);
+  const linked = params.get('ticket');
+  useEffect(() => {
+    // the reply email links to /support?ticket=<id>: open that conversation once the list has loaded
+    if (!linked || openTicket) return;
+    const found = asList(tickets.data).find((t) => t?.uuid === linked);
+    if (found) setOpenTicket(found);
+  }, [linked, tickets.data, openTicket]);
+  const closeTicket = () => {
+    setOpenTicket(null);
+    if (linked) { params.delete('ticket'); setParams(params, { replace: true }); }
+  };
+  const updateTicket = (updated) => {
+    if (!updated?.uuid) return;
+    tickets.setData((list) => asList(list).map((t) => (t?.uuid === updated.uuid ? { ...t, ...updated, thread: undefined } : t)));
+  };
 
   return (
     <Box bg="gray.50" py={{ base: 8, md: 12 }}>
@@ -293,7 +324,7 @@ export default function SupportPage() {
           <Box as="section" aria-labelledby="request-heading" gridColumn={{ lg: loggedIn ? 'span 3' : 'auto' }} bg="white" p={{ base: 5, md: 8 }} borderRadius="xl" borderWidth="1px" borderColor="gray.100">
             <Heading id="request-heading" as="h2" size="md" mb={1}>{loggedIn ? 'Submit a request' : 'Send us a message'}</Heading>
             <Text color="gray.600" fontSize="sm" mb={6}>
-              {loggedIn ? "Tell us what's going on and we'll follow up by email." : "We'll reply to the email address you give us."}
+              {loggedIn ? "Tell us what's going on. You can chat with our team under Your requests, and we'll email you when they reply." : "We'll reply to the email address you give us."}
             </Text>
             <RequestForm
               loggedIn={loggedIn}
@@ -304,7 +335,8 @@ export default function SupportPage() {
           {loggedIn && (
             <Box as="section" aria-labelledby="tickets-heading" gridColumn={{ lg: 'span 2' }}>
               <Heading id="tickets-heading" as="h2" size="md" mb={4}>Your requests</Heading>
-              <TicketList query={tickets} />
+              <TicketList query={tickets} onOpen={setOpenTicket} />
+              <TicketThread ticket={openTicket} statuses={TICKET_STATUS} onClose={closeTicket} onUpdated={updateTicket} />
             </Box>
           )}
         </SimpleGrid>
